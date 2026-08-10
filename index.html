@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#150d03">
 <title>Bal Vakti 🐝</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
     --bg:#150d03; --card:#2a1c08; --card2:#33230b; --line:#4a3312;
@@ -496,14 +497,19 @@ function dLevel(s) {
 async function load() {
   let res = null;
   let demoReason = '';
-  try { res = await api('/api/me', { initData: initData() }); } catch (e) {}
-  if (!res) demoReason = 'Sunucuya ulaşılamadı (ağ hatası)';
-  else if (!res.ok) {
-    demoReason = res.error === 'auth_hatasi'
-      ? 'Telegram oturumu doğrulanamadı — oyunu @bal_vakti_bot içinden 🎮 Oyna ile açmalısın'
-      : (res.detail || res.error || 'Bilinmeyen hata');
-    // Tarayıcıdan girildiyse (Telegram yok) demo hesabıyla bağlanmayı dene
-    try { res = await api('/api/me', { demo: true }); } catch (e) {}
+  if (!tg) {
+    // Telegram WebApp script'i yüklenmemiş → tarayıcı önizlemesi
+    demoReason = 'Tarayıcıda açıldı (Telegram yok). Gerçek oyun: @bal_vakti_bot → 🎮 Oyna';
+  } else {
+    try { res = await api('/api/me', { initData: initData() }); } catch (e) {}
+    if (!res) demoReason = 'Sunucuya ulaşılamadı (ağ hatası)';
+    else if (!res.ok) {
+      demoReason = res.error === 'auth_hatasi'
+        ? 'Telegram oturumu doğrulanamadı — oyunu kapatıp tekrar aç (eski oturum reddedilir)'
+        : (res.detail || res.error || 'Bilinmeyen hata');
+      // Tarayıcıdan girildiyse (Telegram yok) demo hesabıyla bağlanmayı dene
+      try { res = await api('/api/me', { demo: true }); } catch (e) {}
+    }
   }
   if (res && res.ok) {
     S = res.state; cfg = { ...cfg, ...(res.cfg || {}) }; myRankCache = res.myRank;
@@ -671,6 +677,10 @@ async function doResetMe() {
 }
 async function reconnect() {
   toast('🔄 Bağlanmayı deniyorum...');
+  if (!tg) {
+    toast('⛔ Telegram bağlantısı yok — oyunu @bal_vakti_bot içinden 🎮 Oyna ile aç');
+    return;
+  }
   const res = await api('/api/me', { initData: initData() });
   if (res && res.ok) {
     S = res.state; cfg = { ...cfg, ...(res.cfg || {}) }; myRankCache = res.myRank; uid = res.id || 1;
@@ -679,8 +689,8 @@ async function reconnect() {
     toast('✅ Sunucuya bağlandın! Veriler kaydediliyor');
     renderAll(); return;
   }
-  const why = !res ? 'ağ hatası' : (res.error === 'auth_hatasi' ? 'oturum yok' : (res.detail || res.error));
-  toast('⛔ Bağlanamadı: ' + why + ' — Telegram içinden açmayı dene');
+  const why = !res ? 'ağ hatası' : (res.error === 'auth_hatasi' ? 'Telegram oturumu doğrulanamadı — oyunu kapatıp tekrar aç (eski oturum reddedilir)' : (res.detail || res.error));
+  toast('⛔ ' + why);
 }
 
 function renderInvite() {
