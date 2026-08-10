@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#150d03">
+<title>Bal Vakti 🐝</title>
+<style>
+  :root{
+    --bg:#150d03; --card:#2a1c08; --card2:#33230b; --line:#4a3312;
+    --amber:#ffb02e; --gold:#ffd166; --cream:#ffe9c0; --muted:#c9a96b;
+    --green:#7bd88f; --red:#ff7b6b; --blue:#8ecbff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%, #3a2408 0%, var(--bg) 60%);
+    color:var(--cream); user-select:none; touch-action:manipulation;
+    padding-bottom:92px;
+  }
+  /* ── Başlık ── */
+  header{
+    position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+    padding:12px 16px;background:linear-gradient(180deg,#4a2d0aee,#2a1c08ee);
+    border-bottom:1px solid var(--line);backdrop-filter:blur(6px);
+  }
+  header .logo{font-size:22px}
+  header .titles{flex:1;min-width:0}
+  header .titles b{display:block;font-size:17px;color:var(--gold);letter-spacing:.3px}
+  header .titles span{font-size:12px;color:var(--muted)}
+  .iconbtn{
+    background:var(--card2);border:1px solid var(--line);border-radius:14px;
+    padding:9px 12px;font-size:15px;color:var(--cream);cursor:pointer;font-weight:700;
+  }
+  .iconbtn:active{transform:scale(.94)}
+  /* ── İçerik ── */
+  main{max-width:480px;margin:0 auto;padding:14px 14px 20px}
+  .hero{
+    background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);
+    border-radius:22px;padding:22px 18px 18px;text-align:center;position:relative;overflow:hidden;
+  }
+  .hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(300px 120px at 50% 0%, #ffd16622, transparent 70%)}
+  .jar{font-size:64px;display:inline-block;animation:bob 3s ease-in-out infinite;filter:drop-shadow(0 8px 16px #00000066)}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+  .balcount{font-size:38px;font-weight:900;color:var(--gold);line-height:1.1;text-shadow:0 2px 0 #00000055}
+  .subline{font-size:13px;color:var(--muted);margin-top:4px}
+  .capbar{height:14px;background:#171003;border:1px solid var(--line);border-radius:99px;margin:14px 4px 4px;overflow:hidden}
+  .capbar i{display:block;height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,#f59e0b,#ffd166);transition:width .5s ease}
+  .captxt{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;padding:0 4px}
+  .fullwarn{display:none;color:var(--red);font-weight:800;font-size:13px;margin-top:8px;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .btn{
+    display:block;width:100%;border:none;border-radius:16px;cursor:pointer;
+    background:linear-gradient(180deg,#ffd166,#f59e0b);color:#241703;
+    font-size:17px;font-weight:900;padding:15px;font-family:inherit;
+    box-shadow:0 4px 0 #a16207,0 8px 18px #00000055;transition:transform .08s;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a16207}
+  .btn:disabled{filter:grayscale(.8) brightness(.7);box-shadow:0 2px 0 #5a3a08}
+  .btn.small{font-size:14px;padding:11px;border-radius:13px}
+  .btn.green{background:linear-gradient(180deg,#9be8ab,#3fae5e);color:#10240f;box-shadow:0 4px 0 #1f5c31}
+  .btn.blue{background:linear-gradient(180deg,#a8d8ff,#4f9ae0);color:#0b2238;box-shadow:0 4px 0 #1d5a92}
+  .btn.gray{background:linear-gradient(180deg,#4d4026,#3a2f19);color:var(--cream);box-shadow:0 4px 0 #1d1608}
+  .quicks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  /* ── Kartlar ── */
+  .card{
+    background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);
+    border-radius:18px;padding:14px;margin-top:12px;
+  }
+  .card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:#171003;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+  .stat .v{font-size:17px;font-weight:900;color:var(--cream)}
+  .stat .l{font-size:11px;color:var(--muted);margin-top:2px}
+  .upg{display:flex;align-items:center;gap:12px}
+  .upg .info{flex:1}
+  .upg .info b{font-size:15px}
+  .upg .info span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+  .upg .btn{width:104px;flex-shrink:0}
+  .divider{height:1px;background:var(--line);margin:12px 0}
+  /* ── Arılar ── */
+  .bees{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .bee{background:#171003;border:1px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center;position:relative}
+  .bee .e{font-size:26px;line-height:1.2}
+  .bee .lv{position:absolute;top:6px;right:8px;background:var(--amber);color:#241703;font-size:10px;font-weight:900;border-radius:99px;padding:1px 6px}
+  .bee .n{font-size:14px;font-weight:900;margin-top:4px}
+  .bee .p{font-size:10px;color:var(--muted)}
+  .bee.locked{filter:grayscale(1);opacity:.45}
+  .buybee{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px}
+  .buybee .e{font-size:34px}
+  .buybee .info{flex:1}
+  .buybee .info b{font-size:16px;color:var(--gold)}
+  .buybee .info span{display:block;font-size:12px;color:var(--muted)}
+  .buybee .btn{width:110px;flex-shrink:0}
+  .hint{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.5}
+  /* ── Rozetler ── */
+  .achs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ach{background:#171003;border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+  .ach .e{font-size:28px}
+  .ach b{display:block;font-size:13px;margin-top:6px}
+  .ach span{display:block;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .ach .r{display:inline-block;margin-top:6px;font-size:10px;font-weight:900;color:#241703;background:var(--amber);border-radius:99px;padding:2px 8px}
+  .ach.locked{filter:grayscale(1);opacity:.5}
+  .ach.locked .r{background:#4a4026;color:var(--muted)}
+  /* ── Sıralama ── */
+  .lb{display:flex;flex-direction:column;gap:6px}
+  .lrow{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+  .lrow .rk{width:26px;text-align:center;font-weight:900;color:var(--muted)}
+  .lrow.me{border-color:var(--amber);background:#2a1c08}
+  .lrow .nm{flex:1;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .sc{font-size:13px;color:var(--gold);font-weight:800}
+  .lrow .me-badge{font-size:10px;color:#241703;background:var(--amber);border-radius:99px;padding:2px 6px;font-weight:900}
+  /* ── Alt sekmeler ── */
+  nav{
+    position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;
+    background:linear-gradient(180deg,#241705f2,#1a1004f2);border-top:1px solid var(--line);backdrop-filter:blur(8px);
+  }
+  nav button{
+    flex:1;border:none;background:none;color:var(--muted);padding:9px 0 10px;cursor:pointer;
+    font-family:inherit;font-size:10px;font-weight:800;display:flex;flex-direction:column;align-items:center;gap:2px;
+  }
+  nav button .e{font-size:20px}
+  nav button.active{color:var(--gold)}
+  nav button.active .e{transform:scale(1.15)}
+  /* ── Modal ── */
+  .overlay{position:fixed;inset:0;z-index:50;background:#000000aa;display:none;align-items:flex-end;justify-content:center}
+  .overlay.show{display:flex}
+  .modal{width:100%;max-width:480px;background:linear-gradient(180deg,#33230b,#201504);border:1px solid var(--line);border-top-left-radius:24px;border-top-right-radius:24px;padding:20px;padding-bottom:28px;animation:slideup .25s ease}
+  @keyframes slideup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+  .modal h2{font-size:19px;color:var(--gold);text-align:center}
+  .modal p{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+  .close{position:absolute;right:16px;top:14px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+  .modalwrap{position:relative}
+  .days{display:flex;justify-content:space-between;margin:16px 0;gap:4px}
+  .day{flex:1;text-align:center;background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px 2px}
+  .day .d{font-size:16px}
+  .day .v{font-size:11px;font-weight:900;color:var(--cream);margin-top:3px}
+  .day.done{border-color:var(--amber)}
+  .day.now{border-color:var(--gold);box-shadow:0 0 0 2px #ffd16644;background:#2a1c08}
+  /* VızVız */
+  .vz{width:170px;height:170px;border-radius:50%;margin:14px auto;display:flex;align-items:center;justify-content:center;
+    font-size:80px;cursor:pointer;border:none;
+    background:radial-gradient(circle at 35% 30%, #ffd166, #f59e0b 70%);box-shadow:0 6px 0 #a16207,0 14px 30px #00000066;transition:transform .06s}
+  .vz:active{transform:scale(.92)}
+  .vz.off{filter:grayscale(.9);opacity:.5;pointer-events:none}
+  .vztimer{font-size:26px;font-weight:900;color:var(--gold);text-align:center}
+  .vztaps{font-size:14px;color:var(--muted);text-align:center;margin-top:4px}
+  .float{position:absolute;font-weight:900;color:var(--gold);font-size:18px;pointer-events:none;animation:floatup .9s ease forwards}
+  @keyframes floatup{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-46px)}}
+  /* ── Toast ── */
+  #toasts{position:fixed;top:14px;left:0;right:0;z-index:99;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+  .toast{
+    background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--amber);color:var(--cream);
+    border-radius:99px;padding:9px 18px;font-size:13px;font-weight:700;max-width:92%;
+    box-shadow:0 8px 24px #00000088;animation:pop .25s ease;
+  }
+  @keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+  .confetti{position:fixed;z-index:98;pointer-events:none;font-size:20px;animation:conf 1.1s ease-out forwards}
+  @keyframes conf{from{opacity:1;transform:translateY(0) rotate(0)}to{opacity:0;transform:translateY(-120px) rotate(220deg)}}
+  /* ── Yükleme ── */
+  #loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:16px;color:var(--muted)}
+  #loader .e{font-size:54px;animation:bob 1.2s ease-in-out infinite}
+  .demoflag{display:none;text-align:center;font-size:11px;color:var(--blue);margin-top:10px}
+  .linkbox{background:#171003;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);word-break:break-all;margin:10px 0}
+  .row2{display:flex;gap:8px}
+  .row2 .btn{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🐝</div>
+  <div class="titles">
+    <b>Bal Vakti</b>
+    <span id="lvltxt">Yükleniyor...</span>
+  </div>
+  <button class="iconbtn" onclick="openInvite()">👥 Davet</button>
+</header>
+
+<main>
+  <!-- KOVA -->
+  <section id="tab-kovan">
+    <div class="hero">
+      <div class="jar">🍯</div>
+      <div class="balcount" id="bal">0</div>
+      <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn</div>
+      <div class="capbar"><i id="capfill"></i></div>
+      <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
+      <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLU — Topla!</div>
+      <button class="btn" id="btn-collect" onclick="doCollect()">🍯 Topla</button>
+    </div>
+
+    <div class="quicks">
+      <button class="btn green small" id="btn-daily" onclick="openDaily()">🎁 Günlük Ödül</button>
+      <button class="btn blue small" onclick="openVzvz()">⚡ VızVız</button>
+    </div>
+
+    <div class="card">
+      <h3>📊 İstatistikler</h3>
+      <div class="stats">
+        <div class="stat"><div class="v" id="st-bees">0</div><div class="l">🐝 Arı</div></div>
+        <div class="stat"><div class="v" id="st-prod">0</div><div class="l">⚡ Bal/sn</div></div>
+        <div class="stat"><div class="v" id="st-cap">0</div><div class="l">🏺 Depo</div></div>
+        <div class="stat"><div class="v" id="st-total">0</div><div class="l">💰 Toplam</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏭 Kovan</h3>
+      <div class="upg">
+        <div class="info">
+          <b>Kovanı Yükselt</b>
+          <span>Seviye <b id="kv-lv">0</b> → <b id="kv-nx">1</b> · üretim <b>x2</b></span>
+        </div>
+        <button class="btn small" id="btn-kovan" onclick="doUpgrade('kovan')">🍯 400</button>
+      </div>
+      <div class="divider"></div>
+      <div class="upg">
+        <div class="info">
+          <b>Depoyu Büyüt</b>
+          <span>Seviye <b id="dp-lv">0</b> → <b id="dp-nx">1</b> · kapasite <b>x4</b></span>
+        </div>
+        <button class="btn small" id="btn-depo" onclick="doUpgrade('depo')">🍯 200</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🎁 Arkadaşlarını Davet Et</h3>
+      <p style="font-size:12px;color:var(--muted)">Davet ettiğin arkadaş oyuna başlayınca <b style="color:var(--amber)">ikinize de bonus bal!</b> 🐝</p>
+      <div class="linkbox" id="invlink">yükleniyor...</div>
+      <button class="btn gray small" onclick="copyInvite()">📋 Linki Kopyala</button>
+      <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px" id="refcount">Davet ettiğin: 0</p>
+    </div>
+
+    <div class="card" style="text-align:center">
+      <button class="btn gray small" onclick="openHowto()">ℹ️ Nasıl Oynanır?</button>
+    </div>
+  </section>
+
+  <!-- ARILAR -->
+  <section id="tab-bees" style="display:none">
+    <div class="buybee">
+      <div class="e">🐝</div>
+      <div class="info">
+        <b>Arı Al (Seviye 1)</b>
+        <span id="bee-owned">Toplam arı: 0</span>
+      </div>
+      <button class="btn" id="btn-buy" onclick="doBuy()">🍯 10</button>
+    </div>
+    <p class="hint">✨ <b>2 aynı seviye arı = 1 üst seviye</b> (otomatik)<br>Üst seviye arılar <b>3 kat</b> fazla bal üretir!</p>
+    <div class="card">
+      <h3>🐝 Kovanındaki Arılar</h3>
+      <div class="bees" id="bee-grid"></div>
+    </div>
+  </section>
+
+  <!-- ROZETLER -->
+  <section id="tab-achs" style="display:none">
+    <div class="card">
+      <h3>🏅 Rozetler</h3>
+      <div class="achs" id="ach-grid"></div>
+    </div>
+  </section>
+
+  <!-- SIRALAMA -->
+  <section id="tab-lb" style="display:none">
+    <div class="card">
+      <h3>🏆 En İyi Arıcılar</h3>
+      <div class="lb" id="lb-list"></div>
+      <p class="hint" id="lb-note"></p>
+    </div>
+  </section>
+
+  <div class="demoflag" id="demoflag">🔌 Önizleme modu — sunucuya bağlı değil (veriler kaydedilmez). Deploy edince gerçek moda geçer.</div>
+</main>
+
+<nav>
+  <button class="active" data-tab="kovan" onclick="switchTab('kovan')"><span class="e">🏠</span>Kovan</button>
+  <button data-tab="bees" onclick="switchTab('bees')"><span class="e">🐝</span>Arılar</button>
+  <button data-tab="achs" onclick="switchTab('achs')"><span class="e">🏅</span>Rozetler</button>
+  <button data-tab="lb" onclick="switchTab('lb')"><span class="e">🏆</span>Sıralama</button>
+</nav>
+
+<div class="overlay" id="overlay"><div class="modalwrap">
+  <button class="close" onclick="closeModal()">✕</button>
+  <div class="modal" id="modal-body"></div>
+</div></div>
+
+<div id="toasts"></div>
+
+<div id="loader"><div class="e">🐝</div>Bal hazırlanıyor...</div>
+
+<script>
+/* ═══════════════ Bal Vakti 🐝 — Mini App ═══════════════ */
+const $ = (s) => document.querySelector(s);
+const tg = window.Telegram?.WebApp;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+
+const DAY = 86400000;
+const DAILY_REWARDS = [50, 100, 200, 400, 800, 1600, 3000];
+const MAX_LEVEL = 12;
+
+let S = null;          // oyun durumu
+let mode = 'server';   // 'server' | 'demo'
+let uid = 1;           // kullanıcı id (davet kodu için)
+let cfg = { bot: '', appUrl: '', vzvzCooldownSec: 300, vzvzDurationSec: 10 };
+let myRankCache = null;
+let tab = 'kovan';
+let vzvzRunning = false;
+let lastLbFetch = 0;
+
+/* ── yardımcılar ── */
+function fmt(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e4) return (n / 1e3).toFixed(1) + 'k';
+  return Math.floor(n).toLocaleString('tr-TR');
+}
+function fmtP(n) { return n < 10 ? n.toFixed(1) : fmt(n); }
+function haptic(kind) { try { if (tg?.HapticFeedback) tg.HapticFeedback[kind]('light'); } catch (e) {} }
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+function confetti() {
+  const em = ['🍯', '🐝', '✨', '🏆'];
+  for (let i = 0; i < 14; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti'; c.textContent = em[Math.floor(Math.random() * em.length)];
+    c.style.left = (8 + Math.random() * 84) + 'vw';
+    c.style.top = (20 + Math.random() * 40) + 'vh';
+    c.style.animationDelay = (Math.random() * 0.3) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 1500);
+  }
+}
+function initData() { return tg ? tg.initData : ''; }
+
+/* ── API ── */
+async function api(path, body) {
+  try {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+/* ═══════════════ DEMO MODU (sunucu yoksa yerel oyun) ═══════════════ */
+function demoNew() {
+  return {
+    name: 'Kanka', bal: 25, totalEarned: 0, beesOwned: 1,
+    bees: Array.from({ length: MAX_LEVEL + 1 }, (_, i) => (i === 1 ? 1 : 0)),
+    kovan: 0, depo: 0, lastCollect: Date.now(), streak: 0, lastDaily: 0,
+    refs: 0, inviter: null, ach: [], vzvzAt: 0, vzvzCount: 0, created: Date.now(),
+  };
+}
+function demoLoad() {
+  try { const raw = localStorage.getItem('balvakti_demo'); if (raw) { const s = JSON.parse(raw); s.name = 'Kanka'; return s; } } catch (e) {}
+  return demoNew();
+}
+function demoSave() { try { localStorage.setItem('balvakti_demo', JSON.stringify(S)); } catch (e) {} }
+const dProd = (s) => { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * 0.25 * Math.pow(3, l - 1); return t * Math.pow(2, s.kovan); };
+const dCap = (s) => 500 * Math.pow(4, s.depo);
+const dBeeCost = (s) => Math.floor(10 * Math.pow(1.09, s.beesOwned));
+const dKovanCost = (s) => Math.floor(400 * Math.pow(4, s.kovan));
+const dDepoCost = (s) => Math.floor(200 * Math.pow(3, s.depo));
+function dCollect(s) {
+  const elapsed = Math.max(0, Date.now() - s.lastCollect);
+  let gain = (dProd(s) * elapsed) / 1000;
+  if (gain > dCap(s)) gain = dCap(s);
+  s.bal += gain; s.totalEarned += gain; s.lastCollect = Date.now();
+  return gain;
+}
+function dLevel(s) {
+  const thr = [0, 200, 1000, 5000, 20000, 100000, 500000, 2.5e6, 1e7, 5e7, 2.5e8];
+  let lvl = 1; for (let i = 0; i < thr.length; i++) if (s.totalEarned >= thr[i]) lvl = i + 1;
+  return { level: lvl, title: ['Yavru Arı','Bal Toplayıcı','Kovan Çırağı','Arıcı','Usta Arıcı','Bal Baronu','Kovan Lordu','Bal Kralı','Arı İmparatoru','Bal Efsanesi','Kozmik Kovan'][Math.min(lvl, 11) - 1] };
+}
+
+/* ═══════════════ YÜKLEME ═══════════════ */
+async function load() {
+  let res = null;
+  try { res = await api('/api/me', { initData: initData() }); } catch (e) {}
+  if (!res || !res.ok) {
+    // Tarayıcıdan girildiyse (Telegram yok) demo hesabıyla bağlanmayı dene
+    try { res = await api('/api/me', { demo: true }); } catch (e) {}
+  }
+  if (res && res.ok) {
+    S = res.state; cfg = { ...cfg, ...(res.cfg || {}) }; myRankCache = res.myRank;
+    uid = res.id || 1;
+    mode = 'server';
+    if (res.gained > 0) toast('🍯 +' + fmt(res.gained) + ' bal üretildi');
+    res.freshAch.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); });
+    if (res.isNew) toast('🐝 Hoş geldin! 25 bal + 1 arı seni bekliyor');
+  } else {
+    mode = 'demo';
+    $('#demoflag').style.display = 'block';
+    S = demoLoad();
+    const g = dCollect(S); if (g > 0) toast('🍯 +' + fmt(g) + ' bal üretildi (önizleme)');
+    demoSave();
+  }
+  $('#loader').style.display = 'none';
+  renderAll();
+}
+function renderAll() {
+  const prod = mode === 'demo' ? dProd(S) : totalProd(S);
+  const cap = mode === 'demo' ? dCap(S) : capacity(S);
+  const lvl = mode === 'demo' ? dLevel(S) : playerLevel(S);
+
+  $('#bal').textContent = fmt(S.bal);
+  $('#prod').textContent = fmtP(prod);
+  $('#capnow').textContent = fmt(Math.min(S.bal, cap)) + ' 🍯';
+  $('#capmax').textContent = fmt(cap);
+  const pct = Math.min(100, (S.bal / cap) * 100);
+  $('#capfill').style.width = pct + '%';
+  $('#fullwarn').style.display = S.bal >= cap * 0.985 ? 'block' : 'none';
+  $('#lvltxt').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
+
+  $('#st-bees').textContent = fmt(S.beesOwned);
+  $('#st-prod').textContent = fmtP(prod);
+  $('#st-cap').textContent = fmt(cap);
+  $('#st-total').textContent = fmt(S.totalEarned);
+
+  /* kovan */
+  const kv = mode === 'demo' ? dKovanCost(S) : kovanCost(S);
+  const dp = mode === 'demo' ? dDepoCost(S) : depoCost(S);
+  $('#kv-lv').textContent = S.kovan; $('#kv-nx').textContent = S.kovan + 1;
+  $('#dp-lv').textContent = S.depo; $('#dp-nx').textContent = S.depo + 1;
+  const bkv = $('#btn-kovan'); bkv.textContent = '🍯 ' + fmt(kv); bkv.disabled = S.bal < kv;
+  const bdp = $('#btn-depo'); bdp.textContent = '🍯 ' + fmt(dp); bdp.disabled = S.bal < dp;
+
+  /* arılar */
+  const bc = mode === 'demo' ? dBeeCost(S) : beeCost(S);
+  $('#bee-owned').textContent = 'Toplam arı: ' + fmt(S.beesOwned) + ' 🐝';
+  const bb = $('#btn-buy'); bb.textContent = '🍯 ' + fmt(bc); bb.disabled = S.bal < bc;
+
+  const grid = $('#bee-grid'); grid.innerHTML = '';
+  for (let l = MAX_LEVEL; l >= 1; l--) {
+    if (S.bees[l] === 0 && l > 3) continue; // boş üst seviyeleri gösterme
+    const div = document.createElement('div');
+    div.className = 'bee' + (S.bees[l] === 0 ? ' locked' : '');
+    div.innerHTML = '<div class="lv">' + l + '</div><div class="e">🐝</div><div class="n">' + (S.bees[l] || 0) + '</div><div class="p">' + fmtP(beeProd(l)) + '/sn</div>';
+    grid.appendChild(div);
+  }
+
+  /* günlük buton */
+  const daily = mode === 'demo' ? { available: true, streak: S.streak || 1 } : dailyInfo(S);
+  $('#btn-daily').textContent = daily.available
+    ? '🎁 Günlük Ödül' + (daily.streak > 1 ? ' (Seri ' + daily.streak + '🔥)' : '')
+    : '✅ Günlük Alındı';
+
+  renderAchs();
+  if (tab === 'lb') renderLb();
+  renderInvite();
+}
+function renderAchs() {
+  const grid = $('#ach-grid'); grid.innerHTML = '';
+  ACHS.forEach((a) => {
+    const got = S.ach.includes(a.id);
+    const div = document.createElement('div');
+    div.className = 'ach' + (got ? '' : ' locked');
+    div.innerHTML = '<div class="e">' + (got ? a.emoji : '🔒') + '</div><b>' + a.name + '</b><span>' + a.desc + '</span><div class="r">+' + fmt(a.reward) + ' 🍯</div>';
+    grid.appendChild(div);
+  });
+}
+const ACHS = [
+  { id:'bee1', emoji:'🐝', name:'İlk Arı', desc:'İlk arını al', reward:10 },
+  { id:'bees10', emoji:'👑', name:'Arı Ustası', desc:'10 arı sahibi ol', reward:100 },
+  { id:'bees50', emoji:'🏰', name:'Arı Kralı', desc:'50 arı sahibi ol', reward:500 },
+  { id:'bees100', emoji:'🤴', name:'Arı İmparatoru', desc:'100 arı sahibi ol', reward:1500 },
+  { id:'level8', emoji:'🌌', name:'Bal Kaşifi', desc:'Seviye 8 arı üret', reward:800 },
+  { id:'level12', emoji:'🐉', name:'Efsane Kovan', desc:'Seviye 12 arı üret', reward:5000 },
+  { id:'cap10k', emoji:'🏺', name:'Depo Delisi', desc:'Depo 10.000 kapasite', reward:250 },
+  { id:'kovan5', emoji:'🏭', name:'Usta Kovan', desc:'Kovan seviye 5', reward:1000 },
+  { id:'mil', emoji:'💎', name:'Bal Milyoneri', desc:'Toplam 1.000.000 bal', reward:5000 },
+  { id:'streak7', emoji:'🔥', name:'7 Gün', desc:'7 günlük giriş serisi', reward:300 },
+  { id:'ref3', emoji:'🎁', name:'Davetçi', desc:'3 arkadaş davet et', reward:300 },
+  { id:'vzvz10', emoji:'⚡', name:'VızVız Ustası', desc:'10 kez VızVız oyna', reward:200 },
+  { id:'fast', emoji:'🚀', name:'Hız Canavarı', desc:'İlk gün 1.000 bal', reward:500 },
+];
+function renderInvite() {
+  const uname = cfg.bot || 'BalVaktiBot';
+  const code = uid.toString(36);
+  $('#invlink').textContent = 'https://t.me/' + uname + '?start=' + code;
+  $('#refcount').textContent = 'Davet ettiğin: ' + S.refs + ' 🎁';
+}
+async function renderLb() {
+  const list = $('#lb-list'); const note = $('#lb-note');
+  if (mode === 'demo') { note.textContent = 'Sıralama yalnızca sunucu modunda çalışır.'; return; }
+  if (Date.now() - lastLbFetch < 15000) return;
+  lastLbFetch = Date.now();
+  try {
+    const r = await fetch('/api/leaderboard'); const j = await r.json();
+    if (!j.ok) throw 0;
+    list.innerHTML = '';
+    j.top.slice(0, 20).forEach((x, i) => {
+      const div = document.createElement('div');
+      div.className = 'lrow' + (x.id === String(uid) ? ' me' : '');
+      div.innerHTML = '<div class="rk">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1) + '</div>' +
+        '<div class="nm">' + esc(x.name) + '</div><div class="sc">' + fmt(x.score) + ' 🍯</div>';
+      list.appendChild(div);
+    });
+    note.textContent = myRankCache ? 'Senin sıran: #' + myRankCache : '';
+  } catch (e) { note.textContent = 'Sıralama yüklenemedi.'; }
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* ═══════════════ AKSİYONLAR ═══════════════ */
+function handleRes(res, okMsg) {
+  if (!res || !res.ok) { if (res?.error) toast('⛔ ' + errText(res.error)); return false; }
+  if (mode === 'server') {
+    S = res.state; myRankCache = res.myRank;
+    res.freshAch?.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); confetti(); });
+  }
+  if (okMsg) toast(okMsg);
+  renderAll();
+  return true;
+}
+function errText(e) {
+  return { yetersiz_bal:'Yetersiz bal 🍯', bugun_aldi:'Bugünkü ödülü zaten aldın ✅', bekleme:'Biraz bekle, VızVız ısınıyor 🔋', hile:'Hmm, bir şeyler ters 😅' }[e] || 'Hata oluştu';
+}
+async function doCollect() {
+  haptic('impact');
+  if (mode === 'demo') { const g = dCollect(S); demoSave(); toast('🍯 +' + fmt(g) + ' bal toplandı'); renderAll(); return; }
+  const res = await api('/api/action', { initData: initData(), action: 'collect' });
+  if (handleRes(res)) toast('🍯 +' + fmt(res.collected) + ' bal toplandı');
+}
+async function doBuy() {
+  haptic('impact');
+  if (mode === 'demo') {
+    const cost = dBeeCost(S);
+    if (S.bal < cost) return toast('⛔ Yetersiz bal 🍯');
+    S.bal -= cost; S.beesOwned++; S.bees[1]++;
+    const merges = [];
+    for (let l = 1; l < MAX_LEVEL; l++) while (S.bees[l] >= 2) { S.bees[l] -= 2; S.bees[l + 1]++; merges.push(l + 1); }
+    demoSave();
+    if (merges.length) toast('✨ ' + merges.length + ' birleştirme! En yüksek: Seviye ' + merges[merges.length - 1]);
+    renderAll(); return;
+  }
+  const res = await api('/api/action', { initData: initData(), action: 'buy_bee' });
+  if (handleRes(res)) {
+    if (res.merges?.length) toast('✨ 2 arı birleşti → Seviye ' + res.merges[res.merges.length - 1] + '!');
+    else toast('🐝 Yeni arı katıldı!');
+  }
+}
+async function doUpgrade(which) {
+  haptic('impact');
+  const label = which === 'kovan' ? 'Kovan yükseltildi 🏭' : 'Depo büyütüldü 🏺';
+  if (mode === 'demo') {
+    const cost = which === 'kovan' ? dKovanCost(S) : dDepoCost(S);
+    if (S.bal < cost) return toast('⛔ Yetersiz bal 🍯');
+    S.bal -= cost; if (which === 'kovan') S.kovan++; else S.depo++;
+    demoSave(); toast(label); renderAll(); return;
+  }
+  const res = await api('/api/action', { initData: initData(), action: 'upgrade', payload: { which } });
+  if (handleRes(res)) toast(label);
+}
+async function doDaily() {
+  haptic('impact');
+  if (mode === 'demo') {
+    const today = Math.floor(Date.now() / DAY);
+    if (Math.floor(S.lastDaily / DAY) === today) return toast('✅ Bugünkü ödül alındı');
+    S.streak = Math.floor(S.lastDaily / DAY) === today - 1 ? S.streak + 1 : 1;
+    if (S.streak > 7) S.streak = 1;
+    S.lastDaily = Date.now();
+    const rw = DAILY_REWARDS[S.streak - 1];
+    S.bal += rw; S.totalEarned += rw; demoSave();
+    toast('🎁 Günlük ödül: +' + rw + ' bal (seri ' + S.streak + '🔥)');
+    closeModal(); renderAll(); return;
+  }
+  const res = await api('/api/action', { initData: initData(), action: 'daily' });
+  if (handleRes(res)) { toast('🎁 +' + fmt(res.reward) + ' bal! (seri ' + res.streak + '🔥)'); confetti(); closeModal(); }
+}
+
+/* ═══════════════ VIZVIZ ═══════════════ */
+let vzvzTaps = 0, vzvzT0 = 0, vzvzTimer = null;
+function openVzvz() {
+  haptic('impact');
+  const cd = Math.max(0, cfg.vzvzCooldownSec * 1000 - (Date.now() - S.vzvzAt));
+  if (cd > 0 && !vzvzRunning) {
+    toast('🔋 VızVız ısınıyor: ' + Math.ceil(cd / 1000) + ' sn');
+    return;
+  }
+  vzvzRunning = true; vzvzTaps = 0; vzvzT0 = Date.now();
+  let left = cfg.vzvzDurationSec;
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>⚡ VızVız Yarışı!</h2><p>10 saniye boyunca arıya dokun! Her dokunuş +2 bal 🍯</p>' +
+    '<div class="vztimer" id="vz-timer">' + left + '</div>' +
+    '<div class="vztaps" id="vz-taps">0 dokunuş</div>' +
+    '<button class="vz" id="vz-bee">🐝</button>';
+  showModal();
+  const bee = $('#vz-bee');
+  bee.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    haptic('impact');
+    vzvzTaps++;
+    $('#vz-taps').textContent = vzvzTaps + ' dokunuş';
+    const f = document.createElement('div');
+    f.className = 'float'; f.textContent = '+2';
+    f.style.left = (e.clientX - 18) + 'px'; f.style.top = (e.clientY - 40) + 'px';
+    document.body.appendChild(f); setTimeout(() => f.remove(), 950);
+  });
+  vzvzTimer = setInterval(() => {
+    left--;
+    $('#vz-timer').textContent = left;
+    if (left <= 0) { clearInterval(vzvzTimer); finishVzvz(); }
+  }, 1000);
+}
+async function finishVzvz() {
+  const durMs = Date.now() - vzvzT0;
+  const taps = vzvzTaps;
+  vzvzRunning = false;
+  if (mode === 'demo') {
+    const now = Date.now();
+    if (now - S.vzvzAt >= 300000) {
+      S.vzvzAt = now; S.vzvzCount++;
+      const rw = taps * 2; S.bal += rw; S.totalEarned += rw; demoSave();
+      toast('⚡ VızVız bitti: +' + rw + ' bal! (' + taps + ' dokunuş)');
+    } else toast('⛔ Biraz bekle 🔋');
+    closeModal(); renderAll(); return;
+  }
+  const res = await api('/api/action', { initData: initData(), action: 'vzvz_end', payload: { taps, durMs } });
+  if (handleRes(res)) { toast('⚡ VızVız bitti: +' + fmt(res.reward) + ' bal! (' + taps + ' dokunuş)'); confetti(); closeModal(); }
+}
+
+/* ═══════════════ MODALLAR ═══════════════ */
+function showModal() { $('#overlay').classList.add('show'); }
+function closeModal() {
+  $('#overlay').classList.remove('show');
+  if (vzvzTimer) { clearInterval(vzvzTimer); vzvzTimer = null; vzvzRunning = false; }
+}
+$('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeModal(); });
+
+function openDaily() {
+  const daily = mode === 'demo' ? { available: true, streak: Math.min(S.streak || 0, 7) } : dailyInfo(S);
+  if (!daily.available) { toast('✅ Bugünkü ödülü zaten aldın'); return; }
+  const body = $('#modal-body');
+  let days = '';
+  for (let i = 1; i <= 7; i++) {
+    const cls = i < daily.streak ? 'done' : i === daily.streak ? 'now' : '';
+    days += '<div class="day ' + cls + '"><div class="d">' + (i < daily.streak ? '✅' : i === daily.streak ? '🎁' : '🔒') + '</div><div class="v">+' + fmt(DAILY_REWARDS[i - 1]) + '</div></div>';
+  }
+  body.innerHTML =
+    '<h2>🎁 Günlük Ödül</h2><p>Her gün gir, serini büyüt! Seri bozulursa baştan başlar.</p>' +
+    '<div class="days">' + days + '</div>' +
+    '<button class="btn" onclick="doDaily()">🎁 Ödülü Al (+' + fmt(daily.nextReward) + ')</button>';
+  showModal();
+}
+function openInvite() {
+  const uname = cfg.bot || 'BalVaktiBot';
+  const code = uid.toString(36);
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>👥 Arkadaşlarını Davet Et</h2>' +
+    '<p>Linkten giren her arkadaş için <b style="color:var(--amber)">+100 bal</b>, arkadaşına da <b style="color:var(--amber)">+50 bal</b>! 🎁</p>' +
+    '<div class="linkbox">https://t.me/' + uname + '?start=' + code + '</div>' +
+    '<button class="btn" onclick="copyInvite()">📋 Linki Kopyala</button>';
+  showModal();
+}
+async function copyInvite() {
+  const uname = cfg.bot || 'BalVaktiBot';
+  const code = uid.toString(36);
+  const link = 'https://t.me/' + uname + '?start=' + code;
+  try { await navigator.clipboard.writeText(link); toast('📋 Link kopyalandı!'); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('📋 Link kopyalandı!'); } catch (e2) { toast('Kopyala: ' + link); }
+    ta.remove();
+  }
+}
+function openHowto() {
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>ℹ️ Nasıl Oynanır?</h2>' +
+    '<p style="line-height:1.9;text-align:left;margin-top:12px">' +
+    '1️⃣ <b>Arı Al</b> — balınla seviye-1 arılar al 🐝<br>' +
+    '2️⃣ <b>Birleştir</b> — 2 aynı seviye arı otomatik 1 üst seviye olur ✨<br>' +
+    '3️⃣ <b>Topla</b> — arılar bal üretir, depon dolmadan topla! 🍯<br>' +
+    '4️⃣ <b>Yükselt</b> — kovan üretimi 2x, depo kapasiteyi 4x büyütür 🏭<br>' +
+    '5️⃣ <b>Eğlen</b> — günlük ödül, VızVız oyunu, rozetler ve sıralama! 🏆<br><br>' +
+    '💡 İpucu: Depo dolunca üretim durur. Ne kadar çok toplarsan o kadar hızlı büyürsün!' +
+    '</p>' +
+    '<button class="btn gray small" style="margin-top:14px" onclick="closeModal()">Anladım 👍</button>';
+  showModal();
+}
+
+/* ═══════════════ SEKMELER ═══════════════ */
+function switchTab(name) {
+  tab = name;
+  document.querySelectorAll('main > section').forEach((s) => s.style.display = 'none');
+  $('#tab-' + name).style.display = 'block';
+  document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+  if (name === 'lb') renderLb();
+  haptic('light');
+}
+
+/* ═══════════════ SERVER LOGIC (demo'da gerek yok, sadece render için) ═══════════════ */
+function beeProd(l) { return 0.25 * Math.pow(3, l - 1); }
+function totalProd(s) { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * beeProd(l); return t * Math.pow(2, s.kovan); }
+function capacity(s) { return 500 * Math.pow(4, s.depo); }
+function beeCost(s) { return Math.floor(10 * Math.pow(1.09, s.beesOwned)); }
+function kovanCost(s) { return Math.floor(400 * Math.pow(4, s.kovan)); }
+function depoCost(s) { return Math.floor(200 * Math.pow(3, s.depo)); }
+function dailyInfo(s) {
+  const today = Math.floor(Date.now() / DAY);
+  const lastDay = Math.floor(s.lastDaily / DAY);
+  const available = lastDay !== today;
+  const streak = lastDay === today - 1 ? s.streak + 1 : 1;
+  const clamped = streak > 7 ? 1 : streak;
+  return { available, streak: clamped, nextReward: DAILY_REWARDS[clamped - 1] };
+}
+function playerLevel(s) {
+  const thr = [0, 200, 1000, 5000, 20000, 100000, 500000, 2.5e6, 1e7, 5e7, 2.5e8];
+  let lvl = 1; for (let i = 0; i < thr.length; i++) if (s.totalEarned >= thr[i]) lvl = i + 1;
+  return { level: lvl, title: ['Yavru Arı','Bal Toplayıcı','Kovan Çırağı','Arıcı','Usta Arıcı','Bal Baronu','Kovan Lordu','Bal Kralı','Arı İmparatoru','Bal Efsanesi','Kozmik Kovan'][Math.min(lvl, 11) - 1] };
+}
+
+/* ═══════════════ CANLI ÜRETİM (her saniye görsel güncelleme) ═══════════════ */
+function liveBal() {
+  // Bekleyen üretimi görsel olarak göster (kaydetmeden)
+  const prod = mode === 'demo' ? dProd(S) : totalProd(S);
+  const cap = mode === 'demo' ? dCap(S) : capacity(S);
+  const elapsed = Math.max(0, Date.now() - S.lastCollect);
+  const gain = Math.min(cap, (prod * elapsed) / 1000);
+  return { bal: Math.min(cap, S.bal + gain), prod, cap };
+}
+function liveTick() {
+  if (!S) return;
+  const lv = liveBal();
+  $('#bal').textContent = fmt(lv.bal);
+  $('#prod').textContent = fmtP(lv.prod);
+  const pct = Math.min(100, (lv.bal / lv.cap) * 100);
+  $('#capfill').style.width = pct + '%';
+  $('#capnow').textContent = fmt(lv.bal) + ' 🍯';
+  $('#capmax').textContent = fmt(lv.cap);
+  $('#fullwarn').style.display = lv.bal >= lv.cap * 0.985 ? 'block' : 'none';
+}
+
+/* ═══════════════ BAŞLAT ═══════════════ */
+load();
+setInterval(liveTick, 1000);
+</script>
+</body>
+</html>

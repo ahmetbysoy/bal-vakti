@@ -1,0 +1,173 @@
+// 🧪 Bal Vakti — oyun mantığı testleri
+// Çalıştır: npm test
+import assert from 'assert';
+import {
+  newState, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay,
+  checkAchievements, playerLevel, capacity, totalProd, beeCost, beeProd,
+  ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL,
+} from '../lib/game.js';
+
+let passed = 0;
+let failed = 0;
+function t(name, fn) {
+  try { fn(); passed++; console.log('  ✅', name); }
+  catch (e) { failed++; console.log('  ❌', name, '—', e.message); }
+}
+function near(a, b, eps = 1e-6) { assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`); }
+
+console.log('🧪 Bal Vakti testleri başlıyor...\n');
+
+const now0 = Date.now();
+
+// 1) Yeni oyuncu
+t('Yeni oyuncu 25 bal + 1 arı ile başlar', () => {
+  const s = newState(now0);
+  assert.strictEqual(s.bal, 25);
+  assert.strictEqual(s.bees[1], 1);
+  assert.strictEqual(s.beesOwned, 1);
+});
+
+// 2) Üretim işleme
+t('1 seviye arı 10 sn de 2.5 bal üretir', () => {
+  const s = newState(now0);
+  const g = collect(s, now0 + 10000);
+  near(g, 2.5);
+  near(s.bal, 27.5);
+});
+
+// 3) Kapasite sınırı (taşan bal kaybolur)
+t('Üretim kapasiteyi aşamaz', () => {
+  const s = newState(now0);
+  s.bal = 0; s.lastCollect = now0;
+  s.bees = Array.from({ length: MAX_LEVEL + 1 }, () => 0);
+  s.bees[MAX_LEVEL] = 1; // 177147 bal/sn
+  const g = collect(s, now0 + 60000);
+  assert.ok(g <= capacity(s));
+  assert.ok(s.bal <= capacity(s));
+});
+
+// 4) Arı satın alma + otomatik birleştirme
+t('2 arı alınca 1 seviye-2 arı oluşur (otomatik birleştirme)', () => {
+  const s = newState(now0); // 1 ücretsiz L1 ile başlar
+  s.bal = 1000;
+  buyBee(s, 1); // 2 L1 -> anında 1 L2
+  assert.strictEqual(s.bees[1], 0);
+  assert.strictEqual(s.bees[2], 1);
+  buyBee(s, 1); // +1 L1 -> 1 L2 + 1 L1
+  assert.strictEqual(s.bees[1], 1);
+  assert.strictEqual(s.bees[2], 1);
+});
+
+// 5) Birleştirme zinciri (kaskad)
+t('4 arı alınca 1 seviye-3 arı oluşur', () => {
+  const s = newState(now0);
+  s.bal = 10000;
+  buyBee(s, 1); buyBee(s, 1); buyBee(s, 1); // 1+3 = 4 L1
+  assert.strictEqual(s.bees[3], 1); // 4 L1 -> 2 L2 -> 1 L3
+});
+
+// 6) Arı fiyatı arttıkça pahalılaşır
+t('Arı fiyatı her arıda artar', () => {
+  const s = newState(now0);
+  const c1 = beeCost(s);
+  buyBee(s, 1);
+  assert.ok(beeCost(s) > c1);
+});
+
+// 7) Kovan yükseltme üretimi 2x yapar
+t('Kovan yükseltme üretimi 2 katına çıkarır', () => {
+  const s = newState(now0);
+  const before = totalProd(s);
+  s.bal = 1e9;
+  upgrade(s, 'kovan');
+  near(totalProd(s), before * 2);
+});
+
+// 8) Yetersiz balda satın alma reddedilir
+t('Yetersiz balda arı alınamaz', () => {
+  const s = newState(now0);
+  s.bal = 1;
+  const r = buyBee(s, 1);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(s.beesOwned, 1);
+});
+
+// 9) Günlük ödül serisi
+t('Günlük seri 1,2,3... şeklinde ilerler', () => {
+  const s = newState(now0);
+  const day = 86400000;
+  const r1 = claimDaily(s, now0 + day);
+  assert.strictEqual(r1.streak, 1);
+  assert.strictEqual(r1.reward, 50);
+  const r2 = claimDaily(s, now0 + day * 2);
+  assert.strictEqual(r2.streak, 2);
+  assert.strictEqual(r2.reward, 100);
+  // aynı gün tekrar alamaz
+  const again = claimDaily(s, now0 + day * 2 + 1000);
+  assert.strictEqual(again, null);
+  // gün atlarsa seri sıfırlanır
+  const r4 = claimDaily(s, now0 + day * 10);
+  assert.strictEqual(r4.streak, 1);
+});
+
+// 10) dailyInfo
+t('dailyInfo günlük ödül uygunluğunu söyler', () => {
+  const s = newState(now0);
+  const d = dailyInfo(s, now0 + 86400000);
+  assert.strictEqual(d.available, true);
+  const d2 = dailyInfo(s, now0);
+  assert.strictEqual(d2.available, true); // henüz almadı
+});
+
+// 11) VızVız
+t('VızVız dokunuş başına 2 bal verir, 5 dk bekleme koyar', () => {
+  const s = newState(now0);
+  const r = vzvzPlay(s, 20, 9500, now0);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.reward, 40);
+  const r2 = vzvzPlay(s, 5, 1000, now0 + 1000);
+  assert.strictEqual(r2.ok, false); // bekleme süresi
+  const r3 = vzvzPlay(s, 5, 1000, now0 + VIZVIZ_COOLDOWN_MS + 1);
+  assert.strictEqual(r3.ok, true);
+  // hile koruması
+  const r4 = vzvzPlay(s, 999, 1000, now0 + VIZVIZ_COOLDOWN_MS * 2);
+  assert.strictEqual(r4.ok, false);
+});
+
+// 12) Başarılar
+t('Milyon bal toplayınca Bal Milyoneri rozeti gelir', () => {
+  const s = newState(now0);
+  s.totalEarned = 1_000_000;
+  const fresh = checkAchievements(s, now0);
+  assert.ok(fresh.some((a) => a.id === 'mil'));
+  assert.ok(s.ach.includes('mil'));
+  assert.ok(s.bal >= 25 + 5000); // ödül hesaba eklendi
+});
+
+t('Hız Canavarı sadece ilk gün kazanılır', () => {
+  const s = newState(now0);
+  s.totalEarned = 2000;
+  const fresh = checkAchievements(s, now0 + 2 * 86400000); // 2. gün
+  assert.ok(!fresh.some((a) => a.id === 'fast'));
+  const s2 = newState(now0);
+  s2.totalEarned = 2000;
+  const fresh2 = checkAchievements(s2, now0 + 3600000);
+  assert.ok(fresh2.some((a) => a.id === 'fast'));
+});
+
+// 13) Oyuncu seviyesi
+t('Oyuncu seviyesi toplam bala göre artar', () => {
+  const s = newState(now0);
+  assert.strictEqual(playerLevel(s).level, 1);
+  s.totalEarned = 5000;
+  assert.strictEqual(playerLevel(s).level, 4);
+});
+
+// 14) Başarı tanımları tutarlı
+t('Tüm başarı idleri benzersiz', () => {
+  const ids = new Set(ACHIEVEMENTS.map((a) => a.id));
+  assert.strictEqual(ids.size, ACHIEVEMENTS.length);
+});
+
+console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
+process.exit(failed > 0 ? 1 : 0);
