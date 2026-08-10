@@ -515,7 +515,11 @@ function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<'
 
 /* ═══════════════ AKSİYONLAR ═══════════════ */
 function handleRes(res, okMsg) {
-  if (!res || !res.ok) { if (res?.error) toast('⛔ ' + errText(res.error)); return false; }
+  if (!res || !res.ok) {
+    if (res?.error) toast('⛔ ' + errText(res.error));
+    else if (res?.detail) toast('⛔ ' + res.detail);
+    return false;
+  }
   if (mode === 'server') {
     S = res.state; myRankCache = res.myRank;
     res.freshAch?.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); confetti(); });
@@ -525,12 +529,31 @@ function handleRes(res, okMsg) {
   return true;
 }
 function errText(e) {
-  return { yetersiz_bal:'Yetersiz bal 🍯', bugun_aldi:'Bugünkü ödülü zaten aldın ✅', bekleme:'Biraz bekle, VızVız ısınıyor 🔋', hile:'Hmm, bir şeyler ters 😅' }[e] || 'Hata oluştu';
+  return {
+    yetersiz_bal: 'Yetersiz bal 🍯',
+    bugun_aldi: 'Bugünkü ödülü zaten aldın ✅',
+    bekleme: 'VızVız ısınıyor, biraz bekle 🔋',
+    hile: 'Hmm, bir şeyler ters 😅',
+    auth_hatasi: 'Oturum yenilenmedi — oyunu kapatıp tekrar aç 🔄',
+    oyuncu_yok: 'Kaydın bulunamadı — oyunu kapatıp tekrar aç 🔄',
+    bilinmeyen_aksiyon: 'Bilinmeyen işlem',
+    bilinmeyen_yukseltme: 'Bilinmeyen yükseltme',
+  }[e] || 'Hata oluştu (' + e + ')';
+}
+// Sunucu ulaşılamazsa/oturum hatalıysa otomatik çevrimdışı moda geç
+function fallbackDemo() {
+  mode = 'demo';
+  S = demoLoad();
+  dCollect(S);
+  demoSave();
+  toast('🔄 Sunucu bağlantısı yok — çevrimdışı modda oynuyorsun (veriler bu cihazda)');
+  renderAll();
 }
 async function doCollect() {
   haptic('impact');
   if (mode === 'demo') { const g = dCollect(S); demoSave(); toast('🍯 +' + fmt(g) + ' bal toplandı'); renderAll(); return; }
   const res = await api('/api/action', { initData: initData(), action: 'collect' });
+  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doCollect(); }
   if (handleRes(res)) toast('🍯 +' + fmt(res.collected) + ' bal toplandı');
 }
 async function doBuy() {
@@ -546,6 +569,7 @@ async function doBuy() {
     renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'buy_bee' });
+  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doBuy(); }
   if (handleRes(res)) {
     if (res.merges?.length) toast('✨ 2 arı birleşti → Seviye ' + res.merges[res.merges.length - 1] + '!');
     else toast('🐝 Yeni arı katıldı!');
@@ -561,6 +585,7 @@ async function doUpgrade(which) {
     demoSave(); toast(label); renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'upgrade', payload: { which } });
+  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doUpgrade(which); }
   if (handleRes(res)) toast(label);
 }
 async function doDaily() {
@@ -577,6 +602,7 @@ async function doDaily() {
     closeModal(); renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'daily' });
+  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doDaily(); }
   if (handleRes(res)) { toast('🎁 +' + fmt(res.reward) + ' bal! (seri ' + res.streak + '🔥)'); confetti(); closeModal(); }
 }
 

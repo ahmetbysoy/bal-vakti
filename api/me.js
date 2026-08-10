@@ -4,6 +4,15 @@ import { newState, collect, checkAchievements, dailyInfo, playerLevel, REF_INVIT
 import { parseInitData } from '../lib/auth.js';
 
 export default async function handler(req, res) {
+  try {
+    return await handle(req, res);
+  } catch (e) {
+    console.error('me hatası:', e);
+    if (!res.headersSent) return res.status(500).json({ error: 'sunucu_hatasi', detail: String(e?.message || e) });
+  }
+}
+
+async function handle(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
 
