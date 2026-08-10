@@ -1,10 +1,10 @@
 // ⚔️ POST /api/raid — Bal Baskını (PvP)
 // Aksiyonlar: world | start | defend | cancel
 // Lazy çözüm: her çağrıda süresi dolmuş ve henüz çözülmemiş saldırıları çözer.
-import { getUser, saveUser, getActiveRaid, setActiveRaid, clearActiveRaid, getGrudges, tgNotify, syncLb, allUsers, getConfig, allActiveRaids } from '../lib/db.js';
+import { getUser, saveUser, getActiveRaid, setActiveRaid, clearActiveRaid, getGrudges, tgNotify, syncLb, allUsers, getConfig, allActiveRaids, getEvents } from '../lib/db.js';
 import { setActiveCfg, resolveRaid, raidPower, warLevel, collect, checkAchievements, playerLevel } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
-import { finalizeRaid, RAID_PREP_MS } from '../lib/raidcore.js';
+import { finalizeRaid, RAID_PREP_MS, solveUserRaids, escTg } from '../lib/raidcore.js';
 import { thinkBots } from '../lib/brain.js';
 
 export default async function handler(req, res) {
@@ -34,11 +34,11 @@ export default async function handler(req, res) {
   const action = body.action;
   const result = {};
 
-  // ── Önce: süresi dolmuş saldırıları çöz (lazy) ──
-  const active = await getActiveRaid(me); // hedef olarak aktif saldırı
-  if (active && now >= active.endsAt) {
-    const resolved = await finalizeRaid(active, me, false, now);
-    result.lazy = resolved;
+  // ── Önce: beni ilgilendiren SÜRESİ DOLMUŞ saldırıları çöz (hem savunma hem saldırı) ──
+  const solved = await solveUserRaids(me, now);
+  if (solved.length) {
+    result.solved = solved;
+    st = await getUser(me); // çözüm sonrası taze state
   }
 
   switch (action) {
@@ -111,6 +111,7 @@ export default async function handler(req, res) {
         targets,
         brave,
         grudges,
+        events: (await getEvents()).slice(0, 15),
         myAttack: myAttack ? { targetId: myAttack.t, endsAt: myAttack.endsAt, now } : null,
         myDefense: myDefense ? { attacker: myDefense.a, name: myDefense.name, endsAt: myDefense.endsAt, now } : null,
       };

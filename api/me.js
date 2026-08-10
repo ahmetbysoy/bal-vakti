@@ -5,7 +5,7 @@ import { parseInitData } from '../lib/auth.js';
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
 // minimal bir kopya: burada yalnızca 'hedef girişi' tetikler. (raid.js döngüden kaçınmak için)
-import { finalizeRaid as resolveRaidNow } from '../lib/raidcore.js';
+import { solveUserRaids } from '../lib/raidcore.js';
 import { thinkBots } from '../lib/brain.js';
 
 export default async function handler(req, res) {
@@ -76,13 +76,12 @@ async function handle(req, res) {
   const now = Date.now();
   const gained = collect(st, now);
 
-  // ⚔️ Lazy çözüm: hedef olarak üzerimde süresi dolmuş saldırı var mı?
+  // ⚔️ Evrensel çözüm: beni ilgilendiren süresi dolmuş saldırıları çöz
   let raidResult = null;
   if (!isNew) {
-    const active = await getActiveRaid(id);
-    if (active && now >= active.endsAt) {
-      raidResult = await resolveRaidNow(active, id, false, now);
-      // resolveRaidNow state'i günceller; me.js state'i yeniden yükler
+    const solved = await solveUserRaids(id, now);
+    if (solved.length) {
+      raidResult = solved[0];
       const updated = await getUser(id);
       if (updated) st = updated;
     }

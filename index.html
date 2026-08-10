@@ -354,6 +354,11 @@
       <h3>📜 Savaş Geçmişim</h3>
       <div id="raid-hist"><p class="hint">Henüz savaş yok.</p></div>
     </div>
+
+    <div class="card">
+      <h3>🌍 Dünya Olayları <span style="font-size:10px;color:var(--muted);font-weight:400">(canlı)</span></h3>
+      <div id="raid-events"><p class="hint">Dünya henüz sessiz... ilk kıvılcımı sen çak! ⚔️</p></div>
+    </div>
   </section>
 
   <!-- BEN (PROFİL + AYARLAR) -->
@@ -469,6 +474,7 @@ function fmt(n) {
   return Math.floor(n).toLocaleString('tr-TR');
 }
 function fmtP(n) { return n < 10 ? n.toFixed(1) : fmt(n); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function haptic(kind) {
   if (localStorage.getItem('bv_haptic') === '0') return;
   try { if (tg?.HapticFeedback) tg.HapticFeedback[kind]('light'); } catch (e) {}
@@ -1104,6 +1110,11 @@ async function loadRaid() {
   if (!res?.ok) return;
   raidData = res.world;
   S = res.state;
+  // ⚔️ Süresi dolmuş saldırım çözüldüyse sonucu ANINDA göster (saldırgan feedback'i!)
+  if (res.solved?.length) {
+    const last = res.solved[res.solved.length - 1];
+    if (last.winner) showWar(last, last.winner !== 'A');
+  }
   renderRaid();
   renderAll();
 }
@@ -1210,7 +1221,26 @@ function renderRaid() {
   } else {
     hbox.innerHTML = '<p class="hint">Henüz savaş yok — ilk kurbanını seç! ⚔️</p>';
   }
+
+  // 🌍 Dünya olayları
+  const ebox = $('#raid-events');
+  if (w.events?.length) {
+    ebox.innerHTML = w.events.slice(0, 12).map((e) =>
+      '<div class="grudge" style="border-color:var(--line);padding:8px 12px"><div class="av">' + e.emoji + '</div>' +
+      '<div class="inf"><b style="font-size:12px;font-weight:700">' + esc(e.txt) + '</b>' +
+      '<span>' + timeAgo(e.ts) + '</span></div></div>'
+    ).join('');
+  }
 }
+
+// Savaş sonucu için eğlenceli ifadeler (dopamin!)
+const WAR_FLAVOR = {
+  win: ['Arıların düşmanı toz etti! 💥', 'Kovan şampiyonu sen çıktın! 🏆', 'Rakibin arıları panikte! 😱', 'Bu zafer bal gibi tatlı! 🍯', 'Düşman kovanından zaferle döndün! 🐝'],
+  lose: ['Bu sefer onlar kazandı... ama intikam tatlıdır! 😤', 'Arıların yaralarını sarıyor... 🩹', 'Kaybettin ama kin listene eklendi! 😠', 'Güçlen ve geri dön! 💪'],
+  draw: ['Savaş alanı toz bulutu içinde... 🤝', 'İki sürü de yoruldu, anlaştılar! 😅'],
+  defendWin: ['Kovanını aslanlar gibi savundun! 🦁', 'Saldırgan kaçarken arıların gülüyor! 😄', 'Püskürtme muhteşemdi! 🛡️', 'Düşman arıları dağıldı! 💨'],
+  defendLose: ['Kovanın yağmalandı... ama yeniden toparlanırsın! 🐝', 'Balın gitti, gururun kaldı! 😤', 'Kin listene bir isim daha eklendi... ⚔️'],
+};
 function raidTargetName(id) {
   return raidData?.targets?.find((t) => t.id === id)?.name || raidData?.grudges?.find((g) => g.by === id)?.name || '?';
 }
@@ -1293,6 +1323,11 @@ function showWarResult(r, isDefend) {
   const draw = r.winner === 'draw';
   const em = won ? '🏆' : draw ? '🤝' : '💀';
   const title = won ? (isDefend ? 'PÜSKÜRTTÜN!' : 'SALDIRI BAŞARILI!') : draw ? 'BERABERE' : (isDefend ? 'KOVANIN YAĞMALANDI!' : 'PÜSKÜRTÜLDÜN!');
+  // Eğlenceli lezzet mesajı
+  let flavor = '';
+  if (draw) flavor = pick(WAR_FLAVOR.draw);
+  else if (isDefend) flavor = pick(won ? WAR_FLAVOR.defendWin : WAR_FLAVOR.defendLose);
+  else flavor = pick(won ? WAR_FLAVOR.win : WAR_FLAVOR.lose);
   let rows = '';
   if (r.winner === 'A') {
     rows += '<div>💥 Saldırı başarılı — ' + esc(r.tName) + '\'in kovanı yağmalandı</div>';
@@ -1315,6 +1350,7 @@ function showWarResult(r, isDefend) {
   $('#ws-res').innerHTML =
     '<div class="em">' + em + '</div>' +
     '<div class="tt" style="color:' + (won ? 'var(--gold)' : lost ? 'var(--red)' : 'var(--muted)') + '">' + title + '</div>' +
+    (flavor ? '<div style="font-size:13px;color:var(--muted);margin-top:4px">' + flavor + '</div>' : '') +
     '<div class="rows">' + rows + '</div>' +
     '<button class="btn" style="margin-top:16px;width:100%" onclick="closeWar()">Devam Et</button>';
   $('#ws-res').style.display = '';
@@ -1331,10 +1367,10 @@ function closeWar() {
   renderAll();
 }
 
-// Periyodik: savunma uyarısı + veri tazeleme
+// Periyodik: savunma uyarısı + veri tazeleme (10 sn — 15 sn'lik saldırı çözümü anında görünsün)
 setInterval(() => {
   if (S && tab === 'savas' && mode === 'server') loadRaid();
-}, 20000);
+}, 10000);
 
 /* ═══════════════ CANLI ÜRETİM (her saniye görsel güncelleme) ═══════════════ */
 function liveBal() {
