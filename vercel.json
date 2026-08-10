@@ -1,8 +1,3 @@
 {
-  "version": 2,
-  "functions": {
-    "api/*.js": {
-      "includeFiles": "lib/**"
-    }
-  }
+  "version": 2
 }

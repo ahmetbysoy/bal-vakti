@@ -5,10 +5,10 @@
 // Başarılı giriş → Redis'te 12 saatlik oturum token'ı → sonraki istekler
 // "Authorization: Bearer <token>" başlığıyla.
 import crypto from 'crypto';
-import { getUser, saveUser, getConfig, setConfig, createSession, getSession, deleteSession, allUsers, overview, listBots, getBot, deleteBot } from '../lib/db.js';
-import { newState, setActiveCfg, getActiveCfg, giveAchievement, playerLevel, ACHIEVEMENTS, MAX_LEVEL, beeCost, kovanCost, depoCost, capacity, totalProd } from '../lib/game.js';
-import { parseInitData } from '../lib/auth.js';
-import { createBot, thinkBots, PERSONALITIES, POWER_LEVELS, makeBotState, randPick, AVATAR_POOL } from '../lib/brain.js';
+import { getUser, saveUser, getConfig, setConfig, createSession, getSession, deleteSession, allUsers, overview, listBots, getBot, deleteBot } from './lib/db.js';
+import { newState, setActiveCfg, getActiveCfg, giveAchievement, playerLevel, ACHIEVEMENTS, MAX_LEVEL, beeCost, kovanCost, depoCost, capacity, totalProd } from './lib/game.js';
+import { parseInitData } from './lib/auth.js';
+import { createBot, thinkBots, PERSONALITIES, POWER_LEVELS, makeBotState, randPick, AVATAR_POOL } from './lib/brain.js';
 
 const OWNER_ID = process.env.OWNER_ID;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;

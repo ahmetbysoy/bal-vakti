@@ -5,7 +5,7 @@ import http from 'http';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { dbMode } from './lib/db.js';
+import { dbMode } from './api/lib/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8787;

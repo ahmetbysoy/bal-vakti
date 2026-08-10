@@ -1,8 +1,8 @@
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
-import { getUser, saveUser, syncLb, myRank, getConfig } from '../lib/db.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } from '../lib/game.js';
-import { parseInitData } from '../lib/auth.js';
+import { getUser, saveUser, syncLb, myRank, getConfig } from './lib/db.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } from './lib/game.js';
+import { parseInitData } from './lib/auth.js';
 
 export default async function handler(req, res) {
   try {

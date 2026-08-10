@@ -1,5 +1,5 @@
 // 🏆 GET /api/leaderboard — en iyi 30 arıcı
-import { topLb } from '../lib/db.js';
+import { topLb } from './lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET bekleniyor' });

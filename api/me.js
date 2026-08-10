@@ -1,12 +1,12 @@
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
-import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify } from '../lib/db.js';
-import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel } from '../lib/game.js';
-import { parseInitData } from '../lib/auth.js';
+import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify } from './lib/db.js';
+import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel } from './lib/game.js';
+import { parseInitData } from './lib/auth.js';
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
 // minimal bir kopya: burada yalnızca 'hedef girişi' tetikler. (raid.js döngüden kaçınmak için)
-import { solveUserRaids } from '../lib/raidcore.js';
-import { thinkBots } from '../lib/brain.js';
+import { solveUserRaids } from './lib/raidcore.js';
+import { thinkBots } from './lib/brain.js';
 
 export default async function handler(req, res) {
   try {

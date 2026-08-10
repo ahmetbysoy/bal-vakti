@@ -1,11 +1,11 @@
 // ⚔️ POST /api/raid — Bal Baskını (PvP)
 // Aksiyonlar: world | start | defend | cancel
 // Lazy çözüm: her çağrıda süresi dolmuş ve henüz çözülmemiş saldırıları çözer.
-import { getUser, saveUser, getActiveRaid, setActiveRaid, clearActiveRaid, getGrudges, tgNotify, syncLb, allUsers, getConfig, allActiveRaids, getEvents } from '../lib/db.js';
-import { setActiveCfg, resolveRaid, raidPower, warLevel, collect, checkAchievements, playerLevel } from '../lib/game.js';
-import { parseInitData } from '../lib/auth.js';
-import { finalizeRaid, RAID_PREP_MS, solveUserRaids, escTg } from '../lib/raidcore.js';
-import { thinkBots } from '../lib/brain.js';
+import { getUser, saveUser, getActiveRaid, setActiveRaid, clearActiveRaid, getGrudges, tgNotify, syncLb, allUsers, getConfig, allActiveRaids, getEvents } from './lib/db.js';
+import { setActiveCfg, resolveRaid, raidPower, warLevel, collect, checkAchievements, playerLevel } from './lib/game.js';
+import { parseInitData } from './lib/auth.js';
+import { finalizeRaid, RAID_PREP_MS, solveUserRaids, escTg } from './lib/raidcore.js';
+import { thinkBots } from './lib/brain.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
