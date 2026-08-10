@@ -1,7 +1,7 @@
 // ⚔️ POST /api/raid — Bal Baskını (PvP)
 // Aksiyonlar: world | start | defend | cancel
 // Lazy çözüm: her çağrıda süresi dolmuş ve henüz çözülmemiş saldırıları çözer.
-import { getUser, saveUser, getActiveRaid, setActiveRaid, clearActiveRaid, getGrudges, tgNotify, syncLb, allUsers, getConfig } from '../lib/db.js';
+import { getUser, saveUser, getActiveRaid, setActiveRaid, clearActiveRaid, getGrudges, tgNotify, syncLb, allUsers, getConfig, allActiveRaids } from '../lib/db.js';
 import { setActiveCfg, resolveRaid, raidPower, warLevel, collect, checkAchievements, playerLevel } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
 import { finalizeRaid, RAID_PREP_MS } from '../lib/raidcore.js';
@@ -43,24 +43,26 @@ export default async function handler(req, res) {
 
   switch (action) {
     case 'world': {
+      // Aktif saldırılar tek okuma (performans)
+      const actAll = await allActiveRaids();
       // Kendi aktif saldırım (saldırgan olarak)
       let myAttack = null;
-      const all = await allUsers(2000);
-      for (const { id, st: o } of all) {
-        if (String(id) === me) continue;
-        const r = await getActiveRaid(id);
-        if (r && String(r.a) === me) { myAttack = r; break; }
+      for (const id2 in actAll) {
+        if (actAll[id2].a === me) { myAttack = actAll[id2]; break; }
       }
       // Aktif savunma (hedef olarak)
-      const myDefense = await getActiveRaid(me);
+      const myDefense = actAll[me] || null;
+      const all = await allUsers(400);
 
       // Hedef önerileri: güç benzeri oyuncular (ban harici)
       const myPow = raidPower(st);
-      const buildTargets = async (lo, hi) => {
+      // ⚡ Aktif saldırılar TEK istekte toplanır (400 ayrı getActiveRaid YOK)
+      const activeAll = await allActiveRaids();
+      const buildTargets = (lo, hi) => {
         const list = [];
         for (const { id, st: o } of all) {
           if (String(id) === me || o.banned) continue;
-          if (await getActiveRaid(id)) continue; // o zaten saldırı altında
+          if (activeAll[id]) continue; // o zaten saldırı altında
           const op = raidPower(o);
           if (op < myPow * lo) continue;
           if (op > myPow * hi) continue;
@@ -76,18 +78,17 @@ export default async function handler(req, res) {
         return list;
       };
       // 1. aşama: güç dengeli hedefler · 2. aşama (boşsa): geniş aralık — "cesur hedef"
-      let targets = await buildTargets(0.3, 3);
+      let targets = buildTargets(0.3, 3);
       let brave = false;
       if (targets.length === 0) {
-        targets = await buildTargets(0.15, 4);
+        targets = buildTargets(0.15, 4);
         brave = true;
       }
       // 3. aşama (hâlâ boşsa): güç filtresi yok — en yakın rakipler, uyarıyla
       if (targets.length === 0) {
-        const all2 = [...all];
-        for (const { id, st: o } of all2) {
+        for (const { id, st: o } of all) {
           if (String(id) === me || o.banned) continue;
-          if (await getActiveRaid(id)) continue;
+          if (activeAll[id]) continue;
           targets.push({
             id, name: o.name, avatar: o.avatar || '🐝',
             level: playerLevel(o).level, war: warLevel(o.xp || 0).level,
@@ -125,13 +126,12 @@ export default async function handler(req, res) {
       if (target.banned) return res.status(400).json({ error: 'hedef_banli' });
       if (await getActiveRaid(targetId)) return res.status(400).json({ error: 'hedef_saldiri_altinda' });
       // Saldırgan zaten birine saldırıyorsa yeni saldırı başlatamaz
-      const all = await allUsers(2000);
-      for (const { id, st: o } of all) {
-        if (String(id) === me) continue;
-        const r = await getActiveRaid(id);
-        if (r && String(r.a) === me) return res.status(400).json({ error: 'zaten_saldiriyorsun' });
+      // ⚡ Tek toplu okuma (her kullanıcı için ayrı istek yok)
+      const activeAll = await allActiveRaids();
+      for (const id2 in activeAll) {
+        if (activeAll[id2].a === me) return res.status(400).json({ error: 'zaten_saldiriyorsun' });
       }
-      if (await getActiveRaid(me)) return res.status(400).json({ error: 'savunmadasin' });
+      if (activeAll[me]) return res.status(400).json({ error: 'savunmadasin' });
 
       const raid = {
         a: me,
@@ -173,12 +173,10 @@ export default async function handler(req, res) {
 
     case 'cancel': {
       // Saldırgan kendi saldırısını iptal eder → çürüme cezası
-      const all2 = await allUsers(2000);
+      const activeAll2 = await allActiveRaids();
       let found = null;
-      for (const { id, st: o } of all2) {
-        if (String(id) === me) continue;
-        const r = await getActiveRaid(id);
-        if (r && String(r.a) === me) { found = r; break; }
+      for (const id2 in activeAll2) {
+        if (activeAll2[id2].a === me) { found = activeAll2[id2]; break; }
       }
       if (!found) return res.status(400).json({ error: 'saldiri_yok' });
       await clearActiveRaid(found.t);
