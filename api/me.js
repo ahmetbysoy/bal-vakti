@@ -1,6 +1,6 @@
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
-import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode } from '../lib/db.js';
-import { newState, collect, checkAchievements, dailyInfo, playerLevel, REF_INVITER, REF_FRIEND } from '../lib/game.js';
+import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig } from '../lib/db.js';
+import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
 
 export default async function handler(req, res) {
@@ -15,6 +15,11 @@ export default async function handler(req, res) {
 async function handle(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
+
+  // Canlı konfigürasyon (admin paneli değişiklikleri anında geçerli)
+  const cfg = await getConfig();
+  setActiveCfg(cfg);
+  if (cfg.maintenance) return res.status(503).json({ error: 'bakimda' });
 
   let info = null;
   if (body.demo === true && process.env.ALLOW_DEMO === '1') {
@@ -63,6 +68,11 @@ async function handle(req, res) {
   const gained = collect(st, now);
   const freshAch = checkAchievements(st, now);
 
+  if (st.banned) {
+    await saveUser(id, st);
+    return res.status(403).json({ error: 'banlandin' });
+  }
+
   await saveUser(id, st);
   await syncLb(id, name, st.totalEarned);
 
@@ -81,8 +91,10 @@ async function handle(req, res) {
     cfg: {
       bot: process.env.BOT_USERNAME || '',
       appUrl: process.env.APP_URL || '',
-      vzvzCooldownSec: 300,
+      vzvzCooldownSec: Math.round(cfg.vzvzCooldownMs / 1000),
       vzvzDurationSec: 10,
+      // ekonomi — istemci de aynı değerleri kullansın (admin değişince anında yansır)
+      ...getActiveCfg(),
     },
   });
 }

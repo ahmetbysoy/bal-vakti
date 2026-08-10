@@ -4,7 +4,7 @@ import assert from 'assert';
 import {
   newState, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay,
   checkAchievements, playerLevel, capacity, totalProd, beeCost, beeProd,
-  ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL,
+  ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL, setActiveCfg, DEFAULT_CONFIG, giveAchievement,
 } from '../lib/game.js';
 
 let passed = 0;
@@ -167,6 +167,43 @@ t('Oyuncu seviyesi toplam bala göre artar', () => {
 t('Tüm başarı idleri benzersiz', () => {
   const ids = new Set(ACHIEVEMENTS.map((a) => a.id));
   assert.strictEqual(ids.size, ACHIEVEMENTS.length);
+});
+
+// 15) Canlı konfigürasyon override (admin paneli)
+t('Konfigürasyon override ekonomiyi değiştirir', () => {
+  setActiveCfg({ ...DEFAULT_CONFIG, p1: 1, beeBaseCost: 99 });
+  const s = newState(now0); // 1 ücretsiz arı ile başlar
+  near(beeProd(1), 1);
+  assert.strictEqual(beeCost(s), Math.floor(99 * Math.pow(1.09, 1))); // 107
+  setActiveCfg(DEFAULT_CONFIG); // geri al
+  near(beeProd(1), 0.25);
+});
+
+t('Günlük ödül kapatılınca claimDaily null döner', () => {
+  setActiveCfg({ ...DEFAULT_CONFIG, dailyEnabled: false });
+  const s = newState(now0);
+  assert.strictEqual(claimDaily(s, now0 + 86400000), null);
+  assert.strictEqual(dailyInfo(s, now0).available, false);
+  setActiveCfg(DEFAULT_CONFIG);
+  assert.strictEqual(claimDaily(s, now0 + 86400000).reward, 50);
+});
+
+t('VızVız kapatılınca oynanamaz', () => {
+  setActiveCfg({ ...DEFAULT_CONFIG, vzvzEnabled: false });
+  const s = newState(now0);
+  const r = vzvzPlay(s, 5, 1000, now0);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.why, 'vzvz_kapali');
+  setActiveCfg(DEFAULT_CONFIG);
+});
+
+t('giveAchievement rozet verir ve tekrar vermez', () => {
+  const s = newState(now0);
+  const r1 = giveAchievement(s, 'mil');
+  assert.strictEqual(r1.ok, true);
+  const r2 = giveAchievement(s, 'mil');
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.why, 'zaten_var');
 });
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);

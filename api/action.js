@@ -1,7 +1,7 @@
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
-import { getUser, saveUser, syncLb, myRank } from '../lib/db.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel } from '../lib/game.js';
+import { getUser, saveUser, syncLb, myRank, getConfig } from '../lib/db.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
 
 export default async function handler(req, res) {
@@ -17,6 +17,11 @@ async function handle(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
 
+  // Canlı konfigürasyon
+  const cfg = await getConfig();
+  setActiveCfg(cfg);
+  if (cfg.maintenance) return res.status(503).json({ error: 'bakimda' });
+
   let info = null;
   if (body.demo === true && process.env.ALLOW_DEMO === '1') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
@@ -28,6 +33,7 @@ async function handle(req, res) {
   const id = String(info.user.id);
   let st = await getUser(id);
   if (!st) return res.status(404).json({ error: 'oyuncu_yok' });
+  if (st.banned) return res.status(403).json({ error: 'banlandin' });
 
   const now = Date.now();
   const balBefore = st.bal;

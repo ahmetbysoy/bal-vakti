@@ -32,11 +32,29 @@ if (bot) {
     ctx.reply('Oyunu aç 👇', Markup.inlineKeyboard([[Markup.button.webApp('🎮 Oyna', appUrl)]]))
   );
 
+  bot.command('admin', (ctx) => {
+    const uid = String(ctx.from.id);
+    const owner = process.env.OWNER_ID;
+    if (!owner) {
+      return ctx.reply(
+        `👑 Tanrı Modu kurulmamış.\n\nSenin Telegram ID'n: <code>${uid}</code>\n` +
+        `Bu ID'yi Vercel ortam değişkenlerine <b>OWNER_ID</b> olarak ekle (veya ADMIN_PASSWORD belirle) ve redeploy et.`,
+        { parse_mode: 'HTML' }
+      );
+    }
+    if (uid !== owner) return ctx.reply('⛔ Bu komut yalnızca bot sahibine özeldir.');
+    ctx.reply(
+      '👑 Tanrı Modu — oyuncu yönetimi, bonuslar, canlı ekonomi ayarları.',
+      Markup.inlineKeyboard([[Markup.button.webApp('👑 Admin Panel', appUrl + '/admin.html')]])
+    );
+  });
+
   bot.help((ctx) =>
     ctx.reply(
       '🐝 Bal Vakti komutları:\n' +
         '/start — karşılama + oyunu aç\n' +
-        '/oyna — oyunu aç\n\n' +
+        '/oyna — oyunu aç\n' +
+        '/admin — tanrı modu (yalnızca sahip)\n\n' +
         'Arkadaşlarını davet et, ikiniz de bonus bal kazanın! 🎁'
     )
   );

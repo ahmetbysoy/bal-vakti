@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#150d03">
+<title>👑 Bal Vakti — Tanrı Modu</title>
+<style>
+  :root{--bg:#150d03;--card:#2a1c08;--card2:#33230b;--line:#4a3312;--amber:#ffb02e;--gold:#ffd166;--cream:#ffe9c0;--muted:#c9a96b;--green:#7bd88f;--red:#ff7b6b;--blue:#8ecbff}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%, #3a2408 0%, var(--bg) 60%);color:var(--cream);min-height:100vh;padding-bottom:40px}
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(180deg,#4a2d0aee,#2a1c08ee);border-bottom:1px solid var(--line)}
+  header .logo{font-size:22px}header .titles{flex:1}header .titles b{display:block;font-size:17px;color:var(--gold)}header .titles span{font-size:12px;color:var(--muted)}
+  main{max-width:720px;margin:0 auto;padding:14px}
+  .card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px}
+  .card h3{font-size:14px;color:var(--gold);margin-bottom:10px}
+  /* istatistik */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+  .stat{background:#171003;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  .stat .v{font-size:19px;font-weight:900}.stat .l{font-size:11px;color:var(--muted);margin-top:2px}
+  /* tablar */
+  nav{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+  nav button{border:1px solid var(--line);background:var(--card2);color:var(--muted);border-radius:99px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer}
+  nav button.active{background:var(--amber);color:#241703;border-color:var(--amber)}
+  .tab{display:none}.tab.show{display:block}
+  /* formlar */
+  input[type=text],input[type=number],input[type=password],select{
+    width:100%;background:#171003;border:1px solid var(--line);border-radius:12px;color:var(--cream);
+    padding:12px;font-size:14px;font-family:inherit;margin-top:6px
+  }
+  .btn{display:inline-block;border:none;border-radius:12px;cursor:pointer;background:linear-gradient(180deg,#ffd166,#f59e0b);color:#241703;font-size:14px;font-weight:900;padding:11px 18px;font-family:inherit;box-shadow:0 3px 0 #a16207;transition:transform .08s}
+  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #a16207}
+  .btn.red{background:linear-gradient(180deg,#ff9a8b,#e0523f);box-shadow:0 3px 0 #8f2c1e}
+  .btn.gray{background:linear-gradient(180deg,#4d4026,#3a2f19);color:var(--cream);box-shadow:0 3px 0 #1d1608}
+  .btn.sm{font-size:11px;padding:6px 10px;border-radius:9px;box-shadow:0 2px 0 #a16207}
+  .btn:disabled{filter:grayscale(.8);opacity:.5}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  /* oyuncu tablosu */
+  .prow{background:#171003;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+  .prow .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .prow .nm{font-weight:900;font-size:15px}
+  .prow .meta{font-size:12px;color:var(--muted)}
+  .prow .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .badge{font-size:10px;font-weight:900;border-radius:99px;padding:2px 8px;background:#3a2f19;color:var(--muted)}
+  .badge.ban{background:#5a2418;color:#ff9a8b}
+  .badge.gold{background:var(--amber);color:#241703}
+  #login{max-width:380px;margin:40px auto}
+  #login .card{text-align:center}
+  .cfgrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .cfgrow label{font-size:12px;color:var(--muted);display:block;margin-top:8px}
+  .cfgrow input{width:100%;background:#171003;border:1px solid var(--line);border-radius:10px;color:var(--cream);padding:9px 10px;font-size:13px;font-family:inherit}
+  .cfgrow .switch{display:flex;align-items:center;gap:10px;margin-top:10px;background:#171003;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .cfgrow .switch b{flex:1;font-size:13px}
+  .cfgrow .switch input{width:20px;height:20px;accent-color:var(--amber)}
+  .msg{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--amber);color:var(--cream);border-radius:99px;padding:9px 18px;font-size:13px;font-weight:700;box-shadow:0 8px 24px #00000088;display:none}
+  .log{background:#0f0a02;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);margin-top:10px;max-height:180px;overflow:auto;white-space:pre-wrap}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .giftbox{text-align:center;padding:20px 0}
+  .giftbox .big{font-size:48px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">👑</div>
+  <div class="titles"><b>Tanrı Modu</b><span>Bal Vakti yönetim paneli</span></div>
+  <button class="btn gray" onclick="logout()">Çıkış</button>
+</header>
+
+<div id="login">
+  <div class="card">
+    <div style="font-size:42px">🔐</div>
+    <h3 style="margin-top:8px">Admin Girişi</h3>
+    <p class="hint">Şifreni gir (Vercel → ADMIN_PASSWORD) ya da botta /admin ile gelirsen otomatik tanınır.</p>
+    <input type="password" id="pw" placeholder="Admin şifresi" style="margin-top:12px">
+    <button class="btn" style="width:100%;margin-top:12px" onclick="login()">Giriş Yap</button>
+    <p class="hint" id="login-err" style="color:var(--red)"></p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <main>
+    <div class="card">
+      <h3>📊 Genel Bakış</h3>
+      <div class="stats">
+        <div class="stat"><div class="v" id="s-players">–</div><div class="l">🎮 Oyuncu</div></div>
+        <div class="stat"><div class="v" id="s-today">–</div><div class="l">🆕 Bugün</div></div>
+        <div class="stat"><div class="v" id="s-bal">–</div><div class="l">🍯 Toplam bal</div></div>
+        <div class="stat"><div class="v" id="s-earned">–</div><div class="l">💰 Toplam kazanç</div></div>
+        <div class="stat"><div class="v" id="s-ban">–</div><div class="l">🚫 Men</div></div>
+      </div>
+      <div class="log" id="top-list">En iyi oyuncular yükleniyor...</div>
+    </div>
+
+    <nav>
+      <button class="active" data-t="players" onclick="tab('players')">🔍 Oyuncular</button>
+      <button data-t="settings" onclick="tab('settings')">⚙️ Canlı Ayarlar</button>
+      <button data-t="gift" onclick="tab('gift')">🎁 Toplu Bonus</button>
+    </nav>
+
+    <div class="tab show" id="t-players">
+      <div class="card">
+        <h3>🔍 Oyuncu Ara</h3>
+        <div class="row">
+          <input type="text" id="q" placeholder="ID veya isim ara (örn. 8800 veya Ahmet)" style="flex:1;margin-top:0" onkeydown="if(event.key==='Enter')search()">
+          <button class="btn" onclick="search()">Ara</button>
+        </div>
+        <div id="results"></div>
+      </div>
+    </div>
+
+    <div class="tab" id="t-settings">
+      <div class="card">
+        <h3>⚙️ Ekonomi (redeploy'suz anında uygulanır)</h3>
+        <div class="cfgrow" id="cfg-form"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" onclick="saveCfg()">💾 Kaydet</button>
+          <button class="btn gray" onclick="loadCfg()">🔄 Yenile</button>
+        </div>
+        <p class="hint" id="cfg-msg"></p>
+      </div>
+    </div>
+
+    <div class="tab" id="t-gift">
+      <div class="card">
+        <h3>🎁 Tüm Oyunculara Bonus</h3>
+        <div class="giftbox">
+          <div class="big">🍯</div>
+          <input type="number" id="gift-amt" placeholder="Bal miktarı (örn. 5000)" min="1">
+          <button class="btn" style="width:100%;margin-top:12px" onclick="giftAll()">Herkese Gönder</button>
+          <p class="hint" id="gift-msg"></p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="msg" id="msg"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+let TOKEN = localStorage.getItem('bv_admin_token') || '';
+let CFG = null;
+const fmt = (n) => n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e4 ? (n/1e3).toFixed(1)+'k' : Math.floor(n).toLocaleString('tr-TR');
+
+function toast(m){ const el=document.getElementById('msg'); el.textContent=m; el.style.display='block'; setTimeout(()=>el.style.display='none',2600); }
+async function call(action, body={}, withAuth=true){
+  const headers = {'content-type':'application/json'};
+  if (withAuth && TOKEN) headers['authorization'] = 'Bearer ' + TOKEN;
+  const r = await fetch('/api/admin', { method:'POST', headers, body: JSON.stringify({ action, ...body }) });
+  const j = await r.json().catch(()=>({error:'cevap_yok'}));
+  if (!j.ok && j.error==='oturum_yok' || !j.ok && j.error==='oturum_gecersiz') { localStorage.removeItem('bv_admin_token'); TOKEN=''; showLogin(); }
+  return j;
+}
+function initData(){ return tg ? tg.initData : ''; }
+
+async function login(){
+  const pw = document.getElementById('pw').value.trim();
+  document.getElementById('login-err').textContent='';
+  const j = await call('auth', { password: pw, initData: initData() }, false);
+  if (j.ok){ TOKEN = j.token; localStorage.setItem('bv_admin_token', TOKEN); showApp(); refreshOverview(); }
+  else document.getElementById('login-err').textContent = j.detail || (j.error==='yanlis_sifre' ? 'Yanlış şifre!' : 'Giriş başarısız: '+j.error);
+}
+function logout(){ localStorage.removeItem('bv_admin_token'); TOKEN=''; showLogin(); toast('Çıkış yapıldı'); }
+function showLogin(){ document.getElementById('login').style.display='block'; document.getElementById('app').style.display='none'; }
+function showApp(){ document.getElementById('login').style.display='none'; document.getElementById('app').style.display='block'; }
+
+function tab(name){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('show', t.id==='t-'+name));
+  if (name==='players') search();
+  if (name==='settings') loadCfg();
+}
+
+async function refreshOverview(){
+  const j = await call('overview');
+  if (!j.ok) return;
+  const s = j.stats;
+  document.getElementById('s-players').textContent = fmt(s.players);
+  document.getElementById('s-today').textContent = fmt(s.newToday);
+  document.getElementById('s-bal').textContent = fmt(s.totalBal);
+  document.getElementById('s-earned').textContent = fmt(s.totalEarned);
+  document.getElementById('s-ban').textContent = fmt(s.banned);
+  document.getElementById('top-list').textContent = '🏆 En iyi 10:\n' + s.top.map((x,i)=>(i+1)+'. '+x.name+' — '+fmt(x.totalEarned)+' 🍯'+(x.banned?' 🚫':'')).join('\n');
+}
+
+async function search(){
+  const q = document.getElementById('q').value.trim();
+  const j = await call('search', { q });
+  const box = document.getElementById('results');
+  if (!j.ok){ box.innerHTML = '<p class="hint">Arama hatası: '+j.error+'</p>'; return; }
+  if (!j.players.length){ box.innerHTML = '<p class="hint">Oyuncu bulunamadı.</p>'; return; }
+  box.innerHTML = j.players.map(p => {
+    const id = p.id;
+    return '<div class="prow"><div class="top">' +
+      '<span class="nm">🐝 ' + esc(p.name) + '</span>' +
+      (p.banned ? '<span class="badge ban">🚫 MEN</span>' : '') +
+      '<span class="badge gold">Sv ' + p.level + '</span>' +
+      '<span class="meta">ID: ' + id + '</span>' +
+      '</div>' +
+      '<div class="meta">🍯 ' + fmt(p.bal) + ' · 💰 toplam ' + fmt(p.totalEarned) + ' · 🐝 ' + p.beesOwned + ' arı · 🏅 ' + p.ach + ' rozet</div>' +
+      '<div class="acts">' +
+      '<button class="btn sm" onclick="pAct(\''+id+'\',\'add_bal\',100)">+100</button>' +
+      '<button class="btn sm" onclick="pAct(\''+id+'\',\'add_bal\',1000)">+1.000</button>' +
+      '<button class="btn sm" onclick="pAct(\''+id+'\',\'add_bal\',-1000)">−1.000</button>' +
+      '<button class="btn sm" onclick="pAct(\''+id+'\',\'add_bees\',1)">+1 arı</button>' +
+      '<button class="btn sm" onclick="pAct(\''+id+'\',\'add_bees\',10)">+10 arı</button>' +
+      (p.banned
+        ? '<button class="btn sm" style="background:linear-gradient(180deg,#9be8ab,#3fae5e);box-shadow:0 2px 0 #1f5c31" onclick="pAct(\''+id+'\',\'unban\',0)">✅ Meni kaldır</button>'
+        : '<button class="btn sm red" onclick="pAct(\''+id+'\',\'ban\',0)">🚫 Banla</button>') +
+      '<button class="btn sm gray" onclick="pAct(\''+id+'\',\'reset\',0)">🔄 Sıfırla</button>' +
+      '<button class="btn sm gray" onclick="giveAch(\''+id+'\')">🏅 Rozet ver</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function pAct(id, action2, amount){
+  if (action2==='reset' && !confirm('Bu oyuncunun tüm ilerlemesi silinecek. Emin misin?')) return;
+  const j = await call('player_update', { id, action2, amount });
+  if (j.ok){ toast('✅ Güncellendi: '+j.player.name+' → '+fmt(j.player.bal)+' 🍯'); refreshOverview(); search(); }
+  else toast('⛔ '+j.error);
+}
+
+async function giveAch(id){
+  const ids = ['bee1','bees10','bees50','bees100','level8','level12','cap10k','kovan5','mil','streak7','ref3','vzvz10','fast'];
+  const which = prompt('Rozet id: (boş bırakırsan menü)\n'+ids.join(', '));
+  if (!which) return;
+  const j = await call('player_update', { id, action2:'give_ach', achId: which });
+  toast(j.ok ? '✅ Rozet verildi (+'+j.player.bal+')' : '⛔ '+j.error);
+  if (j.ok){ refreshOverview(); search(); }
+}
+
+const CFG_FIELDS = [
+  ['beeBaseCost','Arı taban fiyatı'],['beeCostGrowth','Arı fiyat artışı (x)'],['p1','Üretim L1 (bal/sn)'],['pMult','Seviye çarpanı (x)'],
+  ['capBase','Depo başlangıç'],['capUpgMult','Depo çarpanı (x)'],['capUpgBase','Depo upg fiyatı'],['capUpgCostMult','Depo upg çarpanı'],
+  ['kovanBase','Kovan fiyatı'],['kovanCostMult','Kovan çarpanı'],['startBal','Yeni oyuncu balı'],['startFreeBees','Yeni oyuncu arısı'],
+  ['vzvzTapReward','VızVız dokunuş balı'],['vzvzMaxTaps','VızVız max dokunuş'],['vzvzMaxMs','VızVız max süre (ms)'],['vzvzCooldownMs','VızVız bekleme (ms)'],
+];
+const CFG_TOGGLES = [['dailyEnabled','🎁 Günlük ödül'],['vzvzEnabled','⚡ VızVız'],['maintenance','🔧 Bakım modu (oyun kapanır)']];
+
+async function loadCfg(){
+  const j = await call('config_get');
+  if (!j.ok) return;
+  CFG = j.config;
+  const form = document.getElementById('cfg-form');
+  form.innerHTML = CFG_FIELDS.map(([k,label]) =>
+    '<div><label>'+label+' ('+k+')</label><input type="number" step="any" id="cfg-'+k+'" value="'+CFG[k]+'"></div>'
+  ).join('') + '<div style="grid-column:1/-1">' +
+    CFG_TOGGLES.map(([k,label]) =>
+      '<div class="switch"><b>'+label+'</b><input type="checkbox" id="cfg-'+k+'" '+(CFG[k]?'checked':'')+'></div>'
+    ).join('') + '</div>';
+}
+
+async function saveCfg(){
+  const patch = {};
+  for (const [k] of CFG_FIELDS){
+    const el = document.getElementById('cfg-'+k);
+    const v = parseFloat(el.value);
+    if (Number.isFinite(v) && v >= 0) patch[k] = v;
+  }
+  for (const [k] of CFG_TOGGLES) patch[k] = document.getElementById('cfg-'+k).checked;
+  const j = await call('config_set', { config: patch });
+  document.getElementById('cfg-msg').textContent = j.ok ? '✅ Kaydedildi — oyunculara anında yansıdı!' : '⛔ '+j.error;
+}
+
+async function giftAll(){
+  const amt = parseInt(document.getElementById('gift-amt').value, 10);
+  if (!amt || amt <= 0){ toast('Miktar gir!'); return; }
+  if (!confirm(amt.toLocaleString('tr-TR') + ' bal TÜM oyunculara gönderilsin mi?')) return;
+  const j = await call('gift', { amount: amt });
+  document.getElementById('gift-msg').textContent = j.ok ? '✅ '+j.affected+' oyuncuya '+fmt(j.amount)+' bal gönderildi!' : '⛔ '+j.error;
+  if (j.ok) refreshOverview();
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* başlat */
+(async function(){
+  if (tg) { try { tg.ready(); tg.expand(); } catch(e){} }
+  if (TOKEN){
+    const j = await call('session_info');
+    if (j.ok){ showApp(); refreshOverview(); return; }
+  }
+  // Telegram içinden gelindiyse otomatik dene (OWNER_ID eşleşirse)
+  const a = await call('auth', { initData: initData() }, false);
+  if (a.ok){ TOKEN = a.token; localStorage.setItem('bv_admin_token', TOKEN); showApp(); refreshOverview(); }
+})();
+</script>
+</body>
+</html>

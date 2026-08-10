@@ -49,11 +49,18 @@ async function handleApi(req, res, seg) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
-  if (url.pathname === '/api/me' || url.pathname === '/api/action' || url.pathname === '/api/leaderboard' || url.pathname === '/api/bot') {
+  if (url.pathname === '/api/me' || url.pathname === '/api/action' || url.pathname === '/api/leaderboard' || url.pathname === '/api/bot' || url.pathname === '/api/admin') {
     return handleApi(req, res, url.pathname.split('/')[2]);
   }
   if (url.pathname === '/' || url.pathname === '/index.html') {
     const file = path.join(__dirname, 'index.html');
+    if (existsSync(file)) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      return res.end(readFileSync(file));
+    }
+  }
+  if (url.pathname === '/admin.html') {
+    const file = path.join(__dirname, 'admin.html');
     if (existsSync(file)) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       return res.end(readFileSync(file));

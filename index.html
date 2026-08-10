@@ -306,7 +306,14 @@ const MAX_LEVEL = 12;
 let S = null;          // oyun durumu
 let mode = 'server';   // 'server' | 'demo'
 let uid = 1;           // kullanıcı id (davet kodu için)
-let cfg = { bot: '', appUrl: '', vzvzCooldownSec: 300, vzvzDurationSec: 10 };
+let cfg = {
+  bot: '', appUrl: '', vzvzCooldownSec: 300, vzvzDurationSec: 10,
+  // ekonomi (sunucudan gelir; gelmezse varsayılanlar kullanılır)
+  beeBaseCost: 10, beeCostGrowth: 1.09, p1: 0.25, pMult: 3,
+  capBase: 500, capUpgMult: 4, capUpgBase: 200, capUpgCostMult: 3,
+  kovanBase: 400, kovanCostMult: 4,
+  vzvzTapReward: 2, vzvzMaxTaps: 30, vzvzMaxMs: 12000,
+};
 let myRankCache = null;
 let tab = 'kovan';
 let vzvzRunning = false;
@@ -367,11 +374,11 @@ function demoLoad() {
   return demoNew();
 }
 function demoSave() { try { localStorage.setItem('balvakti_demo', JSON.stringify(S)); } catch (e) {} }
-const dProd = (s) => { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * 0.25 * Math.pow(3, l - 1); return t * Math.pow(2, s.kovan); };
-const dCap = (s) => 500 * Math.pow(4, s.depo);
-const dBeeCost = (s) => Math.floor(10 * Math.pow(1.09, s.beesOwned));
-const dKovanCost = (s) => Math.floor(400 * Math.pow(4, s.kovan));
-const dDepoCost = (s) => Math.floor(200 * Math.pow(3, s.depo));
+const dProd = (s) => { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * cfg.p1 * Math.pow(cfg.pMult, l - 1); return t * Math.pow(2, s.kovan); };
+const dCap = (s) => cfg.capBase * Math.pow(cfg.capUpgMult, s.depo);
+const dBeeCost = (s) => Math.floor(cfg.beeBaseCost * Math.pow(cfg.beeCostGrowth, s.beesOwned));
+const dKovanCost = (s) => Math.floor(cfg.kovanBase * Math.pow(cfg.kovanCostMult, s.kovan));
+const dDepoCost = (s) => Math.floor(cfg.capUpgBase * Math.pow(cfg.capUpgCostMult, s.depo));
 function dCollect(s) {
   const elapsed = Math.max(0, Date.now() - s.lastCollect);
   let gain = (dProd(s) * elapsed) / 1000;
@@ -399,7 +406,14 @@ async function load() {
     mode = 'server';
     if (res.gained > 0) toast('🍯 +' + fmt(res.gained) + ' bal üretildi');
     res.freshAch.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); });
-    if (res.isNew) toast('🐝 Hoş geldin! 25 bal + 1 arı seni bekliyor');
+    if (res.isNew) toast('🐝 Hoş geldin! ' + fmt(cfg.startBal) + ' bal + ' + cfg.startFreeBees + ' arı seni bekliyor');
+  } else if (res && res.error === 'bakimda') {
+    mode = 'demo';
+    S = demoLoad(); dCollect(S); demoSave();
+    toast('🔧 Oyun bakımda — çevrimdışı modda oynuyorsun');
+  } else if (res && res.error === 'banlandin') {
+    showBanned();
+    return;
   } else {
     mode = 'demo';
     $('#demoflag').style.display = 'block';
@@ -536,24 +550,51 @@ function errText(e) {
     hile: 'Hmm, bir şeyler ters 😅',
     auth_hatasi: 'Oturum yenilenmedi — oyunu kapatıp tekrar aç 🔄',
     oyuncu_yok: 'Kaydın bulunamadı — oyunu kapatıp tekrar aç 🔄',
+    vzvz_kapali: 'VızVız şu an kapalı 🔌',
+    bakimda: '🔧 Oyun bakımda — birazdan tekrar gel!',
+    banlandin: '🚫 Bu hesap oyundan men edildi',
+    adm_yetki: 'Yetkin yok 👑',
+    oturum_yok: 'Oturum yok — tekrar giriş yap',
+    oturum_gecersiz: 'Oturum süresi doldu — tekrar giriş yap',
+    yanlis_sifre: 'Yanlış şifre 🔐',
+    admin_ayarsiz: 'Admin şifresi tanımlı değil',
     bilinmeyen_aksiyon: 'Bilinmeyen işlem',
     bilinmeyen_yukseltme: 'Bilinmeyen yükseltme',
   }[e] || 'Hata oluştu (' + e + ')';
 }
 // Sunucu ulaşılamazsa/oturum hatalıysa otomatik çevrimdışı moda geç
-function fallbackDemo() {
+function fallbackDemo(msg) {
   mode = 'demo';
   S = demoLoad();
   dCollect(S);
   demoSave();
-  toast('🔄 Sunucu bağlantısı yok — çevrimdışı modda oynuyorsun (veriler bu cihazda)');
+  toast(msg || '🔄 Sunucu bağlantısı yok — çevrimdışı modda oynuyorsun (veriler bu cihazda)');
   renderAll();
+}
+// Aksiyon hata merkezi: bazı hatalar özel davranış gerektirir
+function handleActionErr(res) {
+  if (!res) return false;
+  if (res.error === 'bakimda') { fallbackDemo('🔧 Oyun bakımda — çevrimdışı moddasın'); return true; }
+  if (res.error === 'banlandin') { showBanned(); return true; }
+  if (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok') { fallbackDemo(); return true; }
+  return false;
+}
+// Ban ekranı
+function showBanned() {
+  document.getElementById('loader').style.display = 'none';
+  document.querySelector('main').innerHTML =
+    '<div class="card" style="text-align:center;padding:40px 20px">' +
+    '<div style="font-size:60px">🚫</div>' +
+    '<h2 style="color:var(--red);margin-top:10px">Bu hesap oyundan men edildi</h2>' +
+    '<p class="subline" style="margin-top:8px">Kuralları ihlal ettiğin için erişimin kapatıldı.<br>Sorun olduğunu düşünüyorsan destekle iletişime geç.</p>' +
+    '</div>';
+  document.querySelectorAll('nav, .iconbtn').forEach((el) => el.style.display = 'none');
 }
 async function doCollect() {
   haptic('impact');
   if (mode === 'demo') { const g = dCollect(S); demoSave(); toast('🍯 +' + fmt(g) + ' bal toplandı'); renderAll(); return; }
   const res = await api('/api/action', { initData: initData(), action: 'collect' });
-  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doCollect(); }
+  if (handleActionErr(res)) return doCollect();
   if (handleRes(res)) toast('🍯 +' + fmt(res.collected) + ' bal toplandı');
 }
 async function doBuy() {
@@ -569,7 +610,7 @@ async function doBuy() {
     renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'buy_bee' });
-  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doBuy(); }
+  if (handleActionErr(res)) return doBuy();
   if (handleRes(res)) {
     if (res.merges?.length) toast('✨ 2 arı birleşti → Seviye ' + res.merges[res.merges.length - 1] + '!');
     else toast('🐝 Yeni arı katıldı!');
@@ -585,7 +626,7 @@ async function doUpgrade(which) {
     demoSave(); toast(label); renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'upgrade', payload: { which } });
-  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doUpgrade(which); }
+  if (handleActionErr(res)) return doUpgrade(which);
   if (handleRes(res)) toast(label);
 }
 async function doDaily() {
@@ -602,7 +643,7 @@ async function doDaily() {
     closeModal(); renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'daily' });
-  if (res && (res.error === 'auth_hatasi' || res.error === 'oyuncu_yok')) { fallbackDemo(); return doDaily(); }
+  if (handleActionErr(res)) return doDaily();
   if (handleRes(res)) { toast('🎁 +' + fmt(res.reward) + ' bal! (seri ' + res.streak + '🔥)'); confetti(); closeModal(); }
 }
 
@@ -730,12 +771,12 @@ function switchTab(name) {
 }
 
 /* ═══════════════ SERVER LOGIC (demo'da gerek yok, sadece render için) ═══════════════ */
-function beeProd(l) { return 0.25 * Math.pow(3, l - 1); }
+function beeProd(l) { return cfg.p1 * Math.pow(cfg.pMult, l - 1); }
 function totalProd(s) { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * beeProd(l); return t * Math.pow(2, s.kovan); }
-function capacity(s) { return 500 * Math.pow(4, s.depo); }
-function beeCost(s) { return Math.floor(10 * Math.pow(1.09, s.beesOwned)); }
-function kovanCost(s) { return Math.floor(400 * Math.pow(4, s.kovan)); }
-function depoCost(s) { return Math.floor(200 * Math.pow(3, s.depo)); }
+function capacity(s) { return cfg.capBase * Math.pow(cfg.capUpgMult, s.depo); }
+function beeCost(s) { return Math.floor(cfg.beeBaseCost * Math.pow(cfg.beeCostGrowth, s.beesOwned)); }
+function kovanCost(s) { return Math.floor(cfg.kovanBase * Math.pow(cfg.kovanCostMult, s.kovan)); }
+function depoCost(s) { return Math.floor(cfg.capUpgBase * Math.pow(cfg.capUpgCostMult, s.depo)); }
 function dailyInfo(s) {
   const today = Math.floor(Date.now() / DAY);
   const lastDay = Math.floor(s.lastDaily / DAY);
