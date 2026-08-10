@@ -8,7 +8,7 @@ import { parseInitData } from './lib/auth.js';
 import { solveUserRaids } from './lib/raidcore.js';
 import { thinkBots } from './lib/brain.js';
 
-export default async function handler(req, res) {
+export async function route(req, res) {
   try {
     return await handle(req, res);
   } catch (e) {

@@ -1095,7 +1095,7 @@ const { parseInitData } = __lib['auth'];
 const { solveUserRaids } = __lib['raidcore'];
 const { thinkBots } = __lib['brain'];
 
-async function handler(req, res) {
+async function route(req, res) {
   try {
     return await handle(req, res);
   } catch (e) {
@@ -1208,7 +1208,7 @@ async function handle(req, res) {
   });
 }
 
-return handler;
+return route;
 })();
 __handlers['action'] = (() => {
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
@@ -1217,7 +1217,7 @@ const { getUser, saveUser, syncLb, myRank, getConfig } = __lib['db'];
 const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
-async function handler(req, res) {
+async function route(req, res) {
   try {
     return await handle(req, res);
   } catch (e) {
@@ -1328,7 +1328,7 @@ async function handle(req, res) {
   });
 }
 
-return handler;
+return route;
 })();
 __handlers['raid'] = (() => {
 // ⚔️ POST /api/raid — Bal Baskını (PvP)
@@ -1340,7 +1340,7 @@ const { parseInitData } = __lib['auth'];
 const { finalizeRaid, RAID_PREP_MS, solveUserRaids, escTg } = __lib['raidcore'];
 const { thinkBots } = __lib['brain'];
 
-async function handler(req, res) {
+async function route(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
 
@@ -1538,7 +1538,7 @@ async function handler(req, res) {
   });
 }
 
-return handler;
+return route;
 })();
 __handlers['admin'] = (() => {
 // 👑 POST /api/admin/* — Tanrı Modu (admin paneli)
@@ -1567,7 +1567,7 @@ async function issueToken(id) {
   return token;
 }
 
-async function handler(req, res) {
+async function route(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
   const action = body.action;
@@ -1841,19 +1841,19 @@ async function handler(req, res) {
   }
 }
 
-return handler;
+return route;
 })();
 __handlers['leaderboard'] = (() => {
 // 🏆 GET /api/leaderboard — en iyi 30 arıcı
 const { topLb } = __lib['db'];
 
-async function handler(req, res) {
+async function route(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET bekleniyor' });
   const top = await topLb(30);
   res.json({ ok: true, top });
 }
 
-return handler;
+return route;
 })();
 __handlers['bot'] = (() => {
 // 🤖 POST /api/bot — Telegram bot webhook'u (Telegraf)
@@ -1917,7 +1917,7 @@ if (bot) {
   );
 }
 
-async function handler(req, res) {
+async function route(req, res) {
   if (req.method === 'POST') {
     if (!bot) return res.status(500).json({ error: 'BOT_TOKEN tanımlı değil' });
     try {
@@ -1931,7 +1931,7 @@ async function handler(req, res) {
   res.status(200).json({ ok: true, bot: !!bot, appUrl: appUrl || null });
 }
 
-return handler;
+return route;
 })();
 
 // ── Router ──

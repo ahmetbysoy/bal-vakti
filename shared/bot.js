@@ -60,7 +60,7 @@ if (bot) {
   );
 }
 
-export default async function handler(req, res) {
+export async function route(req, res) {
   if (req.method === 'POST') {
     if (!bot) return res.status(500).json({ error: 'BOT_TOKEN tanımlı değil' });
     try {

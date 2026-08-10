@@ -4,7 +4,7 @@ import { getUser, saveUser, syncLb, myRank, getConfig } from './lib/db.js';
 import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
-export default async function handler(req, res) {
+export async function route(req, res) {
   try {
     return await handle(req, res);
   } catch (e) {

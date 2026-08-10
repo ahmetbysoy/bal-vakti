@@ -7,7 +7,7 @@ import { parseInitData } from './lib/auth.js';
 import { finalizeRaid, RAID_PREP_MS, solveUserRaids, escTg } from './lib/raidcore.js';
 import { thinkBots } from './lib/brain.js';
 
-export default async function handler(req, res) {
+export async function route(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
 

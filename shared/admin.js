@@ -25,7 +25,7 @@ async function issueToken(id) {
   return token;
 }
 
-export default async function handler(req, res) {
+export async function route(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST bekleniyor' });
   const body = req.body || {};
   const action = body.action;

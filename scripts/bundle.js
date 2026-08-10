@@ -84,7 +84,7 @@ function wrapHandler(name, src) {
   let body = stripExports(src);
   body = rewriteLocalImports(body, '__lib');
   body = extractNodeImports(body);
-  return `__handlers['${name}'] = (() => {\n${body}\nreturn handler;\n})();`;
+  return `__handlers['${name}'] = (() => {\n${body}\nreturn route;\n})();`;
 }
 
 function build() {
