@@ -5,9 +5,10 @@
 // Başarılı giriş → Redis'te 12 saatlik oturum token'ı → sonraki istekler
 // "Authorization: Bearer <token>" başlığıyla.
 import crypto from 'crypto';
-import { getUser, saveUser, getConfig, setConfig, createSession, getSession, deleteSession, allUsers, overview } from '../lib/db.js';
+import { getUser, saveUser, getConfig, setConfig, createSession, getSession, deleteSession, allUsers, overview, listBots, getBot, deleteBot } from '../lib/db.js';
 import { newState, setActiveCfg, getActiveCfg, giveAchievement, playerLevel, ACHIEVEMENTS, MAX_LEVEL, beeCost, kovanCost, depoCost, capacity, totalProd } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
+import { createBot, thinkBots, PERSONALITIES, POWER_LEVELS, makeBotState, randPick, AVATAR_POOL } from '../lib/brain.js';
 
 const OWNER_ID = process.env.OWNER_ID;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -196,6 +197,94 @@ export default async function handler(req, res) {
 
       case 'session_info':
         return res.json({ ok: true, session: sessionId });
+
+      case 'bot_list': {
+        const bots = await listBots();
+        const out = [];
+        for (const b of bots) {
+          const st = await getUser(b.id);
+          out.push({
+            id: b.id, name: b.name, avatar: b.avatar, personality: b.personality,
+            personalityLabel: PERSONALITIES[b.personality]?.label || b.personality,
+            powerLevel: b.powerLevel, ai: b.ai, enabled: b.enabled,
+            lastThink: b.lastThink || 0, created: b.created || 0,
+            state: st ? {
+              bal: Math.round(st.bal || 0), beesOwned: st.beesOwned,
+              xp: st.xp || 0, war: playerLevel(st).level,
+              raidWins: st.raidWins || 0, raidLosses: st.raidLosses || 0,
+              defended: st.defended || 0, grudgeDef: st.grudgeDef || 0,
+              totalEarned: Math.round(st.totalEarned || 0),
+            } : null,
+          });
+        }
+        return res.json({ ok: true, bots: out, personalities: PERSONALITIES, powerLevels: POWER_LEVELS });
+      }
+
+      case 'bot_create': {
+        const count = Math.min(Math.max(parseInt(body.count) || 1, 1), 50);
+        const personality = PERSONALITIES[body.personality] ? body.personality : 'warrior';
+        const powerLevel = POWER_LEVELS[body.powerLevel] ? body.powerLevel : 'orta';
+        const enabled = body.enabled !== false;
+        const created = [];
+        for (let i = 0; i < count; i++) {
+          created.push(await createBot({ personality, powerLevel, enabled }));
+        }
+        return res.json({ ok: true, created: created.map((b) => ({ id: b.id, name: b.name, avatar: b.avatar, personality })) });
+      }
+
+      case 'bot_update': {
+        const id = String(body.id || '');
+        const bot = await getBot(id);
+        if (!bot) return res.status(404).json({ error: 'bot_yok' });
+        if (body.name) bot.name = String(body.name).trim().slice(0, 24) || bot.name;
+        if (body.avatar && [...String(body.avatar)].length <= 2) bot.avatar = String(body.avatar);
+        if (PERSONALITIES[body.personality]) bot.personality = body.personality;
+        if (POWER_LEVELS[body.powerLevel]) bot.powerLevel = body.powerLevel;
+        if (body.enabled !== undefined) bot.enabled = !!body.enabled;
+        if (body.ai && typeof body.ai === 'object') {
+          for (const k of ['aggr', 'strat', 'venge', 'pack']) {
+            const v = parseInt(body.ai[k]);
+            if (Number.isFinite(v)) bot.ai[k] = Math.min(100, Math.max(0, v));
+          }
+        }
+        // Güç seviyesi değiştiyse oyuncu durumunu yeniden şekillendir
+        if (body.powerLevel && POWER_LEVELS[body.powerLevel]) {
+          const st = makeBotState(body.powerLevel);
+          st.name = bot.name;
+          st.avatar = bot.avatar;
+          await saveUser(id, st);
+        } else {
+          const st = await getUser(id);
+          if (st) {
+            if (body.name) st.name = bot.name;
+            if (body.avatar) st.avatar = bot.avatar;
+            await saveUser(id, st);
+          }
+        }
+        await saveBot(bot);
+        return res.json({ ok: true, bot });
+      }
+
+      case 'bot_delete': {
+        const id = String(body.id || '');
+        if (!(await getBot(id))) return res.status(404).json({ error: 'bot_yok' });
+        await deleteBot(id);
+        return res.json({ ok: true });
+      }
+
+      case 'bot_toggle': {
+        const id = String(body.id || '');
+        const bot = await getBot(id);
+        if (!bot) return res.status(404).json({ error: 'bot_yok' });
+        bot.enabled = body.enabled !== undefined ? !!body.enabled : !bot.enabled;
+        await saveBot(bot);
+        return res.json({ ok: true, enabled: bot.enabled });
+      }
+
+      case 'bot_run': {
+        const r = await thinkBots({ force: true });
+        return res.json({ ok: true, ...r });
+      }
 
       case 'logout':
         await deleteSession(token);

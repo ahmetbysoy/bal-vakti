@@ -1164,6 +1164,13 @@ function renderRaid() {
   } else {
     box.innerHTML = '<p class="hint">Şu an gücüne uygun hedef yok — biraz sonra tekrar dene. (Saldırdıkların düşman listene eklenir!)</p>';
   }
+  if (w.brave && w.targets.length) {
+    const nb = document.createElement('p');
+    nb.className = 'hint';
+    nb.style.cssText = 'color:var(--amber);font-weight:800;margin-top:6px';
+    nb.textContent = '🔥 Cesur hedefler: dengeli rakip bulunamadı, gücüne göre cesurca davranman gerekecek!';
+    box.prepend(nb);
+  }
 
   // Kin listesi
   const gbox = $('#raid-grudges');

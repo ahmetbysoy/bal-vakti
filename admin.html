@@ -93,6 +93,7 @@
 
     <nav>
       <button class="active" data-t="players" onclick="tab('players')">🔍 Oyuncular</button>
+      <button data-t="bots" onclick="tab('bots')">🤖 Botlar</button>
       <button data-t="settings" onclick="tab('settings')">⚙️ Canlı Ayarlar</button>
       <button data-t="gift" onclick="tab('gift')">🎁 Toplu Bonus</button>
     </nav>
@@ -105,6 +106,32 @@
           <button class="btn" onclick="search()">Ara</button>
         </div>
         <div id="results"></div>
+      </div>
+    </div>
+
+    <div class="tab" id="t-bots">
+      <div class="card">
+        <h3>🤖 Yapay Zekâ Arıcı Oluştur</h3>
+        <div class="row" style="gap:8px;align-items:flex-end">
+          <div style="flex:1;min-width:80px"><label class="hint">Adet</label>
+            <input type="number" id="bot-count" value="1" min="1" max="50" style="margin-top:2px">
+          </div>
+          <div style="flex:2;min-width:140px"><label class="hint">Kişilik (zekâ)</label>
+            <select id="bot-per" style="margin-top:2px"></select>
+          </div>
+          <div style="flex:1;min-width:110px"><label class="hint">Güç</label>
+            <select id="bot-pow" style="margin-top:2px"></select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" onclick="botCreate()">🤖 Oluştur</button>
+          <button class="btn gray" onclick="botRun()">⚡ Hemen Çalıştır</button>
+        </div>
+        <p class="hint" id="bot-msg"></p>
+      </div>
+      <div class="card">
+        <h3>📋 Bot Listesi <span id="bot-count-txt" style="font-size:11px;color:var(--muted)"></span></h3>
+        <div id="bot-list"><p class="hint">Henüz bot yok — oyunu canlandırmak için birkaç tane oluştur!</p></div>
       </div>
     </div>
 
@@ -164,11 +191,14 @@ function logout(){ localStorage.removeItem('bv_admin_token'); TOKEN=''; showLogi
 function showLogin(){ document.getElementById('login').style.display='block'; document.getElementById('app').style.display='none'; }
 function showApp(){ document.getElementById('login').style.display='none'; document.getElementById('app').style.display='block'; }
 
+let tabActive = 'players';
 function tab(name){
+  tabActive = name;
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('show', t.id==='t-'+name));
   if (name==='players') search();
   if (name==='settings') loadCfg();
+  if (name==='bots') botsTab();
 }
 
 async function refreshOverview(){
@@ -272,6 +302,101 @@ async function giftAll(){
 }
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ═══════════════ 🤖 BOTLAR ═══════════════ */
+let BOT_META = null;
+
+async function botsTab() {
+  if (tabActive !== 'bots') return;
+  const j = await call('bot_list');
+  if (!j.ok) return;
+  BOT_META = j;
+  // kişilik/güç dropdown'ları
+  const perSel = document.getElementById('bot-per');
+  perSel.innerHTML = Object.entries(j.personalities).map(([k, v]) =>
+    '<option value="' + k + '">' + v.emoji + ' ' + v.label + '</option>').join('');
+  const powSel = document.getElementById('bot-pow');
+  powSel.innerHTML = Object.entries(j.powerLevels).map(([k, v]) =>
+    '<option value="' + k + '">' + v.label + '</option>').join('');
+  document.getElementById('bot-count-txt').textContent = '(' + j.bots.length + ' bot)';
+  const list = document.getElementById('bot-list');
+  if (!j.bots.length) {
+    list.innerHTML = '<p class="hint">Henüz bot yok — oyunu canlandırmak için birkaç tane oluştur!</p>';
+    return;
+  }
+  list.innerHTML = j.bots.map((b) => {
+    const s = b.state || {};
+    const aiTxt = '🔥' + (b.ai?.aggr ?? 0) + ' 🧠' + (b.ai?.strat ?? 0) + ' 😤' + (b.ai?.venge ?? 0) + ' 🐝' + (b.ai?.pack ?? 0);
+    const last = b.lastThink ? new Date(b.lastThink).toLocaleTimeString('tr-TR') : '—';
+    return '<div class="prow"><div class="top">' +
+      '<span class="nm">' + (b.avatar || '🤖') + ' ' + esc(b.name) + '</span>' +
+      '<span class="badge gold">' + esc(b.personalityLabel) + '</span>' +
+      (b.enabled ? '<span class="badge" style="background:#1f5c31;color:#9be8ab">🟢 Aktif</span>' : '<span class="badge">⚪ Pasif</span>') +
+      '<span class="meta">' + esc(b.powerLevel) + ' · ' + aiTxt + '</span>' +
+      '</div>' +
+      '<div class="meta">🍯 ' + fmt(s.bal ?? 0) + ' · 🐝 ' + (s.beesOwned ?? 0) + ' · ⭐ ' + (s.xp ?? 0) + ' XP · 🏆 ' + (s.raidWins ?? 0) + '/' + (s.raidLosses ?? 0) + ' · 🛡️ ' + (s.defended ?? 0) + ' · 😠 ' + (s.grudgeDef ?? 0) + ' · son: ' + last + '</div>' +
+      '<div class="acts">' +
+      '<button class="btn sm" onclick="botEdit(\'' + b.id + '\')">✏️ Düzenle</button>' +
+      '<button class="btn sm ' + (b.enabled ? 'red' : '') + '" onclick="botToggle(\'' + b.id + '\')">' + (b.enabled ? '⏸️ Duraklat' : '▶️ Başlat') + '</button>' +
+      '<button class="btn sm red" onclick="botDelete(\'' + b.id + '\')">🗑️ Sil</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function botCreate() {
+  const count = parseInt(document.getElementById('bot-count').value, 10) || 1;
+  const personality = document.getElementById('bot-per').value;
+  const powerLevel = document.getElementById('bot-pow').value;
+  const j = await call('bot_create', { count, personality, powerLevel });
+  document.getElementById('bot-msg').textContent = j.ok
+    ? '✅ ' + j.created.length + ' bot oluşturuldu: ' + j.created.map((b) => b.avatar + ' ' + b.name).join(', ')
+    : '⛔ ' + j.error;
+  if (j.ok) botsTab();
+}
+async function botToggle(id) {
+  const j = await call('bot_toggle', { id });
+  if (j.ok) toast(j.enabled ? '▶️ Bot aktif' : '⏸️ Bot duraklatıldı');
+  else toast('⛔ ' + j.error);
+  botsTab();
+}
+async function botDelete(id) {
+  if (!confirm('Bu bot silinsin mi? (oyuncu durumu da gider)')) return;
+  const j = await call('bot_delete', { id });
+  toast(j.ok ? '🗑️ Bot silindi' : '⛔ ' + j.error);
+  if (j.ok) botsTab();
+}
+async function botEdit(id) {
+  const b = BOT_META?.bots?.find((x) => x.id === id);
+  if (!b) return;
+  const name = prompt('İsim (boş bırakırsan değişmez):', b.name);
+  const aiAgr = prompt('Saldırganlık (0-100, şu an ' + (b.ai?.aggr ?? 50) + '):');
+  const aiStr = prompt('Strateji (0-100, şu an ' + (b.ai?.strat ?? 50) + '):');
+  const aiVen = prompt('Kindarlık (0-100, şu an ' + (b.ai?.venge ?? 50) + '):');
+  const aiPac = prompt('Sürücülük (0-100, şu an ' + (b.ai?.pack ?? 50) + '):');
+  const pow = prompt('Güç seviyesi (zayif/orta/guclu/efsane — şu an ' + b.powerLevel + '):');
+  const body = { id };
+  if (name !== null && name.trim()) body.name = name.trim();
+  if (aiAgr !== null && aiAgr !== '') body.ai = body.ai || {};
+  if (aiStr !== null && aiStr !== '') body.ai = body.ai || {};
+  if (aiVen !== null && aiVen !== '') body.ai = body.ai || {};
+  if (aiPac !== null && aiPac !== '') body.ai = body.ai || {};
+  if (body.ai) {
+    body.ai.aggr = aiAgr !== null && aiAgr !== '' ? parseInt(aiAgr) : b.ai?.aggr;
+    body.ai.strat = aiStr !== null && aiStr !== '' ? parseInt(aiStr) : b.ai?.strat;
+    body.ai.venge = aiVen !== null && aiVen !== '' ? parseInt(aiVen) : b.ai?.venge;
+    body.ai.pack = aiPac !== null && aiPac !== '' ? parseInt(aiPac) : b.ai?.pack;
+  }
+  if (pow !== null && pow.trim() && ['zayif','orta','guclu','efsane'].includes(pow.trim())) body.powerLevel = pow.trim();
+  const j = await call('bot_update', body);
+  toast(j.ok ? '✅ Bot güncellendi' : '⛔ ' + j.error);
+  if (j.ok) botsTab();
+}
+async function botRun() {
+  const j = await call('bot_run');
+  document.getElementById('bot-msg').textContent = j.ok
+    ? '⚡ Beyin turu: ' + j.bots + ' bot tarandı, ' + j.acted + ' bot hareket etti'
+    : '⛔ ' + j.error;
+}
 
 /* başlat */
 (async function(){

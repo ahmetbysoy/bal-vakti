@@ -5,7 +5,8 @@ import { parseInitData } from '../lib/auth.js';
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
 // minimal bir kopya: burada yalnızca 'hedef girişi' tetikler. (raid.js döngüden kaçınmak için)
-import { finalizeRaid as resolveRaidNow } from './raid.js';
+import { finalizeRaid as resolveRaidNow } from '../lib/raidcore.js';
+import { thinkBots } from '../lib/brain.js';
 
 export default async function handler(req, res) {
   try {
@@ -24,6 +25,10 @@ async function handle(req, res) {
   const cfg = await getConfig();
   setActiveCfg(cfg);
   if (cfg.maintenance) return res.status(503).json({ error: 'bakimda' });
+
+  // 🤖 Dünya turu: botların "uyanma" vakti geldiyse hareket etsin
+  // (60 sn'de en fazla 1 tur — kilitli, hata olursa sessizce geç)
+  try { await thinkBots(); } catch (e) { console.error('🧠 thinkBots hatası:', e?.message || e); }
 
   let info = null;
   if (body.demo === true && process.env.ALLOW_DEMO === '1') {

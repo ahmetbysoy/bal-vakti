@@ -7,6 +7,8 @@ import {
   ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL, setActiveCfg, DEFAULT_CONFIG, giveAchievement,
   warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
 } from '../lib/game.js';
+import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../lib/brain.js';
+import { getUser, deleteBot } from '../lib/db.js';
 
 let passed = 0;
 let failed = 0;
@@ -290,6 +292,56 @@ t('raidPower arılar/üretim/kovan ile artar', () => {
   const p1 = raidPower(s);
   s.beesOwned = 10; s.bees[1] = 10; s.kovan = 2;
   assert.ok(raidPower(s) > p1);
+});
+
+// ── 🤖 Bot (NPC) testleri ──
+t('Kişilik profilleri tanımlı ve 0-100 aralığında', () => {
+  for (const key of Object.keys(PERSONALITIES)) {
+    const p = PERSONALITIES[key];
+    assert.ok(p.label && p.ai, key);
+    for (const k of ['aggr', 'strat', 'venge', 'pack']) {
+      assert.ok(p.ai[k] >= 0 && p.ai[k] <= 100, `${key}.${k}`);
+    }
+  }
+});
+
+t('makeBotState güç seviyesine göre arı/bal üretir', () => {
+  const z = makeBotState('zayif');
+  assert.ok(z.beesOwned >= 3 && z.beesOwned <= 8);
+  assert.ok(z.bal >= 300);
+  const e = makeBotState('efsane');
+  assert.ok(e.beesOwned >= 120);
+  assert.ok(e.bal >= 100000);
+  assert.ok(e.kovan >= 5);
+});
+
+t('randName havuzdan isim verir, tekrarlamaz', () => {
+  const n1 = randName([]);
+  const n2 = randName([{ name: n1 }]);
+  assert.ok(n1 !== n2);
+  assert.ok(NAME_POOL.includes(n1));
+});
+
+t('createBot oyuncu durumu + meta üretir', async () => {
+  const bot = await createBot({ personality: 'grudge', powerLevel: 'guclu' });
+  assert.ok(bot.id.startsWith('bot_'));
+  assert.ok(bot.name);
+  assert.strictEqual(bot.personality, 'grudge');
+  assert.ok(bot.intervalMs > 0);
+  const st = await getUser(bot.id);
+  assert.ok(st);
+  assert.ok(st.beesOwned > 0);
+  assert.strictEqual(st.name, bot.name);
+  await deleteBot(bot.id);
+  assert.strictEqual(await getUser(bot.id), null);
+});
+
+t('thinkBots kilitle çalışır, bot sayısı döner', async () => {
+  const r1 = await thinkBots();
+  assert.ok(r1.ran === true || r1.ran === false); // kilit ya da tur
+  const r2 = await thinkBots({ force: true });
+  assert.ok(r2.ran === true);
+  assert.ok(r2.bots >= 0);
 });
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
