@@ -5,7 +5,7 @@ import http from 'http';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { dbMode } from './api/lib/db.js';
+import { dbMode } from './src/api/lib/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8787;
@@ -26,7 +26,7 @@ async function handleApi(req, res, seg) {
     return res;
   };
   try {
-    const mod = await import(`./api/${seg}.js`);
+    const mod = await import(`./src/api/${seg}.js`);
     let body = null;
     if (req.method === 'POST' || req.method === 'PUT') {
       const chunks = [];
