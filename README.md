@@ -110,6 +110,26 @@ Tarayıcıda açınca oyun çalışır (sunucuya bağlanamazsa otomatik önizlem
 Telegram'da denemek için webhook'u yerel sunucuya yönlendirmek yerine (https şart)
 [ngrok](https://ngrok.com) + `setWebhook` scriptini APP_URL=ngrok adresiyle çalıştırabilirsin.
 
+## 👑 Tanrı Modu (Admin Paneli)
+
+Oyunun her şeyine anında müdahale edebileceğin gizli yönetim paneli.
+Adres: `https://<app-url>/admin.html` (veya botta `/admin` komutu)
+
+**Kurulum (1 kez):** Vercel ortam değişkenlerine ekle (ikisinden biri yeterli):
+
+| Değişken | Açıklama |
+|---|---|
+| `OWNER_ID` | Senin Telegram ID'n. Botta `/admin` yazınca bot sana söyler. Bunu verirsen botta "Admin Panel" butonu çıkar (Telegram kimlik doğrulamalı, en güvenlisi). |
+| `ADMIN_PASSWORD` | Panel şifresi. Tarayıcıdan `admin.html` açıp şifreyle girersin. |
+
+**Yapabileceklerin:**
+- 📊 Genel bakış: oyuncu sayısı, toplam bal, bugün yeni kayıtlar, men edilenler, en iyi 10
+- 🔍 Oyuncu ara (ID veya isimle) → tek tıkla **+bal / −bal / +arı / rozet ver / ban / unban / sıfırla**
+- 🎁 **Toplu bonus**: tüm oyunculara aynı anda bal gönder (etkinlik hediyesi)
+- ⚙️ **Canlı ekonomi**: arı fiyatı, üretim hızı, depo/kovan maliyetleri, günlük/VızVız aç-kapa, **bakım modu** — kaydet, oyunculara anında yansır (redeploy gerekmez!)
+
+Güvenlik: girişte 12 saatlik oturum token'ı verilir; şifre karşılaştırması sabit zamanlı yapılır; her işlem oturum doğrulamasından geçer.
+
 ## ⚖️ Dengeyi değiştirmek
 
 Tüm sayılar `lib/game.js` başındaki sabitlerde:
