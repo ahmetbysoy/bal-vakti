@@ -6,9 +6,9 @@ import {
   checkAchievements, playerLevel, capacity, totalProd, beeCost, beeProd,
   ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL, setActiveCfg, DEFAULT_CONFIG, giveAchievement,
   warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
-} from '../src/api/lib/game.js';
-import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../src/api/lib/brain.js';
-import { getUser, deleteBot } from '../src/api/lib/db.js';
+} from '../shared/api/lib/game.js';
+import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/api/lib/brain.js';
+import { getUser, deleteBot } from '../shared/api/lib/db.js';
 
 let passed = 0;
 let failed = 0;

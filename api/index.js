@@ -1,5 +1,5 @@
 // 🐝 Bal Vakti — TEK DOSYALIK API (otomatik üretildi: node scripts/bundle.js)
-// Kaynak: src/api/* ve src/api/lib/* — lütfen bu dosyayı elle değiştirme!
+// Kaynak: shared/api/* ve shared/api/lib/* — lütfen bu dosyayı elle değiştirme!
 
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
