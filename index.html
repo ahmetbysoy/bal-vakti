@@ -537,16 +537,23 @@ function confetti() {
 }
 function initData() { return tg ? tg.initData : ''; }
 
-/* ── API ── */
+/* ── API (15 sn zaman aşımı — oyun asla sonsuz bekleyip "kilitlenmez") ── */
 async function api(path, body) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 15000);
   try {
     const r = await fetch(path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body || {}),
+      signal: ctrl.signal,
     });
     return await r.json();
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(to);
+  }
 }
 
 /* ═══════════════ DEMO MODU (sunucu yoksa yerel oyun) ═══════════════ */
