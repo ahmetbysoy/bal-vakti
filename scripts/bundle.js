@@ -1,5 +1,5 @@
 // 📦 Bal Vakti — Vercel monolitik API üretici
-// shared/api/* + shared/api/lib/* kodlarını TEK DOSYAYA (api/index.js) birleştirir.
+// shared/* + shared/lib/* kodlarını TEK DOSYAYA (api/index.js) birleştirir.
 // Neden: Vercel'in ESM projelerde yerel dosya paylaşımı kırık (ERR_MODULE_NOT_FOUND);
 // tek dosyalık fonksiyonda hiçbir yerel import yok → %100 çalışır.
 // Kullanım: node scripts/bundle.js   (kod değişince TEKRAR çalıştır + commit)
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 
-// shared/api/lib modüllerini (sıralı) ve endpoint'leri derle
+// shared/lib modüllerini (sıralı) ve endpoint'leri derle
 const LIB_ORDER = ['game.js', 'db.js', 'auth.js', 'raidcore.js', 'brain.js'];
 const HANDLERS = [
   ['me', 'me.js'],
@@ -88,15 +88,15 @@ function wrapHandler(name, src) {
 }
 
 function build() {
-  let out = `// 🐝 Bal Vakti — TEK DOSYALIK API (otomatik üretildi: node scripts/bundle.js)\n// Kaynak: shared/api/* ve shared/api/lib/* — lütfen bu dosyayı elle değiştirme!\n\n`;
+  let out = `// 🐝 Bal Vakti — TEK DOSYALIK API (otomatik üretildi: node scripts/bundle.js)\n// Kaynak: shared/* ve shared/lib/* — lütfen bu dosyayı elle değiştirme!\n\n`;
 
   const libCode = {};
   for (const f of LIB_ORDER) {
-    libCode[f.replace('.js', '')] = readFileSync(path.join(ROOT, 'shared/api/lib', f), 'utf8');
+    libCode[f.replace('.js', '')] = readFileSync(path.join(ROOT, 'shared/lib', f), 'utf8');
   }
   const handlerCode = {};
   for (const [name, f] of HANDLERS) {
-    handlerCode[name] = readFileSync(path.join(ROOT, 'shared/api', f), 'utf8');
+    handlerCode[name] = readFileSync(path.join(ROOT, 'shared', f), 'utf8');
   }
 
   // 1) Tüm node-module importları üstte
