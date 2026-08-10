@@ -64,6 +64,11 @@
   .btn.green{background:linear-gradient(180deg,#9be8ab,#3fae5e);color:#10240f;box-shadow:0 4px 0 #1f5c31}
   .btn.blue{background:linear-gradient(180deg,#a8d8ff,#4f9ae0);color:#0b2238;box-shadow:0 4px 0 #1d5a92}
   .btn.gray{background:linear-gradient(180deg,#4d4026,#3a2f19);color:var(--cream);box-shadow:0 4px 0 #1d1608}
+  .btn.red{background:linear-gradient(180deg,#ff9a8b,#e0523f);color:#2a0a04;box-shadow:0 4px 0 #8f2c1e}
+  .cfgrow{display:grid;grid-template-columns:1fr;gap:8px}
+  .switch{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .switch b{flex:1;font-size:13px}
+  .switch input{width:22px;height:22px;accent-color:var(--amber)}
   .quicks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
   /* ── Kartlar ── */
   .card{
@@ -274,14 +279,66 @@
     </div>
   </section>
 
-  <div class="demoflag" id="demoflag">🔌 Önizleme modu — sunucuya bağlı değil (veriler kaydedilmez). Deploy edince gerçek moda geçer.</div>
+  <!-- BEN (PROFİL + AYARLAR) -->
+  <section id="tab-me" style="display:none">
+    <div class="card" style="text-align:center">
+      <div style="font-size:52px;cursor:pointer" id="me-avatar" onclick="pickAvatar()" title="Avatarı değiştir">🐝</div>
+      <div style="font-size:18px;font-weight:900;color:var(--gold);margin-top:4px" id="me-name">Arıcı</div>
+      <div style="font-size:12px;color:var(--muted)" id="me-lvl">Seviye 1 · Yavru Arı</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px" id="me-id">ID: -</div>
+      <button class="btn small gray" style="margin:12px auto 0" onclick="promptRename()">✏️ İsmi Değiştir</button>
+    </div>
+
+    <div class="card">
+      <h3>📊 İstatistiklerim</h3>
+      <div class="stats">
+        <div class="stat"><div class="v" id="me-st-bal">0</div><div class="l">🍯 Bal</div></div>
+        <div class="stat"><div class="v" id="me-st-bees">0</div><div class="l">🐝 Arı</div></div>
+        <div class="stat"><div class="v" id="me-st-ach">0</div><div class="l">🏅 Rozet</div></div>
+        <div class="stat"><div class="v" id="me-st-ref">0</div><div class="l">🎁 Davet</div></div>
+        <div class="stat"><div class="v" id="me-st-vz">0</div><div class="l">⚡ VızVız</div></div>
+        <div class="stat"><div class="v" id="me-st-age">-</div><div class="l">📅 Hesap yaşı</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>⚙️ Ayarlar</h3>
+      <div class="cfgrow">
+        <div class="switch">
+          <b>🔊 Ses efektleri</b>
+          <input type="checkbox" id="set-sound" checked onchange="toggleSound()">
+        </div>
+        <div class="switch">
+          <b>📳 Titreşim</b>
+          <input type="checkbox" id="set-haptic" checked onchange="toggleHaptic()">
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="upg">
+        <div class="info">
+          <b>🗑️ Hesabı sıfırla</b>
+          <span>İlerlemen silinir (isim ve avatar kalır)</span>
+        </div>
+        <button class="btn small red" onclick="doResetMe()">Sıfırla</button>
+      </div>
+      <div class="divider"></div>
+      <p class="hint" style="text-align:center">🐝 Bal Vakti v1.1 — Telegram Mini App<br>Para yok, sadece eğlence! 🎮</p>
+    </div>
+  </section>
+
+  <div class="demoflag" id="demoflag">
+    🔌 Önizleme modu — veriler yalnızca bu cihazda kalır.
+    <div style="font-size:11px;color:var(--muted);margin-top:6px" id="demoflag2"></div>
+    <button class="btn small gray" style="margin:8px auto 0" onclick="reconnect()">🔄 Sunucuya Bağlan</button>
+  </div>
 </main>
 
-<nav>
+<<nav>
   <button class="active" data-tab="kovan" onclick="switchTab('kovan')"><span class="e">🏠</span>Kovan</button>
   <button data-tab="bees" onclick="switchTab('bees')"><span class="e">🐝</span>Arılar</button>
   <button data-tab="achs" onclick="switchTab('achs')"><span class="e">🏅</span>Rozetler</button>
   <button data-tab="lb" onclick="switchTab('lb')"><span class="e">🏆</span>Sıralama</button>
+  <button data-tab="me" onclick="switchTab('me')"><span class="e">👤</span>Ben</button>
 </nav>
 
 <div class="overlay" id="overlay"><div class="modalwrap">
@@ -327,7 +384,50 @@ function fmt(n) {
   return Math.floor(n).toLocaleString('tr-TR');
 }
 function fmtP(n) { return n < 10 ? n.toFixed(1) : fmt(n); }
-function haptic(kind) { try { if (tg?.HapticFeedback) tg.HapticFeedback[kind]('light'); } catch (e) {} }
+function haptic(kind) {
+  if (localStorage.getItem('bv_haptic') === '0') return;
+  try { if (tg?.HapticFeedback) tg.HapticFeedback[kind]('light'); } catch (e) {}
+}
+
+/* ── 🔊 Ses efektleri (Web Audio — dosyasız, her yerde çalışır) ── */
+const Sfx = (() => {
+  let ctx = null;
+  let enabled = localStorage.getItem('bv_sound') !== '0';
+  function ensure() {
+    if (!enabled) return;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) {}
+  }
+  function tone(freq, dur, type = 'sine', vol = 0.12, delay = 0) {
+    if (!enabled) return;
+    ensure(); if (!ctx) return;
+    const t = ctx.currentTime + delay;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
+  return {
+    init() { ensure(); },
+    on() { enabled = true; localStorage.setItem('bv_sound', '1'); },
+    off() { enabled = false; localStorage.setItem('bv_sound', '0'); },
+    isOn() { return enabled; },
+    tap() { tone(620, 0.05, 'square', 0.05); },
+    collect() { tone(440, 0.08, 'sine', 0.1); tone(660, 0.1, 'sine', 0.1, 0.06); },
+    buy() { tone(520, 0.07, 'triangle', 0.1); tone(700, 0.08, 'triangle', 0.09, 0.05); },
+    merge() { tone(660, 0.07, 'triangle', 0.1); tone(880, 0.07, 'triangle', 0.1, 0.06); tone(1180, 0.12, 'triangle', 0.09, 0.12); },
+    ach() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.13, 'triangle', 0.11, i * 0.09)); },
+    daily() { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.11, 'sine', 0.1, i * 0.08)); },
+    error() { tone(200, 0.16, 'sawtooth', 0.07); },
+    vzvz() { tone(170 + Math.random() * 90, 0.04, 'square', 0.04); },
+    tick() { tone(880, 0.03, 'square', 0.03); },
+  };
+})();
+
 function toast(msg) {
   const t = document.createElement('div');
   t.className = 'toast'; t.textContent = msg;
@@ -363,7 +463,7 @@ async function api(path, body) {
 /* ═══════════════ DEMO MODU (sunucu yoksa yerel oyun) ═══════════════ */
 function demoNew() {
   return {
-    name: 'Kanka', bal: 25, totalEarned: 0, beesOwned: 1,
+    name: 'Kanka', avatar: '🐝', bal: 25, totalEarned: 0, beesOwned: 1,
     bees: Array.from({ length: MAX_LEVEL + 1 }, (_, i) => (i === 1 ? 1 : 0)),
     kovan: 0, depo: 0, lastCollect: Date.now(), streak: 0, lastDaily: 0,
     refs: 0, inviter: null, ach: [], vzvzAt: 0, vzvzCount: 0, created: Date.now(),
@@ -395,8 +495,13 @@ function dLevel(s) {
 /* ═══════════════ YÜKLEME ═══════════════ */
 async function load() {
   let res = null;
+  let demoReason = '';
   try { res = await api('/api/me', { initData: initData() }); } catch (e) {}
-  if (!res || !res.ok) {
+  if (!res) demoReason = 'Sunucuya ulaşılamadı (ağ hatası)';
+  else if (!res.ok) {
+    demoReason = res.error === 'auth_hatasi'
+      ? 'Telegram oturumu doğrulanamadı — oyunu @bal_vakti_bot içinden 🎮 Oyna ile açmalısın'
+      : (res.detail || res.error || 'Bilinmeyen hata');
     // Tarayıcıdan girildiyse (Telegram yok) demo hesabıyla bağlanmayı dene
     try { res = await api('/api/me', { demo: true }); } catch (e) {}
   }
@@ -417,6 +522,7 @@ async function load() {
   } else {
     mode = 'demo';
     $('#demoflag').style.display = 'block';
+    if (demoReason) $('#demoflag2').textContent = 'ℹ️ ' + demoReason;
     S = demoLoad();
     const g = dCollect(S); if (g > 0) toast('🍯 +' + fmt(g) + ' bal üretildi (önizleme)');
     demoSave();
@@ -437,6 +543,8 @@ function renderAll() {
   $('#capfill').style.width = pct + '%';
   $('#fullwarn').style.display = S.bal >= cap * 0.985 ? 'block' : 'none';
   $('#lvltxt').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
+
+  renderProfile();
 
   $('#st-bees').textContent = fmt(S.beesOwned);
   $('#st-prod').textContent = fmtP(prod);
@@ -500,6 +608,81 @@ const ACHS = [
   { id:'vzvz10', emoji:'⚡', name:'VızVız Ustası', desc:'10 kez VızVız oyna', reward:200 },
   { id:'fast', emoji:'🚀', name:'Hız Canavarı', desc:'İlk gün 1.000 bal', reward:500 },
 ];
+function renderProfile() {
+  if (!S) return;
+  const lvl = mode === 'demo' ? dLevel(S) : playerLevel(S);
+  $('#me-avatar').textContent = S.avatar || '🐝';
+  $('#me-name').textContent = S.name || 'Arıcı';
+  $('#me-lvl').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
+  $('#me-id').textContent = mode === 'demo' ? 'ID: önizleme' : 'ID: ' + uid;
+  $('#me-st-bal').textContent = fmt(S.bal);
+  $('#me-st-bees').textContent = fmt(S.beesOwned);
+  $('#me-st-ach').textContent = S.ach.length + '/' + ACHS.length;
+  $('#me-st-ref').textContent = S.refs;
+  $('#me-st-vz').textContent = S.vzvzCount;
+  const ageDays = Math.max(1, Math.floor((Date.now() - S.created) / DAY));
+  $('#me-st-age').textContent = ageDays < 30 ? ageDays + ' gün' : fmt(Math.floor(ageDays / 30)) + ' ay';
+  $('#set-sound').checked = Sfx.isOn();
+  $('#set-haptic').checked = localStorage.getItem('bv_haptic') !== '0';
+}
+
+/* ── 👤 Profil & Ayarlar aksiyonları ── */
+function toggleSound() {
+  if ($('#set-sound').checked) { Sfx.on(); Sfx.tap(); toast('🔊 Ses açık'); }
+  else { Sfx.off(); toast('🔇 Ses kapalı'); }
+}
+function toggleHaptic() {
+  const v = $('#set-haptic').checked;
+  localStorage.setItem('bv_haptic', v ? '1' : '0');
+  haptic('light');
+  toast(v ? '📳 Titreşim açık' : '📴 Titreşim kapalı');
+}
+async function promptRename() {
+  const nm = prompt('Yeni ismin ne olsun? (en fazla 24 karakter)', S.name || 'Arıcı');
+  if (nm === null) return;
+  const cleaned = nm.trim().replace(/<[^>]*>/g, '');
+  if (!cleaned) return toast('⛔ İsim boş olamaz');
+  if (cleaned.length > 24) return toast('⛔ En fazla 24 karakter');
+  if (mode === 'demo') { S.name = cleaned; demoSave(); toast('✅ İsim güncellendi'); renderAll(); return; }
+  const res = await api('/api/action', { initData: initData(), action: 'rename', payload: { name: cleaned } });
+  if (handleActionErr(res)) return;
+  if (handleRes(res)) { toast('✅ İsim güncellendi: ' + cleaned); Sfx.tap(); }
+}
+function pickAvatar() {
+  const list = ['🐝','🐞','🐛','🦋','🐌','🐜','🦗','🍯','🌸','🌻','⭐','🐸','🦊','🐼','🐨','🦁','🐯','🐷','🐰','🐹','🦄','🌈','👑','🤴','👸'];
+  const cur = S.avatar || '🐝';
+  const next = list[(list.indexOf(cur) + 1) % list.length];
+  doAvatar(next);
+}
+async function doAvatar(av) {
+  haptic('light');
+  if (mode === 'demo') { S.avatar = av; demoSave(); toast('✨ Avatar: ' + av); renderAll(); return; }
+  const res = await api('/api/action', { initData: initData(), action: 'avatar', payload: { avatar: av } });
+  if (handleActionErr(res)) return;
+  if (handleRes(res)) { toast('✨ Avatar: ' + av); Sfx.tap(); }
+}
+async function doResetMe() {
+  if (!confirm('⚠️ Tüm ilerlemen (bal, arılar, rozetler) silinecek! Emin misin?')) return;
+  haptic('impact');
+  if (mode === 'demo') { S = demoNew(); demoSave(); toast('🔄 Hesap sıfırlandı'); renderAll(); return; }
+  const res = await api('/api/action', { initData: initData(), action: 'reset_me' });
+  if (handleActionErr(res)) return;
+  if (handleRes(res)) { toast('🔄 Hesap sıfırlandı — yeni başlangıç!'); Sfx.ach(); }
+}
+async function reconnect() {
+  toast('🔄 Bağlanmayı deniyorum...');
+  const res = await api('/api/me', { initData: initData() });
+  if (res && res.ok) {
+    S = res.state; cfg = { ...cfg, ...(res.cfg || {}) }; myRankCache = res.myRank; uid = res.id || 1;
+    mode = 'server';
+    $('#demoflag').style.display = 'none'; $('#demoflag2').textContent = '';
+    toast('✅ Sunucuya bağlandın! Veriler kaydediliyor');
+    renderAll(); return;
+  }
+  const why = !res ? 'ağ hatası' : (res.error === 'auth_hatasi' ? 'oturum yok' : (res.detail || res.error));
+  toast('⛔ Bağlanamadı: ' + why + ' — Telegram içinden açmayı dene');
+}
+
 function renderInvite() {
   const uname = cfg.bot || 'BalVaktiBot';
   const code = uid.toString(36);
@@ -530,13 +713,13 @@ function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<'
 /* ═══════════════ AKSİYONLAR ═══════════════ */
 function handleRes(res, okMsg) {
   if (!res || !res.ok) {
-    if (res?.error) toast('⛔ ' + errText(res.error));
-    else if (res?.detail) toast('⛔ ' + res.detail);
+    if (res?.error) { toast('⛔ ' + errText(res.error)); Sfx.error(); }
+    else if (res?.detail) { toast('⛔ ' + res.detail); Sfx.error(); }
     return false;
   }
   if (mode === 'server') {
     S = res.state; myRankCache = res.myRank;
-    res.freshAch?.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); confetti(); });
+    res.freshAch?.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); confetti(); Sfx.ach(); });
   }
   if (okMsg) toast(okMsg);
   renderAll();
@@ -592,10 +775,10 @@ function showBanned() {
 }
 async function doCollect() {
   haptic('impact');
-  if (mode === 'demo') { const g = dCollect(S); demoSave(); toast('🍯 +' + fmt(g) + ' bal toplandı'); renderAll(); return; }
+  if (mode === 'demo') { const g = dCollect(S); demoSave(); toast('🍯 +' + fmt(g) + ' bal toplandı'); Sfx.collect(); renderAll(); return; }
   const res = await api('/api/action', { initData: initData(), action: 'collect' });
   if (handleActionErr(res)) return doCollect();
-  if (handleRes(res)) toast('🍯 +' + fmt(res.collected) + ' bal toplandı');
+  if (handleRes(res)) { toast('🍯 +' + fmt(res.collected) + ' bal toplandı'); Sfx.collect(); }
 }
 async function doBuy() {
   haptic('impact');
@@ -606,14 +789,15 @@ async function doBuy() {
     const merges = [];
     for (let l = 1; l < MAX_LEVEL; l++) while (S.bees[l] >= 2) { S.bees[l] -= 2; S.bees[l + 1]++; merges.push(l + 1); }
     demoSave();
-    if (merges.length) toast('✨ ' + merges.length + ' birleştirme! En yüksek: Seviye ' + merges[merges.length - 1]);
+    if (merges.length) { toast('✨ ' + merges.length + ' birleştirme! En yüksek: Seviye ' + merges[merges.length - 1]); Sfx.merge(); }
+    else Sfx.buy();
     renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'buy_bee' });
   if (handleActionErr(res)) return doBuy();
   if (handleRes(res)) {
-    if (res.merges?.length) toast('✨ 2 arı birleşti → Seviye ' + res.merges[res.merges.length - 1] + '!');
-    else toast('🐝 Yeni arı katıldı!');
+    if (res.merges?.length) { toast('✨ 2 arı birleşti → Seviye ' + res.merges[res.merges.length - 1] + '!'); Sfx.merge(); }
+    else { toast('🐝 Yeni arı katıldı!'); Sfx.buy(); }
   }
 }
 async function doUpgrade(which) {
@@ -623,11 +807,11 @@ async function doUpgrade(which) {
     const cost = which === 'kovan' ? dKovanCost(S) : dDepoCost(S);
     if (S.bal < cost) return toast('⛔ Yetersiz bal 🍯');
     S.bal -= cost; if (which === 'kovan') S.kovan++; else S.depo++;
-    demoSave(); toast(label); renderAll(); return;
+    demoSave(); toast(label); Sfx.buy(); renderAll(); return;
   }
   const res = await api('/api/action', { initData: initData(), action: 'upgrade', payload: { which } });
   if (handleActionErr(res)) return doUpgrade(which);
-  if (handleRes(res)) toast(label);
+  if (handleRes(res)) { toast(label); Sfx.buy(); }
 }
 async function doDaily() {
   haptic('impact');
@@ -644,7 +828,7 @@ async function doDaily() {
   }
   const res = await api('/api/action', { initData: initData(), action: 'daily' });
   if (handleActionErr(res)) return doDaily();
-  if (handleRes(res)) { toast('🎁 +' + fmt(res.reward) + ' bal! (seri ' + res.streak + '🔥)'); confetti(); closeModal(); }
+  if (handleRes(res)) { toast('🎁 +' + fmt(res.reward) + ' bal! (seri ' + res.streak + '🔥)'); confetti(); Sfx.daily(); closeModal(); }
 }
 
 /* ═══════════════ VIZVIZ ═══════════════ */
@@ -669,6 +853,7 @@ function openVzvz() {
   bee.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     haptic('impact');
+    Sfx.vzvz();
     vzvzTaps++;
     $('#vz-taps').textContent = vzvzTaps + ' dokunuş';
     const f = document.createElement('div');
@@ -767,6 +952,8 @@ function switchTab(name) {
   $('#tab-' + name).style.display = 'block';
   document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
   if (name === 'lb') renderLb();
+  if (name === 'me') renderProfile();
+  Sfx.tap();
   haptic('light');
 }
 

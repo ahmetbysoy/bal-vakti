@@ -1,7 +1,7 @@
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 import { getUser, saveUser, syncLb, myRank, getConfig } from '../lib/db.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg } from '../lib/game.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
 
 export default async function handler(req, res) {
@@ -65,6 +65,29 @@ async function handle(req, res) {
       const r = claimDaily(st, now);
       if (!r) return res.status(400).json({ error: 'bugun_aldi' });
       result = r;
+      break;
+    }
+    case 'rename': {
+      const nm = String(payload.name || '').replace(/<[^>]*>/g, '').trim().slice(0, 24);
+      if (!nm) return res.status(400).json({ error: 'isim_gerekli' });
+      st.name = nm;
+      result = { name: nm };
+      break;
+    }
+    case 'avatar': {
+      const av = String(payload.avatar || '').trim();
+      if (!av || [...av].length > 2) return res.status(400).json({ error: 'avatar_gecersiz' });
+      st.avatar = av;
+      result = { avatar: av };
+      break;
+    }
+    case 'reset_me': {
+      const keepName = st.name;
+      const keepAvatar = st.avatar;
+      st = newState();
+      st.name = keepName;
+      if (keepAvatar) st.avatar = keepAvatar;
+      result = { reset: true };
       break;
     }
     case 'vzvz_end': {
