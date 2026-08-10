@@ -130,6 +130,24 @@ Adres: `https://<app-url>/admin.html` (veya botta `/admin` komutu)
 
 Güvenlik: girişte 12 saatlik oturum token'ı verilir; şifre karşılaştırması sabit zamanlı yapılır; her işlem oturum doğrulamasından geçer.
 
+## 🔥 Firebase Realtime Database'e geçiş (önerilen!)
+
+Upstash yerine Firebase kullanmak istersen (ücretsiz, hızlı, tek istekte tüm veri):
+
+1. [Firebase Console](https://console.firebase.google.com) → Proje oluştur (veya mevcut)
+2. **Build → Realtime Database → Create Database** → bölge seç (ör. europe-west1)
+3. **Rules** sekmesi → test modu için:
+   ```json
+   { "rules": { ".read": true, ".write": true } }
+   ```
+4. Vercel → Environment Variables → `FIREBASE_DB_URL` = `https://proje-default-rtdb.europe-west1.firebasedatabase.app`
+5. Redeploy — oyun anında Firebase'e geçer! (Upstash değişkenleri yedek olarak kalır; `FIREBASE_DB_URL` varsa öncelik onundur)
+
+> ⚠️ Not: Veritabanı erişimi tamamen açıksa herkes okuyup yazabilir — gerçek
+> kullanıcıya açmadan önce kimlik doğrulamalı kurallar önerilir (roadmap).
+> Oyun verileri şifreli saklanmaz; `admin.html` şifresi ve bot token'ı
+> zaten sunucu tarafında.
+
 ## ⚖️ Dengeyi değiştirmek
 
 Tüm sayılar `lib/game.js` başındaki sabitlerde:

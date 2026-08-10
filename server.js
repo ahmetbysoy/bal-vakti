@@ -5,6 +5,7 @@ import http from 'http';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { dbMode } from './lib/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8787;
@@ -72,5 +73,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🐝 Bal Vakti yerel sunucu: http://localhost:${PORT}`);
-  console.log(`   DB modu: ${process.env.UPSTASH_REDIS_REST_URL ? 'upstash' : 'memory (veriler sıfırlanır!)'}`);
+  console.log(`   DB modu: ${dbMode()}`);
 });
