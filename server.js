@@ -49,7 +49,7 @@ async function handleApi(req, res, seg) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
-  if (url.pathname === '/api/me' || url.pathname === '/api/action' || url.pathname === '/api/leaderboard' || url.pathname === '/api/bot' || url.pathname === '/api/admin') {
+  if (url.pathname === '/api/me' || url.pathname === '/api/action' || url.pathname === '/api/leaderboard' || url.pathname === '/api/bot' || url.pathname === '/api/admin' || url.pathname === '/api/raid') {
     return handleApi(req, res, url.pathname.split('/')[2]);
   }
   if (url.pathname === '/' || url.pathname === '/index.html') {

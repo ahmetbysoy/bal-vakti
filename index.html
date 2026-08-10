@@ -173,6 +173,48 @@
   .linkbox{background:#171003;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);word-break:break-all;margin:10px 0}
   .row2{display:flex;gap:8px}
   .row2 .btn{flex:1}
+  /* ── ⚔️ SAVAŞ ── */
+  .raidbanner{
+    background:linear-gradient(180deg,#5a1f12,#3d1208);border:1px solid #8f3a22;border-radius:16px;
+    padding:14px;margin-top:12px;position:relative;overflow:hidden;
+  }
+  .raidbanner .t{font-weight:900;font-size:15px;color:#ffb4a0}
+  .raidbanner .s{font-size:12px;color:#ffd9cf;margin-top:3px}
+  .raidbanner .count{font-size:26px;font-weight:900;color:#ff6b52;text-align:center;margin:8px 0;font-variant-numeric:tabular-nums}
+  .raidbanner.pulse{border-color:#ff6b52;animation:raidpulse 1s infinite}
+  @keyframes raidpulse{0%,100%{box-shadow:0 0 0 0 #ff6b5255}50%{box-shadow:0 0 0 8px #ff6b5200}}
+  .xpbar{height:10px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
+  .xpbar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#ff6b52,#ffd166);transition:width .4s}
+  .enemy{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+  .enemy .av{font-size:28px}
+  .enemy .inf{flex:1;min-width:0}
+  .enemy .inf b{font-size:14px;display:block}
+  .enemy .inf span{font-size:11px;color:var(--muted)}
+  .enemy .btn{width:96px;flex-shrink:0}
+  .enemy.me{border-color:var(--amber)}
+  .grudge{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid #5a2418;border-radius:14px;padding:10px 12px;margin-top:8px}
+  .grudge .av{font-size:24px}
+  .grudge .inf{flex:1;min-width:0}
+  .grudge .inf b{font-size:13px;display:block}
+  .grudge .inf span{font-size:10px;color:var(--muted)}
+  .grudge .btn{width:88px;flex-shrink:0}
+  /* savaş animasyon ekranı */
+  .warscreen{position:fixed;inset:0;z-index:80;background:#120a02f2;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .warscreen.show{display:flex}
+  .warscreen .vs{font-size:14px;color:var(--muted);margin-bottom:8px}
+  .warscreen .big{font-size:40px;font-weight:900;color:var(--gold)}
+  .warscreen .swarms{display:flex;align-items:center;gap:24px;margin:18px 0;font-size:44px}
+  .warscreen .swarmL{animation:chargeL .5s ease-in-out infinite alternate}
+  .warscreen .swarmR{animation:chargeR .5s ease-in-out infinite alternate}
+  @keyframes chargeL{from{transform:translateX(0) scale(1)}to{transform:translateX(10px) scale(1.15)}}
+  @keyframes chargeR{from{transform:translateX(0) scale(1)}to{transform:translateX(-10px) scale(1.15)}}
+  .warscreen .clash{font-size:64px;animation:clash .4s ease}
+  @keyframes clash{0%{transform:scale(0)}70%{transform:scale(1.4)}100%{transform:scale(1)}}
+  .warres{text-align:center}
+  .warres .em{font-size:70px}
+  .warres .tt{font-size:24px;font-weight:900;margin-top:6px}
+  .warres .rows{margin-top:14px;text-align:left;font-size:13px;line-height:2;color:var(--cream)}
+  .warres .rows b{color:var(--gold)}
 </style>
 </head>
 <body>
@@ -280,6 +322,40 @@
     </div>
   </section>
 
+  <!-- SAVAŞ (PvP) -->
+  <section id="tab-savas" style="display:none">
+    <div id="raid-banner"></div>
+    <div class="card">
+      <h3>⚔️ Saldırı Merkezi</h3>
+      <div class="stats">
+        <div class="stat"><div class="v" id="war-lvl">1</div><div class="l">🎖️ Savaşçı Sv</div></div>
+        <div class="stat"><div class="v" id="war-xp">0</div><div class="l">⭐ XP</div></div>
+        <div class="stat"><div class="v" id="war-pow">0</div><div class="l">💪 Güç</div></div>
+        <div class="stat"><div class="v" id="war-wins">0</div><div class="l">🏆 Galibiyet</div></div>
+      </div>
+      <div class="xpbar"><i id="war-xpbar"></i></div>
+      <p class="hint" id="war-xptxt" style="text-align:center;margin-top:4px"></p>
+    </div>
+
+    <div class="card">
+      <h3>🎯 Hedef Önerileri</h3>
+      <p class="hint" style="margin-bottom:4px">Gücüne yakın arıcılar — saldır, XP kap!</p>
+      <div id="raid-targets"></div>
+      <button class="btn gray small" style="margin-top:10px;width:100%" onclick="raidRandom()">🎲 Rastgele Düşman Bul</button>
+    </div>
+
+    <div class="card">
+      <h3>😠 Kin Listem</h3>
+      <p class="hint" style="margin-bottom:4px">Sana saldıranlar — intikam tatlıdır ⚔️</p>
+      <div id="raid-grudges"><p class="hint">Henüz kimse sana saldırmadı. (Ya da daha kimse seni keşfetmedi...) 🐝</p></div>
+    </div>
+
+    <div class="card">
+      <h3>📜 Savaş Geçmişim</h3>
+      <div id="raid-hist"><p class="hint">Henüz savaş yok.</p></div>
+    </div>
+  </section>
+
   <!-- BEN (PROFİL + AYARLAR) -->
   <section id="tab-me" style="display:none">
     <div class="card" style="text-align:center">
@@ -337,8 +413,9 @@
 <<nav>
   <button class="active" data-tab="kovan" onclick="switchTab('kovan')"><span class="e">🏠</span>Kovan</button>
   <button data-tab="bees" onclick="switchTab('bees')"><span class="e">🐝</span>Arılar</button>
-  <button data-tab="achs" onclick="switchTab('achs')"><span class="e">🏅</span>Rozetler</button>
-  <button data-tab="lb" onclick="switchTab('lb')"><span class="e">🏆</span>Sıralama</button>
+  <button data-tab="savas" onclick="switchTab('savas')"><span class="e">⚔️</span>Savaş</button>
+  <button data-tab="achs" onclick="switchTab('achs')"><span class="e">🏅</span>Rozet</button>
+  <button data-tab="lb" onclick="switchTab('lb')"><span class="e">🏆</span>Lig</button>
   <button data-tab="me" onclick="switchTab('me')"><span class="e">👤</span>Ben</button>
 </nav>
 
@@ -348,6 +425,13 @@
 </div></div>
 
 <div id="toasts"></div>
+
+<div class="warscreen" id="warscreen">
+  <div class="vs" id="ws-vs">Saldırı hazırlanıyor...</div>
+  <div class="big" id="ws-count">3</div>
+  <div class="swarms"><div class="swarmL" id="ws-L">🐝</div><div style="color:var(--muted);font-size:20px">⚡</div><div class="swarmR" id="ws-R">🐝</div></div>
+  <div class="warres" id="ws-res" style="display:none"></div>
+</div>
 
 <div id="loader"><div class="e">🐝</div>Bal hazırlanıyor...</div>
 
@@ -426,6 +510,10 @@ const Sfx = (() => {
     error() { tone(200, 0.16, 'sawtooth', 0.07); },
     vzvz() { tone(170 + Math.random() * 90, 0.04, 'square', 0.04); },
     tick() { tone(880, 0.03, 'square', 0.03); },
+    siren() { [0, 0.25, 0.5].forEach((d) => { tone(520, 0.2, 'sawtooth', 0.08, d); tone(390, 0.2, 'sawtooth', 0.08, d + 0.12); }); },
+    war() { [200, 240, 300].forEach((f, i) => tone(f, 0.1, 'sawtooth', 0.09, i * 0.1)); },
+    win() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.14, 'triangle', 0.12, i * 0.09)); },
+    lose() { [400, 330, 262, 196].forEach((f, i) => tone(f, 0.16, 'sawtooth', 0.08, i * 0.11)); },
   };
 })();
 
@@ -518,6 +606,10 @@ async function load() {
     if (res.gained > 0) toast('🍯 +' + fmt(res.gained) + ' bal üretildi');
     res.freshAch.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); });
     if (res.isNew) toast('🐝 Hoş geldin! ' + fmt(cfg.startBal) + ' bal + ' + cfg.startFreeBees + ' arı seni bekliyor');
+    // ⚔️ Süresi dolmuş saldırı çözümü geldiyse (lazy) göster
+    if (res.raidResult && res.raidResult.winner) {
+      setTimeout(() => { showWar(res.raidResult, res.raidResult.winner !== 'A'); }, 600);
+    }
   } else if (res && res.error === 'bakimda') {
     mode = 'demo';
     S = demoLoad(); dCollect(S); demoSave();
@@ -963,6 +1055,7 @@ function switchTab(name) {
   document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
   if (name === 'lb') renderLb();
   if (name === 'me') renderProfile();
+  if (name === 'savas') loadRaid();
   Sfx.tap();
   haptic('light');
 }
@@ -987,6 +1080,247 @@ function playerLevel(s) {
   let lvl = 1; for (let i = 0; i < thr.length; i++) if (s.totalEarned >= thr[i]) lvl = i + 1;
   return { level: lvl, title: ['Yavru Arı','Bal Toplayıcı','Kovan Çırağı','Arıcı','Usta Arıcı','Bal Baronu','Kovan Lordu','Bal Kralı','Arı İmparatoru','Bal Efsanesi','Kozmik Kovan'][Math.min(lvl, 11) - 1] };
 }
+
+/* ═══════════════ ⚔️ SAVAŞ (PvP) ═══════════════ */
+let raidData = null;
+let raidTimer = null;
+
+async function loadRaid() {
+  if (mode === 'demo') {
+    $('#raid-banner').innerHTML = '<p class="hint" style="margin-top:10px">⚔️ Savaş yalnızca sunucu modunda çalışır — Telegram içinden aç!</p>';
+    $('#raid-targets').innerHTML = '<p class="hint">—</p>';
+    $('#raid-grudges').innerHTML = '<p class="hint">—</p>';
+    return;
+  }
+  const res = await api('/api/raid', { initData: initData(), action: 'world' });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) return;
+  raidData = res.world;
+  S = res.state;
+  renderRaid();
+  renderAll();
+}
+function renderRaid() {
+  if (!raidData) return;
+  const w = raidData;
+
+  // Savaşçı paneli
+  $('#war-lvl').textContent = w.myWar.level;
+  $('#war-xp').textContent = w.myWar.xp;
+  $('#war-pow').textContent = fmt(w.myPower);
+  $('#war-wins').textContent = (S.raidWins || 0) + ' / ' + (S.raidLosses || 0);
+  const pct = Math.min(100, (w.myWar.into / w.myWar.need) * 100);
+  $('#war-xpbar').style.width = pct + '%';
+  $('#war-xptxt').textContent = 'Seviye ' + w.myWar.level + ' → ' + (w.myWar.level + 1) + ' için ' + (w.myWar.need - w.myWar.into) + ' XP kaldı';
+
+  // Saldırı banner'ı (savunma uyarısı)
+  const banner = $('#raid-banner');
+  if (w.myDefense) {
+    const left = Math.max(0, Math.ceil((w.myDefense.endsAt - Date.now()) / 1000));
+    banner.innerHTML =
+      '<div class="raidbanner pulse">' +
+      '<div class="t">⚠️ ' + esc(w.myDefense.name) + ' kovanına saldırıyor!</div>' +
+      '<div class="s">Püskürtmezsen arıların hasar alır ve balın çalınır!</div>' +
+      '<div class="count" id="def-count">' + left + ' sn</div>' +
+      '<button class="btn" style="width:100%" onclick="defendRaid()">🛡️ PÜSKÜRT!</button>' +
+      '</div>';
+    Sfx.siren();
+    // geri sayım
+    if (raidTimer) clearInterval(raidTimer);
+    raidTimer = setInterval(() => {
+      const l2 = Math.max(0, Math.ceil((w.myDefense.endsAt - Date.now()) / 1000));
+      const el = document.getElementById('def-count');
+      if (el) el.textContent = l2 + ' sn';
+      if (l2 <= 0) { clearInterval(raidTimer); raidTimer = null; loadRaid(); }
+    }, 1000);
+  } else if (w.myAttack) {
+    const left = Math.max(0, Math.ceil((w.myAttack.endsAt - Date.now()) / 1000));
+    banner.innerHTML =
+      '<div class="raidbanner">' +
+      '<div class="t">⚔️ Saldırın hazırlanıyor... hedef: ' + esc(raidTargetName(w.myAttack.targetId)) + '</div>' +
+      '<div class="count">' + left + ' sn</div>' +
+      '<button class="btn gray" style="width:100%" onclick="cancelRaid()">😬 Vazgeç (çürüme: −10 XP)</button>' +
+      '</div>';
+    if (raidTimer) clearInterval(raidTimer);
+    raidTimer = setInterval(() => {
+      const l2 = Math.max(0, Math.ceil((w.myAttack.endsAt - Date.now()) / 1000));
+      const el = banner.querySelector('.count');
+      if (el) el.textContent = l2 + ' sn';
+      if (l2 <= 0) { clearInterval(raidTimer); raidTimer = null; loadRaid(); }
+    }, 1000);
+  } else {
+    banner.innerHTML = '';
+  }
+
+  // Hedef önerileri
+  const box = $('#raid-targets');
+  if (w.targets.length) {
+    box.innerHTML = w.targets.map((t) =>
+      '<div class="enemy"><div class="av">' + (t.avatar || '🐝') + '</div>' +
+      '<div class="inf"><b>' + esc(t.name) + '</b>' +
+      '<span>💪 ' + fmt(t.power) + ' · 🎖️ Sv ' + t.war + ' · 🍯 ' + fmt(t.bal) + ' · 🐝 ' + t.bees + '</span></div>' +
+      '<button class="btn small" onclick="startRaid(\'' + t.id + '\')">⚔️ Saldır</button></div>'
+    ).join('');
+  } else {
+    box.innerHTML = '<p class="hint">Şu an gücüne uygun hedef yok — biraz sonra tekrar dene. (Saldırdıkların düşman listene eklenir!)</p>';
+  }
+
+  // Kin listesi
+  const gbox = $('#raid-grudges');
+  if (w.grudges.length) {
+    gbox.innerHTML = w.grudges.map((g) =>
+      '<div class="grudge"><div class="av">😠</div>' +
+      '<div class="inf"><b>' + esc(g.name) + '</b>' +
+      '<span>' + (g.won ? '💥 Sana saldırdı ve kazandı' : '😤 Sana saldırdı, püskürttün') +
+      (g.stolen > 0 ? ' · 🍯 ' + fmt(g.stolen) + ' çaldı' : '') + ' · ' + timeAgo(g.ts) + '</span></div>' +
+      '<button class="btn small red" onclick="revengeRaid(\'' + g.by + '\')">⚔️ İntikam</button></div>'
+    ).join('');
+  } else {
+    gbox.innerHTML = '<p class="hint">Henüz kimse sana saldırmadı. (Ya da daha kimse seni keşfetmedi...) 🐝</p>';
+  }
+
+  // Savaş geçmişi
+  const hist = S.raidHist || [];
+  const hbox = $('#raid-hist');
+  if (hist.length) {
+    hbox.innerHTML = hist.slice(0, 8).map((h) => {
+      const em = h.type === 'win' ? '🏆' : h.type === 'loss' ? '💀' : '🤝';
+      const det = h.type === 'win'
+        ? '⭐ +' + h.xp + ' XP' + (h.stolen > 0 ? ' · 🍯 +' + fmt(h.stolen) : '') + (h.coal ? ' · 🤝 koalisyon' : '')
+        : h.type === 'loss'
+          ? '😵 ' + (h.beesKilled ? '· 🐝 ' + h.beesKilled + ' arı hasar' : '') + ' · 🍯 savunma +' + fmt(h.defenseGain || 0)
+          : '🤝 berabere';
+      return '<div class="grudge" style="border-color:var(--line)"><div class="av">' + em + '</div>' +
+        '<div class="inf"><b>' + esc(h.vs) + '</b><span>' + det + ' · ' + timeAgo(h.ts) + '</span></div></div>';
+    }).join('');
+  } else {
+    hbox.innerHTML = '<p class="hint">Henüz savaş yok — ilk kurbanını seç! ⚔️</p>';
+  }
+}
+function raidTargetName(id) {
+  return raidData?.targets?.find((t) => t.id === id)?.name || raidData?.grudges?.find((g) => g.by === id)?.name || '?';
+}
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return 'az önce';
+  if (s < 3600) return Math.floor(s / 60) + ' dk önce';
+  if (s < 86400) return Math.floor(s / 3600) + ' saat önce';
+  return Math.floor(s / 86400) + ' gün önce';
+}
+
+async function startRaid(targetId) {
+  haptic('impact');
+  const res = await api('/api/raid', { initData: initData(), action: 'start', targetId });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  toast('⚔️ Saldırı başladı! Hedef: ' + raidTargetName(targetId));
+  Sfx.war();
+  loadRaid();
+}
+async function raidRandom() {
+  haptic('impact');
+  if (!raidData?.targets?.length) { toast('⛔ Hedef yok'); return; }
+  const pick = raidData.targets[Math.floor(Math.random() * raidData.targets.length)];
+  startRaid(pick.id);
+}
+async function defendRaid() {
+  haptic('impact');
+  const res = await api('/api/raid', { initData: initData(), action: 'defend' });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  if (res.defend) showWar(res.defend, true);
+  loadRaid();
+}
+async function revengeRaid(targetId) {
+  haptic('impact');
+  const res = await api('/api/raid', { initData: initData(), action: 'start', targetId });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  toast('⚔️ İNTİKAM başladı! 😈');
+  Sfx.war();
+  loadRaid();
+}
+async function cancelRaid() {
+  haptic('impact');
+  const res = await api('/api/raid', { initData: initData(), action: 'cancel' });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); return; }
+  toast('😮‍💨 Vazgeçtin — çürüme cezası: −10 XP');
+  Sfx.error();
+  loadRaid();
+}
+
+// Savaş animasyonu: 3-2-1 → çarpışma → sonuç
+function showWar(r, isDefend) {
+  const sc = $('#warscreen');
+  sc.classList.add('show');
+  $('#ws-vs').textContent = (isDefend ? '🛡️ Saldırıya karşı savunuyorsun!' : '⚔️ Saldırın sürüyor...') + ' (' + esc(r.tName) + ' vs ' + esc(r.aName) + ')';
+  $('#ws-res').style.display = 'none';
+  $('#ws-count').style.display = '';
+  $('#ws-count').textContent = '3';
+  Sfx.war();
+  let n = 3;
+  const iv = setInterval(() => {
+    n--;
+    if (n > 0) { $('#ws-count').textContent = n; Sfx.tick(); }
+    else {
+      clearInterval(iv);
+      $('#ws-count').style.display = 'none';
+      $('#ws-L').innerHTML = '💥';
+      $('#ws-R').innerHTML = '💥';
+      Sfx.war();
+      setTimeout(() => showWarResult(r, isDefend), 700);
+    }
+  }, 700);
+}
+function showWarResult(r, isDefend) {
+  const mine = isDefend ? 'T' : 'A';
+  const won = r.winner === mine;
+  const draw = r.winner === 'draw';
+  const em = won ? '🏆' : draw ? '🤝' : '💀';
+  const title = won ? (isDefend ? 'PÜSKÜRTTÜN!' : 'SALDIRI BAŞARILI!') : draw ? 'BERABERE' : (isDefend ? 'KOVANIN YAĞMALANDI!' : 'PÜSKÜRTÜLDÜN!');
+  let rows = '';
+  if (r.winner === 'A') {
+    rows += '<div>💥 Saldırı başarılı — ' + esc(r.tName) + '\'in kovanı yağmalandı</div>';
+    rows += '<div>⭐ <b>+' + r.xpA + ' XP</b></div>';
+    if (r.stolen > 0) rows += '<div>🍯 <b>+' + fmt(r.stolen) + ' bal</b> çaldın</div>';
+    if (r.coal) rows += '<div>🤝 Koalisyon bonusu: <b>+' + r.coal + ' XP</b></div>';
+    if (r.mutual) rows += '<div>🔥 Karşılıklı saldırı cezası: <b>−' + r.mutual + ' XP</b></div>';
+  } else if (r.winner === 'T') {
+    rows += '<div>🛡️ ' + esc(r.aName) + '\'in saldırısı püskürtüldü!</div>';
+    rows += '<div>⭐ <b>+' + r.xpT + ' XP</b></div>';
+    if (r.defenseGain > 0) rows += '<div>🍯 Savunma geliri: <b>+' + fmt(r.defenseGain) + ' bal</b></div>';
+    if (r.beesKilled > 0) rows += '<div>🩸 Arı hasarı: <b>' + r.beesKilled + ' arı</b>' + (r.beesKilled >= 2 ? ' (eşik aşıldı!)' : '') + '</div>';
+    if (r.mutual) rows += '<div>🔥 Karşılıklı saldırı cezası: <b>−' + r.mutual + ' XP</b></div>';
+  } else {
+    rows += '<div>🤝 İki taraf da yoruldu — berabere!</div>';
+    rows += '<div>⭐ +2 XP (iki tarafa da)</div>';
+  }
+  const isDefender = isDefend;
+  const lost = !won && !draw;
+  $('#ws-res').innerHTML =
+    '<div class="em">' + em + '</div>' +
+    '<div class="tt" style="color:' + (won ? 'var(--gold)' : lost ? 'var(--red)' : 'var(--muted)') + '">' + title + '</div>' +
+    '<div class="rows">' + rows + '</div>' +
+    '<button class="btn" style="margin-top:16px;width:100%" onclick="closeWar()">Devam Et</button>';
+  $('#ws-res').style.display = '';
+  if (won) { Sfx.win(); confetti(); }
+  else if (lost) Sfx.lose();
+  else Sfx.tick();
+  if (lost && isDefender && r.beesKilled >= 2) toast('🩸 Savunma geliri eşiği aşıldı — arıların öldü!');
+}
+function closeWar() {
+  $('#warscreen').classList.remove('show');
+  $('#ws-L').innerHTML = '🐝';
+  $('#ws-R').innerHTML = '🐝';
+  loadRaid();
+  renderAll();
+}
+
+// Periyodik: savunma uyarısı + veri tazeleme
+setInterval(() => {
+  if (S && tab === 'savas' && mode === 'server') loadRaid();
+}, 20000);
 
 /* ═══════════════ CANLI ÜRETİM (her saniye görsel güncelleme) ═══════════════ */
 function liveBal() {

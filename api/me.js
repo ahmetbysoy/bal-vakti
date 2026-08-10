@@ -1,7 +1,11 @@
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
-import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig } from '../lib/db.js';
-import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND } from '../lib/game.js';
+import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify } from '../lib/db.js';
+import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel } from '../lib/game.js';
 import { parseInitData } from '../lib/auth.js';
+
+// Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
+// minimal bir kopya: burada yalnızca 'hedef girişi' tetikler. (raid.js döngüden kaçınmak için)
+import { finalizeRaid as resolveRaidNow } from './raid.js';
 
 export default async function handler(req, res) {
   try {
@@ -66,6 +70,19 @@ async function handle(req, res) {
 
   const now = Date.now();
   const gained = collect(st, now);
+
+  // ⚔️ Lazy çözüm: hedef olarak üzerimde süresi dolmuş saldırı var mı?
+  let raidResult = null;
+  if (!isNew) {
+    const active = await getActiveRaid(id);
+    if (active && now >= active.endsAt) {
+      raidResult = await resolveRaidNow(active, id, false, now);
+      // resolveRaidNow state'i günceller; me.js state'i yeniden yükler
+      const updated = await getUser(id);
+      if (updated) st = updated;
+    }
+  }
+
   const freshAch = checkAchievements(st, now);
 
   if (st.banned) {
@@ -87,6 +104,7 @@ async function handle(req, res) {
     level: playerLevel(st),
     myRank: await myRank(id),
     dbMode: dbMode(),
+    raidResult,
     demo: !!info.demo,
     cfg: {
       bot: process.env.BOT_USERNAME || '',

@@ -5,6 +5,7 @@ import {
   newState, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay,
   checkAchievements, playerLevel, capacity, totalProd, beeCost, beeProd,
   ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL, setActiveCfg, DEFAULT_CONFIG, giveAchievement,
+  warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
 } from '../lib/game.js';
 
 let passed = 0;
@@ -204,6 +205,91 @@ t('giveAchievement rozet verir ve tekrar vermez', () => {
   const r2 = giveAchievement(s, 'mil');
   assert.strictEqual(r2.ok, false);
   assert.strictEqual(r2.why, 'zaten_var');
+});
+
+// ── ⚔️ PvP testleri ──
+t('warLevel XP gore seviye verir', () => {
+  assert.strictEqual(warLevel(0).level, 1);
+  assert.strictEqual(warLevel(49).level, 1);
+  assert.strictEqual(warLevel(50).level, 2);
+  assert.strictEqual(warLevel(125).level, 3);
+  assert.strictEqual(warLevel(125).into, 25);
+});
+
+t('Güçlü saldırgan zayıf hedefi yener (XP + bal çalma + arı hasarı)', () => {
+  const A = newState(now0), T = newState(now0);
+  A.bal = 1e9; A.beesOwned = 100; A.bees = Array.from({ length: MAX_LEVEL + 1 }, () => 0);
+  A.bees[10] = 50; A.beesOwned = 50; A.xp = 500; // savaşçı sv 11
+  T.bal = 10000; T.beesOwned = 5;
+  const r = resolveRaid(A, T, false, now0);
+  assert.strictEqual(r.winner, 'A');
+  assert.ok(r.xpA > 0);
+  assert.ok(r.stolen > 0);
+  assert.ok(r.beesKilled > 0);
+  assert.strictEqual(T.beesOwned + r.beesKilled, 5); // arılar silindi
+  assert.strictEqual(A.raidWins, 1);
+  assert.ok(T.defenseBal > 0); // savunma geliri
+});
+
+t('Zayıf saldırgan püskürtülür (XP cezası)', () => {
+  const A = newState(now0), T = newState(now0);
+  A.beesOwned = 1; A.xp = 0;
+  T.bal = 1e9; T.beesOwned = 100; T.bees = Array.from({ length: MAX_LEVEL + 1 }, () => 0);
+  T.bees[12] = 100; T.beesOwned = 100; T.xp = 1000; T.kovan = 5;
+  const r = resolveRaid(A, T, true, now0); // aktif savunma
+  assert.strictEqual(r.winner, 'T');
+  assert.ok(r.xpT > 0);
+  assert.strictEqual(A.xp, 0); // 15 ceza → 0'a çakılır
+  assert.strictEqual(T.defended, 1);
+});
+
+t('Savunma geliri eşiği aşılınca arı ölür (🩸)', () => {
+  const A = newState(now0), T = newState(now0);
+  A.bal = 1e9; A.beesOwned = 100; A.bees = Array.from({ length: MAX_LEVEL + 1 }, () => 0);
+  A.bees[10] = 50; A.beesOwned = 50; A.xp = 500;
+  T.bal = 50000; T.beesOwned = 10;
+  T.defenseBal = 1999; // eşiğe yakın
+  const r1 = resolveRaid(A, T, false, now0);
+  assert.ok(r1.beesKilled >= 1);
+  // defenseBal 1999 + sigorta → eşiği geçer → +1 arı ölümü tetiklenmeli
+  const A2 = newState(now0), T2 = newState(now0);
+  A2.bal = 1e9; A2.beesOwned = 100; A2.bees = Array.from({ length: MAX_LEVEL + 1 }, () => 0);
+  A2.bees[10] = 50; A2.beesOwned = 50; A2.xp = 500;
+  T2.bal = 50000; T2.beesOwned = 10;
+  T2.defenseBal = 2000; // eşik aşıldı
+  const r2 = resolveRaid(A2, T2, false, now0);
+  assert.strictEqual(T2.defenseBal, 0); // eşik sıfırlandı
+});
+
+t('killBees en düşük seviyeden siler, 0 arı kalmaz', () => {
+  const s = newState(now0);
+  s.beesOwned = 1;
+  const killed = killBees(s, 5);
+  assert.ok(s.beesOwned >= 1); // asla 0 olmaz
+  assert.strictEqual(s.bees[1], 1);
+});
+
+t('mutualRaidPenalty iki tarafa da ceza verir', () => {
+  const A = newState(now0), T = newState(now0);
+  A.xp = 100; T.xp = 100;
+  const r = mutualRaidPenalty(A, T, now0);
+  assert.strictEqual(r.penalty, 10);
+  assert.strictEqual(A.xp, 90);
+  assert.strictEqual(T.xp, 90);
+});
+
+t('coalitionBonus 2+ saldırganda +5 XP verir', () => {
+  const A = newState(now0);
+  assert.strictEqual(coalitionBonus(A, 1), 0);
+  assert.strictEqual(coalitionBonus(A, 2), 5);
+  assert.strictEqual(A.xp, 5);
+});
+
+t('raidPower arılar/üretim/kovan ile artar', () => {
+  const s = newState(now0);
+  const p1 = raidPower(s);
+  s.beesOwned = 10; s.bees[1] = 10; s.kovan = 2;
+  assert.ok(raidPower(s) > p1);
 });
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
