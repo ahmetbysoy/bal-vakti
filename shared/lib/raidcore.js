@@ -1,6 +1,6 @@
 // ⚔️ Raid çözüm çekirdeği — api/raid.js, api/me.js, lib/brain.js ortak kullanır
 // (API'ler arası döngüyü önlemek için ayrı modül)
-import { getUser, saveUser, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, syncLb, allActiveRaids, addEvent } from './db.js';
+import { getUser, saveUser, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, syncLb, allActiveRaids, addEvent, bumpCounter } from './db.js';
 import { collect, resolveRaid, mutualRaidPenalty, coalitionBonus, warLevel } from './game.js';
 
 export const RAID_PREP_MS = 15 * 1000; // 15 sn hazırlık ("çürüme" penceresi)
@@ -32,6 +32,7 @@ export async function finalizeRaid(raid, defenderId, defendActive, now) {
   const A = await getUser(raid.a);
   const T = await getUser(raid.t);
   await clearActiveRaid(raid.t);
+  await bumpCounter('war');
   if (!A || !T || A.banned) return { note: 'iptal' };
 
   collect(A); collect(T);

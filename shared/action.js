@@ -1,7 +1,7 @@
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
-import { getUser, saveUser, syncLb, myRank, getConfig } from './lib/db.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } from './lib/game.js';
+import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter } from './lib/db.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -94,6 +94,21 @@ async function handle(req, res) {
       const r = vzvzPlay(st, Number(payload.taps) || 0, Number(payload.durMs) || 0, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
+      break;
+    }
+    case 'spin': {
+      const r = spinWheel(st, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      await bumpCounter('spin');
+      result = r;
+      break;
+    }
+    case 'gamble': {
+      const bet = Math.floor(Number(payload.bet) || 0);
+      const game = payload.game === 'slot' ? 'slot' : 'coin';
+      const r = game === 'slot' ? gambleSlot(st, bet, now) : gambleCoin(st, bet, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = { ...r, game };
       break;
     }
     default:

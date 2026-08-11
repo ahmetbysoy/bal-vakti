@@ -199,6 +199,47 @@
   .grudge .inf span{font-size:10px;color:var(--muted)}
   .grudge .btn{width:88px;flex-shrink:0}
   /* savaş animasyon ekranı */
+  /* ── 🎰 EĞLENCE ODASI ── */
+  .casino{background:linear-gradient(180deg,#1d1030,#12081e);border:1px solid #4a2d77;border-radius:18px;padding:14px;margin-top:12px}
+  .casino h3{color:#c9a4ff}
+  .gbtn{display:block;width:100%;border:none;border-radius:14px;cursor:pointer;padding:14px;margin-top:10px;font-family:inherit;font-size:15px;font-weight:900;text-align:left;transition:transform .08s}
+  .gbtn:active{transform:scale(.97)}
+  .gbtn .gr{display:flex;justify-content:space-between;align-items:center}
+  .gbtn .e{font-size:26px}
+  .gbtn.gold{background:linear-gradient(180deg,#ffd166,#f59e0b);color:#241703;box-shadow:0 3px 0 #a16207}
+  .gbtn.purple{background:linear-gradient(180deg,#c9a4ff,#8b5cf6);color:#1c0f33;box-shadow:0 3px 0 #5b21b6}
+  .gbtn.green{background:linear-gradient(180deg,#9be8ab,#3fae5e);color:#10240f;box-shadow:0 3px 0 #1f5c31}
+  .gbtn:disabled{filter:grayscale(.8);opacity:.5}
+  .wheelwrap{position:relative;width:260px;height:260px;margin:10px auto;user-select:none}
+  .wheel{position:absolute;inset:0;border-radius:50%;transition:transform 4s cubic-bezier(.15,.8,.25,1);
+    background:conic-gradient(#ffd166 0 45deg,#f59e0b 45deg 90deg,#ff7b6b 90deg 135deg,#ffd166 135deg 180deg,#4ade80 180deg 225deg,#ffd166 225deg 270deg,#60a5fa 270deg 315deg,#ffd166 315deg 360deg);
+    border:6px solid var(--gold);box-shadow:0 8px 30px #00000088}
+  .wheelhub{position:absolute;inset:38%;border-radius:50%;background:var(--card);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;z-index:2;color:var(--gold)}
+  .wheelpin{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:26px;z-index:3}
+  .slotbox{display:flex;justify-content:center;gap:10px;margin:14px 0}
+  .slotcell{width:70px;height:84px;background:#171003;border:2px solid var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:40px}
+  .slotcell.spin{animation:slotspin .3s ease}
+  @keyframes slotspin{0%{transform:translateY(-12px)}100%{transform:none}}
+  .betrow{display:flex;gap:8px;align-items:center}
+  .betrow input{flex:1;background:#171003;border:1px solid var(--line);border-radius:12px;color:var(--cream);padding:12px;font-size:15px;font-family:inherit}
+  .resp{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;min-height:18px}
+  .resp.win{color:var(--gold);font-weight:900}
+  .resp.lose{color:var(--red);font-weight:900}
+  /* ── Canlı FOMO paneli ── */
+  .fomo{display:flex;gap:8px;margin-top:12px;align-items:stretch}
+  .fomo-main{flex:1;background:linear-gradient(180deg,#2a1c08,#1d1306);border:1px solid var(--line);border-radius:16px;padding:12px}
+  .fomo-main h4{font-size:12px;color:var(--gold);margin-bottom:8px}
+  .fbar{display:flex;align-items:center;gap:6px;margin-top:5px}
+  .fbar .nm{font-size:10px;width:52px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fbar .bar{flex:1;height:12px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
+  .fbar .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f59e0b,#ffd166);transition:width 1s ease;min-width:2px}
+  .fbar .vl{font-size:10px;color:var(--gold);width:42px;text-align:right}
+  .fomo-side{display:flex;flex-direction:column;gap:8px;width:84px}
+  .fsq{background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center}
+  .fsq .e{font-size:18px}
+  .fsq .v{font-size:13px;font-weight:900;color:var(--cream)}
+  .fsq .l{font-size:9px;color:var(--muted)}
+  .fsq.hot{border-color:var(--red);animation:raidpulse 1.2s infinite}
   .warscreen{position:fixed;inset:0;z-index:80;background:#120a02f2;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
   .warscreen.show{display:flex}
   .warscreen .vs{font-size:14px;color:var(--muted);margin-bottom:8px}
@@ -231,10 +272,21 @@
 <main>
   <!-- KOVA -->
   <section id="tab-kovan">
+    <div class="fomo" id="fomo-panel" style="display:none">
+      <div class="fomo-main">
+        <h4>🔥 Bugünün Kazançları</h4>
+        <div id="fomo-bars"></div>
+      </div>
+      <div class="fomo-side">
+        <div class="fsq" id="fomo-war"><div class="e">⚔️</div><div class="v">0</div><div class="l">Aktif Savaş</div></div>
+        <div class="fsq" id="fomo-spin"><div class="e">🎡</div><div class="v">0</div><div class="l">Çark Bugün</div></div>
+        <div class="fsq" id="fomo-week"><div class="e">🏆</div><div class="v">0</div><div class="l">Haftalık Toplam</div></div>
+      </div>
+    </div>
     <div class="hero">
       <div class="jar">🍯</div>
       <div class="balcount" id="bal">0</div>
-      <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn</div>
+      <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
       <div class="capbar"><i id="capfill"></i></div>
       <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
       <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLU — Topla!</div>
@@ -361,6 +413,33 @@
     </div>
   </section>
 
+  <!-- EĞLENCE ODASI -->
+  <section id="tab-eglence" style="display:none">
+    <div class="casino">
+      <h3>🎰 Eğlence Odası</h3>
+      <p class="hint" style="margin-bottom:4px">Kovanın yorgun arıları burada kumar oynar... Kazanır ya da kaybedersin! 😈</p>
+      <button class="gbtn gold" id="btn-spin" onclick="openWheel()">
+        <div class="gr"><span><span class="e">🎡</span> Çarkıfelek</span><b id="spin-txt">Günde 1 bedava</b></div>
+      </button>
+      <button class="gbtn purple" onclick="openCoin()">
+        <div class="gr"><span><span class="e">🪙</span> Yazı-Tura (2x)</span><b>Kraliçe Arı karar verir</b></div>
+      </button>
+      <button class="gbtn green" onclick="openSlot()">
+        <div class="gr"><span><span class="e">🎰</span> Slot Makinesi (3x)</span><b>3 aynı = büyük ödül</b></div>
+      </button>
+    </div>
+    <div class="card">
+      <h3>📊 Kumar İstatistiklerim</h3>
+      <div class="stats">
+        <div class="stat"><div class="v" id="gam-count">0</div><div class="l">🎲 Oynanan</div></div>
+        <div class="stat"><div class="v" id="gam-bal">0</div><div class="l">🍯 Mevcut Bal</div></div>
+        <div class="stat"><div class="v" id="gam-lost">0</div><div class="l">💸 Bugün Kayıp</div></div>
+        <div class="stat"><div class="v" id="gam-week">0</div><div class="l">🏆 Haftalık</div></div>
+      </div>
+      <p class="hint" style="text-align:center;margin-top:8px">🎲 Bahis = balının %20'si (max) · 💸 Günlük kayıp limiti: 2000 bal<br>⚠️ Kaybettiğin bal geri gelmez — sorumlu oyna!</p>
+    </div>
+  </section>
+
   <!-- BEN (PROFİL + AYARLAR) -->
   <section id="tab-me" style="display:none">
     <div class="card" style="text-align:center">
@@ -419,6 +498,7 @@
   <button class="active" data-tab="kovan" onclick="switchTab('kovan')"><span class="e">🏠</span>Kovan</button>
   <button data-tab="bees" onclick="switchTab('bees')"><span class="e">🐝</span>Arılar</button>
   <button data-tab="savas" onclick="switchTab('savas')"><span class="e">⚔️</span>Savaş</button>
+  <button data-tab="eglence" onclick="switchTab('eglence')"><span class="e">🎰</span>Eğlence</button>
   <button data-tab="achs" onclick="switchTab('achs')"><span class="e">🏅</span>Rozet</button>
   <button data-tab="lb" onclick="switchTab('lb')"><span class="e">🏆</span>Lig</button>
   <button data-tab="me" onclick="switchTab('me')"><span class="e">👤</span>Ben</button>
@@ -543,6 +623,11 @@ function confetti() {
 }
 function initData() { return tg ? tg.initData : ''; }
 
+async function loadFomoOnce() {
+  // İlk yüklemede FOMO panelini doldur
+  setTimeout(() => { if (S && mode === 'server') renderFomo(); }, 1500);
+}
+
 /* ── API (15 sn zaman aşımı — oyun asla sonsuz bekleyip "kilitlenmez") ── */
 async function api(path, body) {
   const ctrl = new AbortController();
@@ -640,12 +725,23 @@ async function load() {
   }
   $('#loader').style.display = 'none';
   renderAll();
+  loadFomoOnce();
 }
 function renderAll() {
   const prod = mode === 'demo' ? dProd(S) : totalProd(S);
   const cap = mode === 'demo' ? dCap(S) : capacity(S);
   const lvl = mode === 'demo' ? dLevel(S) : playerLevel(S);
 
+  // 🌙 gece/boost göstergesi
+  const boostEl = $('#boost-badge');
+  if (boostEl) {
+    const isNight2 = new Date().getHours() >= 22 || new Date().getHours() < 6;
+    const boost = (S.boostUntil || 0) > Date.now();
+    if (isNight2 || boost) {
+      boostEl.style.display = 'inline-block';
+      boostEl.textContent = (boost ? '⚡ x2' : '') + (isNight2 ? '🌙 x2' : '');
+    } else boostEl.style.display = 'none';
+  }
   $('#bal').textContent = fmt(S.bal);
   $('#prod').textContent = fmtP(prod);
   $('#capnow').textContent = fmt(Math.min(S.bal, cap)) + ' 🍯';
@@ -680,7 +776,8 @@ function renderAll() {
     if (S.bees[l] === 0 && l > 3) continue; // boş üst seviyeleri gösterme
     const div = document.createElement('div');
     div.className = 'bee' + (S.bees[l] === 0 ? ' locked' : '');
-    div.innerHTML = '<div class="lv">' + l + '</div><div class="e">🐝</div><div class="n">' + (S.bees[l] || 0) + '</div><div class="p">' + fmtP(beeProd(l)) + '/sn</div>';
+    const beeEm = BEE_EMOJIS[Math.min(l - 1, BEE_EMOJIS.length - 1)];
+    div.innerHTML = '<div class="lv">' + l + '</div><div class="e">' + beeEm + '</div><div class="n">' + (S.bees[l] || 0) + '</div><div class="p">' + fmtP(beeProd(l)) + '/sn</div>';
     grid.appendChild(div);
   }
 
@@ -1069,6 +1166,7 @@ function switchTab(name) {
   if (name === 'lb') renderLb();
   if (name === 'me') renderProfile();
   if (name === 'savas') loadRaid();
+  if (name === 'eglence') renderEglence();
   Sfx.tap();
   haptic('light');
 }
@@ -1092,6 +1190,184 @@ function playerLevel(s) {
   const thr = [0, 200, 1000, 5000, 20000, 100000, 500000, 2.5e6, 1e7, 5e7, 2.5e8];
   let lvl = 1; for (let i = 0; i < thr.length; i++) if (s.totalEarned >= thr[i]) lvl = i + 1;
   return { level: lvl, title: ['Yavru Arı','Bal Toplayıcı','Kovan Çırağı','Arıcı','Usta Arıcı','Bal Baronu','Kovan Lordu','Bal Kralı','Arı İmparatoru','Bal Efsanesi','Kozmik Kovan'][Math.min(lvl, 11) - 1] };
+}
+
+/* ═══════════════ 🎰 EĞLENCE ODASI ═══════════════ */
+const WHEEL_SLICES = [
+  { label: '⚡', kind: 'boost', value: 300 },
+  { label: '😬', kind: 'zero', value: 0 },
+  { label: '🍯50', kind: 'bal', value: 50 },
+  { label: '🍯250', kind: 'bal', value: 250 },
+  { label: '🍯100', kind: 'bal', value: 100 },
+  { label: '💛1000', kind: 'bal', value: 1000 },
+  { label: '🍯500', kind: 'bal', value: 500 },
+  { label: '🍯25', kind: 'bal', value: 25 },
+];
+let wheelSpinLock = false;
+
+async function openWheel() {
+  haptic('impact');
+  const body = $('#modal-body');
+  const can = !S || (S.lastSpin || 0) < Math.floor(Date.now() / DAY) * DAY;
+  const slices = WHEEL_SLICES.map((s, i) => {
+    const rot = (i * 45) + 22.5;
+    return '<div class="slice" style="transform:rotate(' + rot + 'deg) translateX(70px) rotate(' + (-rot) + 'deg)">' + s.label + '</div>';
+  }).join('');
+  body.innerHTML =
+    '<h2>🎡 Çarkıfelek</h2>' +
+    '<p>Günde 1 bedava çevirme — Kraliçe Arı kısmetini döndürür!</p>' +
+    '<div class="wheelwrap"><div class="wheelpin">📍</div><div class="wheel" id="wheel-el">' + slices + '</div><div class="wheelhub" id="wheel-hub">ÇEVİR!</div></div>' +
+    '<div class="resp" id="wheel-resp">' + (can ? 'Çevirmeye hazır mısın?' : 'Bugünkü hakkını kullandın — yarın gel! 🐝') + '</div>' +
+    (can ? '<button class="btn" style="width:100%" onclick="spinIt()">🎡 ÇEVİR</button>' : '');
+  showModal();
+}
+async function spinIt() {
+  if (wheelSpinLock) return;
+  wheelSpinLock = true;
+  haptic('impact');
+  const res = await api('/api/action', { initData: initData(), action: 'spin' });
+  if (handleActionErr(res)) { wheelSpinLock = false; return; }
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); wheelSpinLock = false; return; }
+  // Çarkı sonuca göre döndür (görsel: hedef dilim işaretçinin altında)
+  const idx = WHEEL_SLICES.indexOf(WHEEL_SLICES.find((s) => s.label === res.slice.label) || WHEEL_SLICES[0]);
+  const targetRot = 360 * 5 + (360 - (idx * 45 + 22.5));
+  const wheel = $('#wheel-el');
+  const hub = $('#wheel-hub');
+  if (wheel) {
+    wheel.style.transform = 'rotate(' + targetRot + 'deg)';
+    if (hub) hub.textContent = '...';
+    $('#wheel-resp').textContent = 'Dönüyor...';
+    Sfx.war();
+    setTimeout(() => {
+      const slice = res.slice;
+      let msg = '';
+      if (slice.kind === 'bal') msg = '🍯 +' + slice.value + ' bal kazandın!';
+      else if (slice.kind === 'boost') msg = '⚡ 5 DAKİKA üretim x2 kazandın!';
+      else msg = '😬 Boş çıktı... Yarın yine dene!';
+      $('#wheel-resp').className = 'resp ' + (slice.kind === 'bal' || slice.kind === 'boost' ? 'win' : 'lose');
+      $('#wheel-resp').textContent = msg;
+      if (hub) hub.textContent = slice.value > 0 ? '+' + slice.value : '0';
+      if (slice.kind !== 'zero') { confetti(); Sfx.ach(); } else Sfx.error();
+      wheelSpinLock = false;
+      handleRes(res);
+    }, 4100);
+  } else {
+    handleRes(res);
+    wheelSpinLock = false;
+  }
+}
+
+async function openCoin() {
+  haptic('impact');
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>🪙 Yazı-Tura</h2>' +
+    '<p>Kraliçe Arı parayı atar — yazı mı tura mı? Kazanırsan <b>2x</b>!</p>' +
+    '<div class="betrow" style="margin-top:14px"><input type="number" id="coin-bet" placeholder="Bahis miktarı" min="1" value="50"></div>' +
+    '<div class="resp" id="coin-resp">Bahis: balının %20\'sini geçemez (max)</div>' +
+    '<button class="btn purple" style="width:100%;margin-top:10px" onclick="playCoin()">🪙 YAZI-TURA AT</button>' +
+    '<p class="hint" style="text-align:center;margin-top:8px">Günlük kayıp limiti: 2000 bal — sorumlu oyna!</p>';
+  showModal();
+}
+async function playCoin() {
+  haptic('impact');
+  const bet = Math.floor(Number($('#coin-bet').value) || 0);
+  if (bet < 1) return toast('⛔ Bahis gir!');
+  const res = await api('/api/action', { initData: initData(), action: 'gamble', payload: { game: 'coin', bet } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { $('#coin-resp').className = 'resp lose'; $('#coin-resp').textContent = '⛔ ' + errText(res.error); Sfx.error(); return; }
+  const r = res;
+  setTimeout(() => {
+    if (r.win) {
+      $('#coin-resp').className = 'resp win';
+      $('#coin-resp').textContent = '🪙 ' + r.result.toUpperCase() + ' — KAZANDIN! +' + r.reward + ' bal 🎉';
+      confetti(); Sfx.ach();
+    } else {
+      $('#coin-resp').className = 'resp lose';
+      $('#coin-resp').textContent = '🪙 ' + r.result.toUpperCase() + ' — Kaybettin... -' + r.lost + ' bal 💸';
+      Sfx.lose();
+    }
+    handleRes(res);
+  }, 700);
+}
+
+async function openSlot() {
+  haptic('impact');
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>🎰 Slot Makinesi</h2>' +
+    '<p>3 aynı emoji = <b>3x</b> · 2 aynı = <b>1.5x</b> · yoksa kayıp!</p>' +
+    '<div class="slotbox"><div class="slotcell" id="s1">🍯</div><div class="slotcell" id="s2">🐝</div><div class="slotcell" id="s3">✨</div></div>' +
+    '<div class="betrow"><input type="number" id="slot-bet" placeholder="Bahis" min="1" value="100"></div>' +
+    '<div class="resp" id="slot-resp">İyi şanslar arıcı! 🍀</div>' +
+    '<button class="btn green" style="width:100%;margin-top:10px" onclick="playSlot()">🎰 DÖNDÜR</button>';
+  showModal();
+}
+async function playSlot() {
+  haptic('impact');
+  const bet = Math.floor(Number($('#slot-bet').value) || 0);
+  if (bet < 1) return toast('⛔ Bahis gir!');
+  // Görsel: dönme animasyonu
+  for (const id of ['s1', 's2', 's3']) {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('spin'); setTimeout(() => el.classList.remove('spin'), 350); }
+  }
+  Sfx.war();
+  const res = await api('/api/action', { initData: initData(), action: 'gamble', payload: { game: 'slot', bet } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { $('#slot-resp').className = 'resp lose'; $('#slot-resp').textContent = '⛔ ' + errText(res.error); Sfx.error(); return; }
+  setTimeout(() => {
+    if (res.symbols) {
+      $('#s1').textContent = res.symbols[0];
+      $('#s2').textContent = res.symbols[1];
+      $('#s3').textContent = res.symbols[2];
+    }
+    if (res.win) {
+      $('#slot-resp').className = 'resp win';
+      $('#slot-resp').textContent = '🎉 ' + res.symbols.join(' ') + ' — KAZANDIN! +' + res.reward + ' bal (' + res.mult + 'x)';
+      confetti(); Sfx.ach();
+    } else {
+      $('#slot-resp').className = 'resp lose';
+      $('#slot-resp').textContent = '💸 ' + res.symbols.join(' ') + ' — Kaybettin... -' + res.lost + ' bal';
+      Sfx.lose();
+    }
+    handleRes(res);
+  }, 800);
+}
+
+function renderEglence() {
+  if (!S) return;
+  $('#gam-count').textContent = S.gambleCount || 0;
+  $('#gam-bal').textContent = fmt(S.bal);
+  $('#gam-lost').textContent = fmt(S.gambleLost || 0);
+  $('#gam-week').textContent = fmt(S.weeklyEarned || 0);
+  const can = (S.lastSpin || 0) < Math.floor(Date.now() / DAY) * DAY;
+  $('#spin-txt').textContent = can ? 'Çevrilmedi — bedava!' : 'Bugün çevrildi ✅';
+}
+
+/* ═══════════════ 🔥 CANLI FOMO PANELİ ═══════════════ */
+async function renderFomo() {
+  const panel = $('#fomo-panel');
+  if (mode === 'demo' || !S) { panel.style.display = 'none'; return; }
+  try {
+    const [todayRes, weekRes, cntRes] = await Promise.all([
+      fetch('/api/leaderboard?mode=today').then(r => r.json()).catch(() => null),
+      fetch('/api/leaderboard?mode=week').then(r => r.json()).catch(() => null),
+      fetch('/api/leaderboard?mode=cnt').then(r => r.json()).catch(() => null),
+    ]);
+    const today = (todayRes && todayRes.top) || [];
+    const max = Math.max(1, ...today.map((t) => t.score));
+    const bars = today.slice(0, 3).map((t) =>
+      '<div class="fbar"><div class="nm">' + esc(t.name) + '</div>' +
+      '<div class="bar"><i style="width:' + Math.max(2, (t.score / max) * 100) + '%"></i></div>' +
+      '<div class="vl">' + fmt(t.score) + '</div></div>'
+    ).join('');
+    $('#fomo-bars').innerHTML = bars || '<div class="fbar" style="color:var(--muted)">Henüz kazanç yok — ilk sen ol!</div>';
+    $('#fomo-war').querySelector('.v').textContent = (cntRes && cntRes.warCount) || 0;
+    $('#fomo-spin').querySelector('.v').textContent = (cntRes && cntRes.spinCount) || 0;
+    $('#fomo-week').querySelector('.v').textContent = fmt((cntRes && cntRes.weekTotal) || 0);
+    panel.style.display = 'flex';
+  } catch (e) { panel.style.display = 'none'; }
 }
 
 /* ═══════════════ ⚔️ SAVAŞ (PvP) ═══════════════ */
@@ -1393,9 +1669,14 @@ function liveTick() {
   $('#fullwarn').style.display = lv.bal >= lv.cap * 0.985 ? 'block' : 'none';
 }
 
+const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥', '💎', '🌌'];
+
 /* ═══════════════ BAŞLAT ═══════════════ */
 load();
 setInterval(liveTick, 1000);
+setInterval(() => {
+  if (S && mode === 'server' && tab === 'kovan') renderFomo();
+}, 20000);
 </script>
 </body>
 </html>

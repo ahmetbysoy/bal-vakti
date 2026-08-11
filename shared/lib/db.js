@@ -4,7 +4,7 @@
 // 3) Hiçbiri yoksa → bellek modu (yerel test)
 // Firebase tek istekte tüm dalı çekebildiği için en hızlısıdır.
 import { Redis } from '@upstash/redis';
-import { DEFAULT_CONFIG } from './game.js';
+import { DEFAULT_CONFIG } from './game.js'; // (yalnızca tip referansı — döngü yok)
 
 const HAS_FIREBASE = !!process.env.FIREBASE_DB_URL;
 const HAS_UPSTASH = !HAS_FIREBASE && !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -143,6 +143,22 @@ export async function myRank(id) {
   return i < 0 ? null : i + 1;
 }
 
+// 🏆 Haftalık / bugünkü sıralama (allUsers'tan hesaplanır — Firebase tek istek)
+export async function topWeekly(n = 10) {
+  const users = await allUsers(1000);
+  return users
+    .map(({ id, st }) => ({ id, name: st.name || 'Anonim', score: st.weeklyEarned || 0 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n);
+}
+export async function topToday(n = 10) {
+  const users = await allUsers(1000);
+  return users
+    .map(({ id, st }) => ({ id, name: st.name || 'Anonim', score: st.todayEarned || 0 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n);
+}
+
 /* ── Canlı konfigürasyon ── */
 export async function getConfig() {
   const base = { ...DEFAULT_CONFIG };
@@ -262,4 +278,17 @@ export async function addEvent(entry) {
 export async function getEvents() {
   const v = await kvGet('events');
   return Array.isArray(v) ? v : [];
+}
+
+// 🎡 Dünya sayaçları (çark çevrilme, toplam kazanılan/kaybedilen)
+export async function bumpCounter(key, delta = 1) {
+  const cur = Number(await kvGet(`cnt/${key}`)) || 0;
+  await kvSet(`cnt/${key}`, cur + delta);
+  return cur + delta;
+}
+export async function getCounters() {
+  const obj = await kvGetAll('cnt');
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = Number(v) || 0;
+  return out;
 }

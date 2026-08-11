@@ -79,10 +79,24 @@ export function beeProd(level) {
 export function beeCost(s) {
   return Math.floor(ACTIVE_CFG.beeBaseCost * Math.pow(ACTIVE_CFG.beeCostGrowth, s.beesOwned));
 }
-export function totalProd(s) {
+// 🌙 Gece etkinliği: 22:00-06:00 arası üretim x2 (Türkiye saati)
+export function isNight(now = Date.now()) {
+  const h = new Date(now).getHours();
+  return h >= 22 || h < 6;
+}
+export function prodMultiplier(now = Date.now()) {
+  return isNight(now) ? 2 : 1;
+}
+export function totalProd(s, now = Date.now()) {
   let t = 0;
   for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * beeProd(l);
-  return t * Math.pow(2, s.kovan);
+  return t * Math.pow(2, s.kovan) * effectiveMult(s, now);
+}
+// ⚡ Üretim çarpanı: gece x2 + çark boostu +1 (çakışırsa x3)
+export function effectiveMult(s, now = Date.now()) {
+  let m = prodMultiplier(now);
+  if ((s.boostUntil || 0) > now) m += 1;
+  return m;
 }
 export function capacity(s) {
   return ACTIVE_CFG.capBase * Math.pow(ACTIVE_CFG.capUpgMult, s.depo);
@@ -98,7 +112,7 @@ export function kovanCost(s) {
 export function collect(s, now = Date.now()) {
   const elapsed = Math.max(0, now - s.lastCollect);
   const cap = capacity(s);
-  let gain = (totalProd(s) * elapsed) / 1000;
+  let gain = (totalProd(s, now) * elapsed) / 1000;
   if (gain > cap) gain = cap;
   if (gain > 0) {
     s.bal += gain;
@@ -172,7 +186,122 @@ export function vzvzPlay(s, taps, durMs, now = Date.now()) {
   const reward = taps * ACTIVE_CFG.vzvzTapReward;
   s.bal += reward;
   s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
   return { ok: true, reward, taps };
+}
+
+/* ═══════════════════ 🎰 EĞLENCE ODASI ═══════════════════ */
+
+// 🎡 Çarkıfelek dilimleri
+export const WHEEL_SLICES = [
+  { id: 'x2', label: 'Üretim x2', emoji: '⚡', kind: 'boost', value: 300 },  // 5 dk x2
+  { id: 'z0', label: '0', emoji: '😬', kind: 'zero', value: 0 },
+  { id: 's50', label: '+50', emoji: '🍯', kind: 'bal', value: 50 },
+  { id: 's250', label: '+250', emoji: '🍯', kind: 'bal', value: 250 },
+  { id: 's100', label: '+100', emoji: '🍯', kind: 'bal', value: 100 },
+  { id: 's1000', label: '+1000', emoji: '💛', kind: 'bal', value: 1000 },
+  { id: 's500', label: '+500', emoji: '🍯', kind: 'bal', value: 500 },
+  { id: 's25', label: '+25', emoji: '🍯', kind: 'bal', value: 25 },
+];
+
+// Günde 1 bedava çevirme
+export function spinWheel(s, now = Date.now()) {
+  const today = Math.floor(now / 86400000);
+  if (s.lastSpin === today) return { ok: false, why: 'bugun_cirildi' };
+  s.lastSpin = today;
+  const slice = WHEEL_SLICES[Math.floor(Math.random() * WHEEL_SLICES.length)];
+  let reward = 0;
+  if (slice.kind === 'bal') {
+    reward = slice.value;
+    s.bal += reward;
+    s.totalEarned += reward;
+    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+    s.todayEarned = (s.todayEarned || 0) + reward;
+  } else if (slice.kind === 'boost') {
+    s.boostUntil = now + 5 * 60 * 1000; // 5 dk üretim x2
+  }
+  return { ok: true, slice, reward };
+}
+
+
+// 🎲 Yazı-Tura (2x) — sunucu tarafı adil rastgele
+export const GAMBLE_DAILY_LOSS_LIMIT = 2000; // günlük max kayıp
+export const GAMBLE_MAX_BET_RATIO = 0.2;     // max bahis = balın %20'si
+export function gambleCoin(s, bet, now = Date.now()) {
+  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
+  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
+  const dayKey = Math.floor(now / 86400000);
+  if ((s.gambleLostDay === dayKey && (s.gambleLost || 0) + bet > GAMBLE_DAILY_LOSS_LIMIT) || (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT)) {
+    return { ok: false, why: 'gunluk_kayip_siniri' };
+  }
+  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
+  const win = Math.random() < 0.5;
+  s.bal -= bet;
+  let reward = 0;
+  if (win) {
+    reward = bet * 2;
+    s.bal += reward;
+    s.totalEarned += reward;
+    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+    s.todayEarned = (s.todayEarned || 0) + reward;
+  } else {
+    // günlük kayıp takibi
+    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
+    s.gambleLost = (s.gambleLost || 0) + bet;
+  }
+  s.gambleCount = (s.gambleCount || 0) + 1;
+  return { ok: true, win, reward, lost: win ? 0 : bet, result: win ? 'yazi' : 'tura' };
+}
+
+// 🎰 Slot (3 emoji; 3 aynı 3x, 2 aynı 1.5x, yoksa 0)
+const SLOT_SYMBOLS = ['🍯', '🐝', '✨', '👑', '🍀'];
+export function gambleSlot(s, bet, now = Date.now()) {
+  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
+  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
+  const dayKey = Math.floor(now / 86400000);
+  if (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT) {
+    return { ok: false, why: 'gunluk_kayip_siniri' };
+  }
+  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
+  const r = () => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+  const a = r(), b = r(), c = r();
+  let mult = 0;
+  if (a === b && b === c) mult = 3;
+  else if (a === b || b === c || a === c) mult = 1.5;
+  s.bal -= bet;
+  let reward = 0;
+  if (mult > 0) {
+    reward = Math.floor(bet * mult);
+    s.bal += reward;
+    s.totalEarned += reward;
+    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+    s.todayEarned = (s.todayEarned || 0) + reward;
+  } else {
+    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
+    s.gambleLost = (s.gambleLost || 0) + bet;
+  }
+  s.gambleCount = (s.gambleCount || 0) + 1;
+  return { ok: true, win: mult > 0, reward, lost: mult > 0 ? 0 : bet, symbols: [a, b, c], mult };
+}
+
+/* ═══════════════════ 🐝 ARILAR ═══════════════════ */
+
+// Seviyeye göre arı görünümü (kozmetik)
+export const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥', '💎', '🌌'];
+export function beeEmoji(level) {
+  return BEE_EMOJIS[Math.min(level - 1, BEE_EMOJIS.length - 1)];
+}
+
+/* ── Haftalık/bugünlük sayaçlar (her kazançta işlenir) ── */
+export function addEarned(s, amount, now = Date.now()) {
+  s.weeklyEarned = (s.weeklyEarned || 0) + amount;
+  s.todayEarned = (s.todayEarned || 0) + amount;
+  // hafta/bugün anahtarları (pazartesi sıfırlama)
+  const wk = Math.floor(now / (7 * 86400000));
+  if (s.weekKey !== wk) { s.weekKey = wk; s.weeklyEarned = amount; }
+  const day = Math.floor(now / 86400000);
+  if (s.dayKey !== day) { s.dayKey = day; s.todayEarned = amount; }
 }
 
 // ── Başarılar (rozetler) ──

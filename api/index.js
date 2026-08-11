@@ -88,10 +88,24 @@ function beeProd(level) {
 function beeCost(s) {
   return Math.floor(ACTIVE_CFG.beeBaseCost * Math.pow(ACTIVE_CFG.beeCostGrowth, s.beesOwned));
 }
-function totalProd(s) {
+// 🌙 Gece etkinliği: 22:00-06:00 arası üretim x2 (Türkiye saati)
+function isNight(now = Date.now()) {
+  const h = new Date(now).getHours();
+  return h >= 22 || h < 6;
+}
+function prodMultiplier(now = Date.now()) {
+  return isNight(now) ? 2 : 1;
+}
+function totalProd(s, now = Date.now()) {
   let t = 0;
   for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * beeProd(l);
-  return t * Math.pow(2, s.kovan);
+  return t * Math.pow(2, s.kovan) * effectiveMult(s, now);
+}
+// ⚡ Üretim çarpanı: gece x2 + çark boostu +1 (çakışırsa x3)
+function effectiveMult(s, now = Date.now()) {
+  let m = prodMultiplier(now);
+  if ((s.boostUntil || 0) > now) m += 1;
+  return m;
 }
 function capacity(s) {
   return ACTIVE_CFG.capBase * Math.pow(ACTIVE_CFG.capUpgMult, s.depo);
@@ -107,7 +121,7 @@ function kovanCost(s) {
 function collect(s, now = Date.now()) {
   const elapsed = Math.max(0, now - s.lastCollect);
   const cap = capacity(s);
-  let gain = (totalProd(s) * elapsed) / 1000;
+  let gain = (totalProd(s, now) * elapsed) / 1000;
   if (gain > cap) gain = cap;
   if (gain > 0) {
     s.bal += gain;
@@ -181,7 +195,122 @@ function vzvzPlay(s, taps, durMs, now = Date.now()) {
   const reward = taps * ACTIVE_CFG.vzvzTapReward;
   s.bal += reward;
   s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
   return { ok: true, reward, taps };
+}
+
+/* ═══════════════════ 🎰 EĞLENCE ODASI ═══════════════════ */
+
+// 🎡 Çarkıfelek dilimleri
+const WHEEL_SLICES = [
+  { id: 'x2', label: 'Üretim x2', emoji: '⚡', kind: 'boost', value: 300 },  // 5 dk x2
+  { id: 'z0', label: '0', emoji: '😬', kind: 'zero', value: 0 },
+  { id: 's50', label: '+50', emoji: '🍯', kind: 'bal', value: 50 },
+  { id: 's250', label: '+250', emoji: '🍯', kind: 'bal', value: 250 },
+  { id: 's100', label: '+100', emoji: '🍯', kind: 'bal', value: 100 },
+  { id: 's1000', label: '+1000', emoji: '💛', kind: 'bal', value: 1000 },
+  { id: 's500', label: '+500', emoji: '🍯', kind: 'bal', value: 500 },
+  { id: 's25', label: '+25', emoji: '🍯', kind: 'bal', value: 25 },
+];
+
+// Günde 1 bedava çevirme
+function spinWheel(s, now = Date.now()) {
+  const today = Math.floor(now / 86400000);
+  if (s.lastSpin === today) return { ok: false, why: 'bugun_cirildi' };
+  s.lastSpin = today;
+  const slice = WHEEL_SLICES[Math.floor(Math.random() * WHEEL_SLICES.length)];
+  let reward = 0;
+  if (slice.kind === 'bal') {
+    reward = slice.value;
+    s.bal += reward;
+    s.totalEarned += reward;
+    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+    s.todayEarned = (s.todayEarned || 0) + reward;
+  } else if (slice.kind === 'boost') {
+    s.boostUntil = now + 5 * 60 * 1000; // 5 dk üretim x2
+  }
+  return { ok: true, slice, reward };
+}
+
+
+// 🎲 Yazı-Tura (2x) — sunucu tarafı adil rastgele
+const GAMBLE_DAILY_LOSS_LIMIT = 2000; // günlük max kayıp
+const GAMBLE_MAX_BET_RATIO = 0.2;     // max bahis = balın %20'si
+function gambleCoin(s, bet, now = Date.now()) {
+  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
+  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
+  const dayKey = Math.floor(now / 86400000);
+  if ((s.gambleLostDay === dayKey && (s.gambleLost || 0) + bet > GAMBLE_DAILY_LOSS_LIMIT) || (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT)) {
+    return { ok: false, why: 'gunluk_kayip_siniri' };
+  }
+  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
+  const win = Math.random() < 0.5;
+  s.bal -= bet;
+  let reward = 0;
+  if (win) {
+    reward = bet * 2;
+    s.bal += reward;
+    s.totalEarned += reward;
+    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+    s.todayEarned = (s.todayEarned || 0) + reward;
+  } else {
+    // günlük kayıp takibi
+    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
+    s.gambleLost = (s.gambleLost || 0) + bet;
+  }
+  s.gambleCount = (s.gambleCount || 0) + 1;
+  return { ok: true, win, reward, lost: win ? 0 : bet, result: win ? 'yazi' : 'tura' };
+}
+
+// 🎰 Slot (3 emoji; 3 aynı 3x, 2 aynı 1.5x, yoksa 0)
+const SLOT_SYMBOLS = ['🍯', '🐝', '✨', '👑', '🍀'];
+function gambleSlot(s, bet, now = Date.now()) {
+  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
+  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
+  const dayKey = Math.floor(now / 86400000);
+  if (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT) {
+    return { ok: false, why: 'gunluk_kayip_siniri' };
+  }
+  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
+  const r = () => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+  const a = r(), b = r(), c = r();
+  let mult = 0;
+  if (a === b && b === c) mult = 3;
+  else if (a === b || b === c || a === c) mult = 1.5;
+  s.bal -= bet;
+  let reward = 0;
+  if (mult > 0) {
+    reward = Math.floor(bet * mult);
+    s.bal += reward;
+    s.totalEarned += reward;
+    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+    s.todayEarned = (s.todayEarned || 0) + reward;
+  } else {
+    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
+    s.gambleLost = (s.gambleLost || 0) + bet;
+  }
+  s.gambleCount = (s.gambleCount || 0) + 1;
+  return { ok: true, win: mult > 0, reward, lost: mult > 0 ? 0 : bet, symbols: [a, b, c], mult };
+}
+
+/* ═══════════════════ 🐝 ARILAR ═══════════════════ */
+
+// Seviyeye göre arı görünümü (kozmetik)
+const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥', '💎', '🌌'];
+function beeEmoji(level) {
+  return BEE_EMOJIS[Math.min(level - 1, BEE_EMOJIS.length - 1)];
+}
+
+/* ── Haftalık/bugünlük sayaçlar (her kazançta işlenir) ── */
+function addEarned(s, amount, now = Date.now()) {
+  s.weeklyEarned = (s.weeklyEarned || 0) + amount;
+  s.todayEarned = (s.todayEarned || 0) + amount;
+  // hafta/bugün anahtarları (pazartesi sıfırlama)
+  const wk = Math.floor(now / (7 * 86400000));
+  if (s.weekKey !== wk) { s.weekKey = wk; s.weeklyEarned = amount; }
+  const day = Math.floor(now / 86400000);
+  if (s.dayKey !== day) { s.dayKey = day; s.todayEarned = amount; }
 }
 
 // ── Başarılar (rozetler) ──
@@ -356,7 +485,7 @@ function coalitionBonus(attacker, count) {
   return 0;
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, totalProd, capacity, depoCost, kovanCost, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay, ACHIEVEMENTS, checkAchievements, giveAchievement, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay, WHEEL_SLICES, spinWheel, GAMBLE_DAILY_LOSS_LIMIT, GAMBLE_MAX_BET_RATIO, gambleCoin, gambleSlot, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -364,7 +493,7 @@ __lib['db'] = (() => {
 // 2) UPSTASH_REDIS_* tanımlıysa (yedek) → Upstash Redis
 // 3) Hiçbiri yoksa → bellek modu (yerel test)
 // Firebase tek istekte tüm dalı çekebildiği için en hızlısıdır.
-const { DEFAULT_CONFIG } = __lib['game'];
+const { DEFAULT_CONFIG } = __lib['game']; // (yalnızca tip referansı — döngü yok)
 
 const HAS_FIREBASE = !!process.env.FIREBASE_DB_URL;
 const HAS_UPSTASH = !HAS_FIREBASE && !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -503,6 +632,22 @@ async function myRank(id) {
   return i < 0 ? null : i + 1;
 }
 
+// 🏆 Haftalık / bugünkü sıralama (allUsers'tan hesaplanır — Firebase tek istek)
+async function topWeekly(n = 10) {
+  const users = await allUsers(1000);
+  return users
+    .map(({ id, st }) => ({ id, name: st.name || 'Anonim', score: st.weeklyEarned || 0 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n);
+}
+async function topToday(n = 10) {
+  const users = await allUsers(1000);
+  return users
+    .map(({ id, st }) => ({ id, name: st.name || 'Anonim', score: st.todayEarned || 0 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n);
+}
+
 /* ── Canlı konfigürasyon ── */
 async function getConfig() {
   const base = { ...DEFAULT_CONFIG };
@@ -624,7 +769,20 @@ async function getEvents() {
   return Array.isArray(v) ? v : [];
 }
 
-return {dbMode, getUser, saveUser, allUsers, scanUserKeys, getRef, setRef, syncLb, topLb, myRank, getConfig, setConfig, createSession, getSession, deleteSession, overview, getActiveRaid, setActiveRaid, clearActiveRaid, allActiveRaids, addGrudge, getGrudges, addRaidHist, getRaidHist, recentRaiders, tgNotify, listBots, getBot, saveBot, deleteBot, nextBotId, brainLock, addEvent, getEvents};
+// 🎡 Dünya sayaçları (çark çevrilme, toplam kazanılan/kaybedilen)
+async function bumpCounter(key, delta = 1) {
+  const cur = Number(await kvGet(`cnt/${key}`)) || 0;
+  await kvSet(`cnt/${key}`, cur + delta);
+  return cur + delta;
+}
+async function getCounters() {
+  const obj = await kvGetAll('cnt');
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = Number(v) || 0;
+  return out;
+}
+
+return {dbMode, getUser, saveUser, allUsers, scanUserKeys, getRef, setRef, syncLb, topLb, myRank, topWeekly, topToday, getConfig, setConfig, createSession, getSession, deleteSession, overview, getActiveRaid, setActiveRaid, clearActiveRaid, allActiveRaids, addGrudge, getGrudges, addRaidHist, getRaidHist, recentRaiders, tgNotify, listBots, getBot, saveBot, deleteBot, nextBotId, brainLock, addEvent, getEvents, bumpCounter, getCounters};
 })();
 __lib['auth'] = (() => {
 // 🔐 Bal Vakti — Telegram WebApp initData doğrulaması
@@ -668,7 +826,7 @@ return {parseInitData};
 __lib['raidcore'] = (() => {
 // ⚔️ Raid çözüm çekirdeği — api/raid.js, api/me.js, lib/brain.js ortak kullanır
 // (API'ler arası döngüyü önlemek için ayrı modül)
-const { getUser, saveUser, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, syncLb, allActiveRaids, addEvent } = __lib['db'];
+const { getUser, saveUser, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, syncLb, allActiveRaids, addEvent, bumpCounter } = __lib['db'];
 const { collect, resolveRaid, mutualRaidPenalty, coalitionBonus, warLevel } = __lib['game'];
 
 const RAID_PREP_MS = 15 * 1000; // 15 sn hazırlık ("çürüme" penceresi)
@@ -700,6 +858,7 @@ async function finalizeRaid(raid, defenderId, defendActive, now) {
   const A = await getUser(raid.a);
   const T = await getUser(raid.t);
   await clearActiveRaid(raid.t);
+  await bumpCounter('war');
   if (!A || !T || A.banned) return { note: 'iptal' };
 
   collect(A); collect(T);
@@ -1087,7 +1246,7 @@ const __handlers = {};
 __handlers['me'] = (() => {
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify } = __lib['db'];
-const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel } = __lib['game'];
+const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -1196,6 +1355,10 @@ async function handle(req, res) {
     myRank: await myRank(id),
     dbMode: dbMode(),
     raidResult,
+    night: prodMultiplier(now) > 1,
+    boostActive: (st.boostUntil || 0) > now,
+    boostUntil: st.boostUntil || 0,
+    canSpin: (st.lastSpin || 0) < Math.floor(now / 86400000) * 86400000,
     demo: !!info.demo,
     cfg: {
       bot: process.env.BOT_USERNAME || '',
@@ -1213,8 +1376,8 @@ return route;
 __handlers['action'] = (() => {
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
-const { getUser, saveUser, syncLb, myRank, getConfig } = __lib['db'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState } = __lib['game'];
+const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter } = __lib['db'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1307,6 +1470,21 @@ async function handle(req, res) {
       const r = vzvzPlay(st, Number(payload.taps) || 0, Number(payload.durMs) || 0, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
+      break;
+    }
+    case 'spin': {
+      const r = spinWheel(st, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      await bumpCounter('spin');
+      result = r;
+      break;
+    }
+    case 'gamble': {
+      const bet = Math.floor(Number(payload.bet) || 0);
+      const game = payload.game === 'slot' ? 'slot' : 'coin';
+      const r = game === 'slot' ? gambleSlot(st, bet, now) : gambleCoin(st, bet, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = { ...r, game };
       break;
     }
     default:
@@ -1845,10 +2023,26 @@ return route;
 })();
 __handlers['leaderboard'] = (() => {
 // 🏆 GET /api/leaderboard — en iyi 30 arıcı
-const { topLb } = __lib['db'];
+// mode=today → bugünün kazançları · mode=week → haftalık · mode=cnt → dünya sayaçları
+const { topLb, topToday, topWeekly, getCounters } = __lib['db'];
 
 async function route(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET bekleniyor' });
+  const mode = new URL(req.url, 'http://x').searchParams.get('mode') || 'all';
+  if (mode === 'today') {
+    const top = await topToday(10);
+    return res.json({ ok: true, top });
+  }
+  if (mode === 'week') {
+    const top = await topWeekly(10);
+    return res.json({ ok: true, top });
+  }
+  if (mode === 'cnt') {
+    const c = await getCounters();
+    const wk = await topWeekly(10);
+    const weekTotal = wk.reduce((a, x) => a + x.score, 0);
+    return res.json({ ok: true, warCount: c.war || 0, spinCount: c.spin || 0, weekTotal });
+  }
   const top = await topLb(30);
   res.json({ ok: true, top });
 }

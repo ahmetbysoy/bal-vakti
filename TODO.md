@@ -1,32 +1,42 @@
-# 🐝 Bal Vakti v2.1 — 🤖 YAPAY ZEKÂ ARICILAR (NPC Botlar) Planı
+# 🐝 Bal Vakti v3.0 — 🎰 EĞLENCE ODASI + FOMO BÜYÜSÜ Planı
 
-> Kurgu: Admin bot oluşturur → her botun kişiliği/zekâsı farklı →
-> botlar oyuncu gibi davranır (saldırır, kin tutar, koalisyon kurar,
-> savunur) → dünya her zaman canlı, FOMO garantili.
+> Kurgu: Kovanında bal biriktiren arılar, akşamları "Eğlence Odası"nda kumar oynar.
+> Kraliçe Arı çarkı çevirir, işçi arılar yazı-tura atar, slot makinesi döner.
+> Ama dikkat: arılar da kaybeder! Dünya canlı sayaçlarla nefes alır — kazananlar
+> bar bar yükselir, herkes görür. FOMO garantili.
 
-## A. 🧠 Bot Beyni (lib/brain.js)
-- [x] A1. Kişilik tanımları: 🦅 Akıllı Saldırgan, ⚔️ Savaşçı, 😤 Kindar,
-      🐝 Toplulukçu, 🍯 Bal Toplayıcı, 🌀 Deli Arı
-- [x] A2. Zekâ parametreleri: saldırganlık/strateji/kindarlık/sürücülük
-- [x] A3. Karar ağacı: savun → intikam → koalisyon → hedef seç → saldır
-- [x] A4. Hedef seçim algoritması (stratejiye göre güç aralığı)
-- [x] A5. Güç seviyeleri: Zayıf/Orta/Güçlü/Efsane (arı+kovan+depo+bal)
-- [x] A6. Uyanma aralığı (kişiliğe göre 2-12 dk) + lazy düşünme
-- [x] A7. İsim + avatar havuzu (rastgele, her bot benzersiz)
+## A. 🎡 Çarkıfelek (günde 1 bedava)
+- [ ] A1. game.js: `spinWheel()` — 8 dilim (0 / 50 / 100 / 250 / 500 / 1000 / x2 üretim 5dk / 25)
+- [ ] A2. game.js: `spinDaily` takibi (state.lastSpin, günde 1)
+- [ ] A3. action.js: `spin` aksiyonu
+- [ ] A4. İstemci: çark animasyonu (CSS rotate + easing), kazanınca confetti + fanfar
 
-## B. 🗄️ Veri (lib/db.js)
-- [x] B1. Bot meta CRUD (bot:<id>), liste, silme (state + lb + ref temizliği)
-- [x] B2. Beyin kilidi (dünya turu 60 sn'de 1 kez — race yok)
+## B. 🌙 Gece Etkinliği (üretim x2)
+- [ ] B1. game.js: `isNight()` (22:00-06:00) + `totalProd` gece x2 çarpanı
+- [ ] B2. İstemci: 🌙 rozeti "Gece Bonusu x2 Aktif!", hero'da ay görseli
 
-## C. ⚙️ Admin API + Panel
-- [x] C1. bot_list / bot_create (adet, kişilik, güç) / bot_update / bot_delete / bot_toggle
-- [x] C2. bot_run (botları hemen çalıştır — test/demo)
-- [x] C3. Admin panel: 🤖 Botlar sekmesi (oluştur, listele, düzenle, sil, çalıştır)
+## C. 🐝 Özel Arı Görünümleri
+- [ ] C1. game.js: `beeEmoji(level)` — seviyeye göre farklı emoji (🐝→🦋→🦅→🐉...)
+- [ ] C2. İstemci: arı grid + savaş ekranında seviyeye göre görünüm
 
-## D. 🔌 Entegrasyon
-- [x] D1. /api/me ve /api/raid world → thinkBots() (dünya oyuncu girişinde canlanır)
-- [x] D2. finalizeRaid → lib/raidcore.js (brain/raid/me ortak kullanım, döngü yok)
+## D. 🏆 Haftalık Lig + Bugünün Kazançları
+- [ ] D1. game.js: `weeklyEarned` (state) — her kazançta işlenir
+- [ ] D2. db.js: `topWeekly(n)`, `topToday(n)` — sıralamalar
+- [ ] D3. İstemci: "Bu Hafta" lig sekmesi + "Bugün" canlı barlar
 
-## E. 🧪 Test & Yayın
-- [x] E1. Testler: makeBotState, kişilik profilleri, hedef seçim aralıkları
-- [x] E2. Push + canlı: bot oluştur, çalıştır, oyuncunun dünyasında gör
+## E. 🎰 Eğlence Odası (kumarhane mini oyunları)
+- [ ] E1. game.js: `gambleCoin(s, bet)` — yazı-tura 2x (sunucu tarafı adil rastgele)
+- [ ] E2. game.js: `gambleSlot(s, bet)` — 3 emoji, 3 aynı 3x / 2 aynı 1.5x
+- [ ] E3. game.js: sorumlu oyun limitleri: max bahis = balın %20'si, günlük max kayıp = 2000
+- [ ] E4. action.js: `gamble` aksiyonu
+- [ ] E5. İstemci: 🎰 Eğlence Odası sekmesi (yazı-tura + slot + çark)
+- [ ] E6. Kaybetme/kazanma animasyonları + sesler (kazan: altın sesi, kaybet: bozuk para düşme)
+
+## F. 📊 Canlı FOMO Paneli
+- [ ] F1. İstemci: ana ekran üstü "🔥 Bugünün Kazançları" — top 3 canlı yatay barlar
+- [ ] F2. Sol/sağ dikey mini sayaçlar: "⚔️ Aktif Savaş", "🎡 Bugün Çark: X", "🏆 Haftalık: Y bal"
+- [ ] F3. Her kazançta bar animasyonu (canlı yükselme)
+
+## G. 🧪 Test & Yayın
+- [ ] G1. Testler: çark, gece, kumar (adillik, limitler, haftalık)
+- [ ] G2. Bundle + push + canlı doğrulama

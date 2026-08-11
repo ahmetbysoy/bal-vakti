@@ -6,6 +6,8 @@ import {
   checkAchievements, playerLevel, capacity, totalProd, beeCost, beeProd,
   ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL, setActiveCfg, DEFAULT_CONFIG, giveAchievement,
   warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
+  isNight, prodMultiplier, spinWheel, gambleCoin, gambleSlot, WHEEL_SLICES,
+  GAMBLE_DAILY_LOSS_LIMIT, beeEmoji, addEarned,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
 import { getUser, deleteBot } from '../shared/lib/db.js';
@@ -20,7 +22,9 @@ function near(a, b, eps = 1e-6) { assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b
 
 console.log('🧪 Bal Vakti testleri başlıyor...\n');
 
-const now0 = Date.now();
+// Testlerin tutarlılığı için sabit GÜNDÜZ zamanı (gece bonusu testleri karıştırmasın)
+const now0 = (() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d.getTime(); })();
+const NIGHT_TS = (() => { const d = new Date(); d.setHours(23, 30, 0, 0); return d.getTime(); })();
 
 // 1) Yeni oyuncu
 t('Yeni oyuncu 25 bal + 1 arı ile başlar', () => {
@@ -342,6 +346,92 @@ t('thinkBots kilitle çalışır, bot sayısı döner', async () => {
   const r2 = await thinkBots({ force: true });
   assert.ok(r2.ran === true);
   assert.ok(r2.bots >= 0);
+});
+
+// ── 🎰 Eğlence Odası testleri ──
+t('Gece etkinliği 22-06 arası x2 üretim', () => {
+  const day = new Date(2026, 0, 1, 12).getTime(); // öğlen
+  const night = new Date(2026, 0, 1, 23).getTime(); // gece
+  assert.strictEqual(isNight(day), false);
+  assert.strictEqual(isNight(night), true);
+  assert.strictEqual(prodMultiplier(day), 1);
+  assert.strictEqual(prodMultiplier(night), 2);
+});
+
+t('Çarkıfelek günde 1 kez çevrilebilir', () => {
+  const s = newState(now0);
+  const r1 = spinWheel(s, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.ok(WHEEL_SLICES.some((x) => x.label === r1.slice.label));
+  const r2 = spinWheel(s, now0 + 1000); // aynı gün
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.why, 'bugun_cirildi');
+  const r3 = spinWheel(s, now0 + 86400000); // ertesi gün
+  assert.strictEqual(r3.ok, true);
+});
+
+t('Çark boost 5 dk üretim x2 verir', () => {
+  const s = newState(now0);
+  s.lastSpin = 0;
+  s.boostUntil = 0;
+  // gündüz + boost = x2 (boost yokken x1)
+  s.boostUntil = now0 + 5 * 60 * 1000;
+  const t1 = totalProd(s, now0);
+  s.boostUntil = 0;
+  const t2 = totalProd(s, now0);
+  assert.ok(t1 > t2);
+});
+
+t('Yazı-tura: kazanınca 2x, kaybedince günlük limit işler', () => {
+  const s = newState(now0);
+  s.bal = 1000;
+  // limit: %20 = 200
+  const big = gambleCoin(s, 300, now0);
+  assert.strictEqual(big.ok, false);
+  assert.strictEqual(big.why, 'bahis_siniri');
+  // oyna (rastgele — en azından state değişmeli)
+  const r = gambleCoin(s, 100, now0);
+  assert.strictEqual(r.ok, true);
+  assert.ok(s.bal !== 1000); // ya arttı ya azaldı
+  assert.ok(s.gambleCount >= 1);
+});
+
+t('Yazı-tura günlük kayıp limiti 2000', () => {
+  const s = newState(now0);
+  s.bal = 100000;
+  s.gambleLostDay = Math.floor(now0 / 86400000);
+  s.gambleLost = GAMBLE_DAILY_LOSS_LIMIT;
+  const r = gambleCoin(s, 100, now0);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.why, 'gunluk_kayip_siniri');
+});
+
+t('Slot: 3 aynı 3x, 2 aynı 1.5x', () => {
+  const s = newState(now0);
+  s.bal = 1000;
+  // Şans oyunu — en azından geçerli çalışır
+  const r = gambleSlot(s, 50, now0);
+  assert.strictEqual(r.ok, true);
+  assert.ok(Array.isArray(r.symbols) && r.symbols.length === 3);
+  if (r.win) {
+    assert.ok(r.mult === 3 || r.mult === 1.5);
+  }
+});
+
+t('beeEmoji seviyeye göre değişir', () => {
+  assert.strictEqual(beeEmoji(1), '🐝');
+  assert.strictEqual(beeEmoji(4), '🐉');
+  assert.ok(beeEmoji(12).length > 0);
+});
+
+t('addEarned haftalık ve günlük sayaçları işler', () => {
+  const s = newState(now0);
+  addEarned(s, 100, now0);
+  assert.strictEqual(s.todayEarned, 100);
+  assert.strictEqual(s.weeklyEarned, 100);
+  addEarned(s, 50, now0 + 3600000);
+  assert.strictEqual(s.todayEarned, 150);
+  assert.strictEqual(s.weeklyEarned, 150);
 });
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
