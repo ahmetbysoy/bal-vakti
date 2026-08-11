@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.js": { "runtime": "nodejs20.x" }
+  },
   "rewrites": [
     { "source": "/api/me", "destination": "/api/index" },
     { "source": "/api/action", "destination": "/api/index" },

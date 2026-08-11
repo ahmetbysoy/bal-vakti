@@ -1,14 +1,8 @@
-# 🔒 Vercel'e yalnızca çalışması gereken dosyalar gider.
-# shared/, tests/, scripts/ YALNIZCA geliştirme kaynağıdır — Vercel bunları
-# fonksiyon sanıp ERR_MODULE_NOT_FOUND'a yol açıyordu. Beyaz liste yaklaşımı:
-
-# 1) Her şeyi yok say
-/*
-
-# 2) Sadece bunları dahil et
-!/api/**
-!/index.html
-!/admin.html
-!/package.json
-!/package-lock.json
-!/vercel.json
+node_modules/
+.git/
+.env
+tests/
+scripts/
+server.js
+README.md
+TODO.md
