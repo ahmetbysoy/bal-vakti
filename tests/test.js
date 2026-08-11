@@ -8,6 +8,7 @@ import {
   warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
   isNight, prodMultiplier, spinWheel, gambleCoin, gambleSlot, WHEEL_SLICES,
   GAMBLE_DAILY_LOSS_LIMIT, beeEmoji, addEarned,
+  throwEmoji, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
 import { getUser, deleteBot } from '../shared/lib/db.js';
@@ -432,6 +433,39 @@ t('addEarned haftalık ve günlük sayaçları işler', () => {
   addEarned(s, 50, now0 + 3600000);
   assert.strictEqual(s.todayEarned, 150);
   assert.strictEqual(s.weeklyEarned, 150);
+});
+
+// ── 💥 Bal Bombası (Emoji Fırlatma) testleri ──
+t('throwEmoji 10 bal maliyet + 30 sn soğuma', () => {
+  const s = newState(now0);
+  s.bal = 100;
+  const r1 = throwEmoji(s, 'hedef1', '💩', now0);
+  assert.strictEqual(r1.ok, true);
+  assert.strictEqual(s.bal, 100 - THROW_EMOJI_COST);
+  assert.strictEqual(s.thrownCount, 1);
+  // soğuma
+  const r2 = throwEmoji(s, 'hedef2', '🍅', now0 + 1000);
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.why, 'bekleme');
+  // soğuma bitti
+  const r3 = throwEmoji(s, 'hedef2', '🍅', now0 + THROW_EMOJI_COOLDOWN_MS + 1);
+  assert.strictEqual(r3.ok, true);
+});
+
+t('throwEmoji geçersiz emoji reddedilir', () => {
+  const s = newState(now0);
+  s.bal = 100;
+  const r = throwEmoji(s, 'hedef', '❓', now0);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.why, 'emoji_gecersiz');
+});
+
+t('throwEmoji yetersiz balda reddedilir', () => {
+  const s = newState(now0);
+  s.bal = 5;
+  const r = throwEmoji(s, 'hedef', '🔥', now0);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.why, 'yetersiz_bal');
 });
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);

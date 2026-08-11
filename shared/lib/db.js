@@ -292,3 +292,17 @@ export async function getCounters() {
   for (const [k, v] of Object.entries(obj)) out[k] = Number(v) || 0;
   return out;
 }
+
+// 💥 Gelen emoji bombaları (kurban oyuna girince animasyon için)
+export async function addIncomingEmoji(targetId, entry) {
+  const list = await getIncomingEmojis(targetId);
+  list.unshift(entry);
+  await kvSet(`emojiIn/${targetId}`, list.slice(0, 20));
+}
+export async function getIncomingEmojis(targetId) {
+  const v = await kvGet(`emojiIn/${targetId}`);
+  return Array.isArray(v) ? v : [];
+}
+export async function clearIncomingEmojis(targetId) {
+  await kvDel(`emojiIn/${targetId}`);
+}

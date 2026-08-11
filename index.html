@@ -20,21 +20,58 @@
     color:var(--cream); user-select:none; touch-action:manipulation;
     padding-bottom:92px;
   }
-  /* ── Başlık ── */
-  header{
-    position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
-    padding:12px 16px;background:linear-gradient(180deg,#4a2d0aee,#2a1c08ee);
-    border-bottom:1px solid var(--line);backdrop-filter:blur(6px);
+  /* ── Kayan Bant (Ticker) — header yerine ── */
+  .ticker{
+    position:sticky;top:0;z-index:25;overflow:hidden;white-space:nowrap;
+    background:linear-gradient(90deg,#3a2408,#241705);border-bottom:1px solid var(--line);
+    padding:8px 0;height:32px;display:flex;align-items:center;
   }
-  header .logo{font-size:22px}
-  header .titles{flex:1;min-width:0}
-  header .titles b{display:block;font-size:17px;color:var(--gold);letter-spacing:.3px}
-  header .titles span{font-size:12px;color:var(--muted)}
+  .ticker-track{display:inline-block;animation:ticker 28s linear infinite;will-change:transform}
+  .ticker:hover .ticker-track{animation-play-state:paused}
+  @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .ticker span{font-size:12px;color:var(--gold);margin:0 18px;font-weight:700}
+  .ticker span .e{font-size:13px}
+  .ticker span.gray{color:var(--muted)}
+  .toprow{display:flex;align-items:center;gap:8px;padding:8px 14px 0}
+  .toprow .logo{font-size:24px}
+  .toprow .titles{flex:1;min-width:0}
+  .toprow .titles b{font-size:16px;color:var(--gold)}
+  .toprow .titles span{font-size:11px;color:var(--muted)}
   .iconbtn{
     background:var(--card2);border:1px solid var(--line);border-radius:14px;
-    padding:9px 12px;font-size:15px;color:var(--cream);cursor:pointer;font-weight:700;
+    padding:8px 12px;font-size:15px;color:var(--cream);cursor:pointer;font-weight:700;
   }
   .iconbtn:active{transform:scale(.94)}
+  /* ── 💥 Emoji Bombası animasyonu ── */
+  .emoji-hit{position:fixed;z-index:96;font-size:72px;pointer-events:none;left:15%;top:-80px}
+  .emoji-hit.fly{animation:emfly .75s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes emfly{
+    0%{transform:translate(0,0) rotate(0deg) scale(.6)}
+    70%{transform:translate(55vw,45vh) rotate(340deg) scale(1.25)}
+    100%{transform:translate(52vw,50vh) rotate(360deg) scale(1)}
+  }
+  .emoji-hit.splat{left:52vw;top:50vh;transform:translate(-50%,-50%) scale(1);animation:emsplat .3s ease}
+  @keyframes emsplat{0%{transform:translate(-50%,-50%) scale(1.8)}100%{transform:translate(-50%,-50%) scale(1)}}
+  .emoji-hit.bounce{animation:embounce 1.5s ease-in;transform-origin:center}
+  @keyframes embounce{
+    0%{transform:translate(-50%,-50%) translateY(0) scale(1)}
+    15%{transform:translate(-50%,-50%) translateY(0) scale(1.35,0.7)}
+    30%{transform:translate(-50%,-50%) translateY(-70px) scale(.9,1.15)}
+    45%{transform:translate(-50%,-50%) translateY(0) scale(1.2,.8)}
+    60%{transform:translate(-50%,-50%) translateY(-42px) scale(.95,1.1)}
+    75%{transform:translate(-50%,-50%) translateY(0) scale(1.1,.9)}
+    90%{transform:translate(-50%,-50%) translateY(-14px) scale(1,1.05)}
+    100%{transform:translate(-50%,-50%) translateY(0) scale(1)}
+  }
+  .emoji-caption{position:fixed;z-index:96;left:50%;top:64%;transform:translateX(-50%);
+    background:#241703ee;border:1px solid var(--amber);border-radius:99px;padding:6px 16px;
+    font-size:13px;font-weight:800;color:var(--cream);pointer-events:none;animation:pop .3s ease}
+  .shake{animation:shake .4s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  /* ── Bal damlası efektleri ── */
+  .drop{position:fixed;z-index:0;font-size:18px;opacity:.25;pointer-events:none;animation:dropfall linear infinite}
+  @keyframes dropfall{0%{transform:translateY(-30px) scale(.6)}100%{transform:translateY(105vh) scale(1)}}
+  .glowtxt{text-shadow:0 0 18px #ffd16666,0 0 40px #f59e0b33}
   /* ── İçerik ── */
   main{max-width:480px;margin:0 auto;padding:14px 14px 20px}
   .hero{
@@ -260,18 +297,20 @@
 </head>
 <body>
 
-<header>
+<div class="ticker" id="ticker"><div class="ticker-track" id="ticker-track"><span>🐝 Bal Vakti'ye hoş geldin!</span></div></div>
+<div class="toprow">
   <div class="logo">🐝</div>
   <div class="titles">
     <b>Bal Vakti</b>
     <span id="lvltxt">Yükleniyor...</span>
   </div>
   <button class="iconbtn" onclick="openInvite()">👥 Davet</button>
-</header>
+</div>
 
 <main>
   <!-- KOVA -->
   <section id="tab-kovan">
+    <div id="drops"></div>
     <div class="fomo" id="fomo-panel" style="display:none">
       <div class="fomo-main">
         <h4>🔥 Bugünün Kazançları</h4>
@@ -704,6 +743,14 @@ async function load() {
     if (res.gained > 0) toast('🍯 +' + fmt(res.gained) + ' bal üretildi');
     res.freshAch.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); });
     if (res.isNew) toast('🐝 Hoş geldin! ' + fmt(cfg.startBal) + ' bal + ' + cfg.startFreeBees + ' arı seni bekliyor');
+    // 💥 Gelen emoji bombalarını animasyonla göster (sırayla)
+    if (res.incomingEmojis?.length) {
+      setTimeout(() => {
+        res.incomingEmojis.slice(0, 3).forEach((em, i) => {
+          setTimeout(() => playEmojiHit(em.emoji, em.byName), i * 3200);
+        });
+      }, 900);
+    }
     // ⚔️ Süresi dolmuş saldırı çözümü geldiyse (lazy) göster
     if (res.raidResult && res.raidResult.winner) {
       setTimeout(() => { showWar(res.raidResult, res.raidResult.winner !== 'A'); }, 600);
@@ -726,6 +773,8 @@ async function load() {
   $('#loader').style.display = 'none';
   renderAll();
   loadFomoOnce();
+  renderTicker();
+  startDrops();
 }
 function renderAll() {
   const prod = mode === 'demo' ? dProd(S) : totalProd(S);
@@ -1370,6 +1419,124 @@ async function renderFomo() {
   } catch (e) { panel.style.display = 'none'; }
 }
 
+/* ═══════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════ */
+const THROW_EMOJIS = ['💩', '🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑'];
+let throwTargetName = '';
+let lastThrowTarget = '';
+
+async function doThrow(emoji) {
+  haptic('impact');
+  const res = await api('/api/action', { initData: initData(), action: 'throw_emoji', payload: { targetId: lastThrowTarget, emoji } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { $('#throw-resp').className = 'resp lose'; $('#throw-resp').textContent = '⛔ ' + errText(res.error); Sfx.error(); return; }
+  $('#throw-resp').className = 'resp win';
+  $('#throw-resp').textContent = '💥 ' + emoji + ' fırlatıldı! (' + throwTargetName + ' yakında hissedecek...)';
+  Sfx.war();
+  // kendi ekranında da minik animasyon (fırlatma hissi)
+  setTimeout(() => { closeModal(); loadRaid(); }, 900);
+}
+function openThrow(targetId) {
+  lastThrowTarget = targetId;
+  haptic('impact');
+  const name = raidTargetName(targetId) || 'arıcı';
+  throwTargetName = name;
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>💥 Bal Bombası</h2>' +
+    '<p><b>' + esc(name) + '</b>\'e hangi bombayı atıyorsun? (10 🍯)</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px">' +
+    THROW_EMOJIS.map((e) => '<button class="gbtn gold" style="text-align:center;padding:10px;font-size:24px;margin:0" onclick="doThrow(\'' + e + '\')">' + e + '</button>').join('') +
+    '</div>' +
+    '<p class="resp" id="throw-resp">Her bomba dünya olayı olur — herkes görür! 😈</p>';
+  showModal();
+}
+
+// 💥 Gelen emoji bombası: uçar → çarpar → 3 kez zıplar (her zıplamada titreşim!)
+function playEmojiHit(emoji, byName) {
+  Sfx.siren();
+  haptic('impact');
+  const el = document.createElement('div');
+  el.className = 'emoji-hit fly';
+  el.textContent = emoji;
+  document.body.appendChild(el);
+  // faz 2: ekrana çarpma + shake
+  setTimeout(() => {
+    el.classList.remove('fly');
+    el.classList.add('splat');
+    document.body.classList.add('shake');
+    Sfx.error();
+    haptic('impact');
+    setTimeout(() => document.body.classList.remove('shake'), 450);
+    // faz 3: yere düş, 3 kez zıpla — her zıplamada titreşim
+    setTimeout(() => {
+      el.classList.remove('splat');
+      el.classList.add('bounce');
+      let b = 0;
+      const iv = setInterval(() => {
+        haptic('impact');
+        Sfx.tick();
+        b++;
+        if (b >= 4) {
+          clearInterval(iv);
+          el.remove();
+          const cap = document.createElement('div');
+          cap.className = 'emoji-caption';
+          cap.textContent = byName + ' sana ' + emoji + ' fırlattı! 😂';
+          document.body.appendChild(cap);
+          setTimeout(() => cap.remove(), 2600);
+        }
+      }, 400);
+    }, 400);
+  }, 780);
+}
+
+/* ═══════════════ 📜 KAYAN BANT (Ticker) ═══════════════ */
+let tickerFetchedAt = 0;
+async function renderTicker() {
+  if (mode === 'demo') return;
+  if (Date.now() - tickerFetchedAt < 15000) return;
+  tickerFetchedAt = Date.now();
+  try {
+    const r = await fetch('/api/leaderboard?mode=ticker').then((x) => x.json()).catch(() => null);
+    if (!r?.ok) return;
+    const items = [];
+    // dünya olayları
+    for (const e of r.events || []) {
+      items.push('<span>' + e.emoji + ' ' + esc(e.txt) + '</span>');
+    }
+    // bugünün kazananları
+    for (const t of r.today || []) {
+      items.push('<span class="gray">🔥 ' + esc(t.name) + ' bugün ' + fmt(t.score) + ' bal kazandı</span>');
+    }
+    // sayaçlar
+    const c = r.counters || {};
+    items.push('<span>🎡 Bugün ' + (c.spin || 0) + ' çark çevrildi</span>');
+    items.push('<span>⚔️ Bugün ' + (c.war || 0) + ' savaş oldu</span>');
+    if (!items.length) items.push('<span>🐝 Bal Vaktiye hos geldin!</span>');
+    // çift kopya (döngü için)
+    $('#ticker-track').innerHTML = items.join('') + items.join('');
+  } catch (e) {}
+}
+
+/* ═══════════════ 💧 BAL DAMLA EFEKTİ ═══════════════ */
+let dropsStarted = false;
+function startDrops() {
+  if (dropsStarted) return;
+  dropsStarted = true;
+  const em = ['🍯', '🐝', '✨', '🍯', '🐝'];
+  const box = document.getElementById('drops');
+  if (!box) return;
+  for (let i = 0; i < 8; i++) {
+    const d = document.createElement('div');
+    d.className = 'drop';
+    d.textContent = em[i % em.length];
+    d.style.left = (Math.random() * 96) + 'vw';
+    d.style.animationDuration = (9 + Math.random() * 9) + 's';
+    d.style.animationDelay = (-Math.random() * 12) + 's';
+    box.appendChild(d);
+  }
+}
+
 /* ═══════════════ ⚔️ SAVAŞ (PvP) ═══════════════ */
 let raidData = null;
 let raidTimer = null;
@@ -1453,7 +1620,8 @@ function renderRaid() {
       '<div class="enemy"><div class="av">' + (t.avatar || '🐝') + '</div>' +
       '<div class="inf"><b>' + esc(t.name) + '</b>' +
       '<span>💪 ' + fmt(t.power) + ' · 🎖️ Sv ' + t.war + ' · 🍯 ' + fmt(t.bal) + ' · 🐝 ' + t.bees + '</span></div>' +
-      '<button class="btn small" onclick="startRaid(\'' + t.id + '\')">⚔️ Saldır</button></div>'
+      '<button class="btn small" style="margin-right:4px" onclick="openThrow(\'' + t.id + '\')">💥</button>' +
+      '<button class="btn small" onclick="startRaid(\'' + t.id + '\')">⚔️</button></div>'
     ).join('');
   } else {
     box.innerHTML = '<p class="hint">Şu an gücüne uygun hedef yok — biraz sonra tekrar dene. (Saldırdıkların düşman listene eklenir!)</p>';
@@ -1474,6 +1642,7 @@ function renderRaid() {
       '<div class="inf"><b>' + esc(g.name) + '</b>' +
       '<span>' + (g.won ? '💥 Sana saldırdı ve kazandı' : '😤 Sana saldırdı, püskürttün') +
       (g.stolen > 0 ? ' · 🍯 ' + fmt(g.stolen) + ' çaldı' : '') + ' · ' + timeAgo(g.ts) + '</span></div>' +
+      '<button class="btn small" style="margin-right:4px" onclick="openThrow(\'' + g.by + '\')">💥</button>' +
       '<button class="btn small red" onclick="revengeRaid(\'' + g.by + '\')">⚔️ İntikam</button></div>'
     ).join('');
   } else {
@@ -1676,6 +1845,7 @@ load();
 setInterval(liveTick, 1000);
 setInterval(() => {
   if (S && mode === 'server' && tab === 'kovan') renderFomo();
+  if (S && mode === 'server') renderTicker();
 }, 20000);
 </script>
 </body>

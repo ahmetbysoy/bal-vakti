@@ -355,6 +355,21 @@ function giveAchievement(s, achId) {
   return { ok: true, reward: a.reward };
 }
 
+/* ═══════════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════════ */
+const THROW_EMOJI_COST = 10;
+const THROW_EMOJI_COOLDOWN_MS = 30 * 1000;
+const THROW_EMOJIS = ['💩', '🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑'];
+
+function throwEmoji(s, targetId, emoji, now = Date.now()) {
+  if (!THROW_EMOJIS.includes(emoji)) return { ok: false, why: 'emoji_gecersiz' };
+  if (now - (s.lastThrow || 0) < THROW_EMOJI_COOLDOWN_MS) return { ok: false, why: 'bekleme' };
+  if ((s.bal || 0) < THROW_EMOJI_COST) return { ok: false, why: 'yetersiz_bal' };
+  s.bal -= THROW_EMOJI_COST;
+  s.lastThrow = now;
+  s.thrownCount = (s.thrownCount || 0) + 1;
+  return { ok: true, emoji, targetId };
+}
+
 // ── Oyuncu seviyesi (kozmetik) ──
 const LEVEL_THRESHOLDS = [0, 200, 1000, 5000, 20000, 100000, 500000, 2.5e6, 1e7, 5e7, 2.5e8];
 const LEVEL_TITLES = ['Yavru Arı', 'Bal Toplayıcı', 'Kovan Çırağı', 'Arıcı', 'Usta Arıcı',
@@ -485,7 +500,7 @@ function coalitionBonus(attacker, count) {
   return 0;
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay, WHEEL_SLICES, spinWheel, GAMBLE_DAILY_LOSS_LIMIT, GAMBLE_MAX_BET_RATIO, gambleCoin, gambleSlot, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay, WHEEL_SLICES, spinWheel, GAMBLE_DAILY_LOSS_LIMIT, GAMBLE_MAX_BET_RATIO, gambleCoin, gambleSlot, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -782,7 +797,21 @@ async function getCounters() {
   return out;
 }
 
-return {dbMode, getUser, saveUser, allUsers, scanUserKeys, getRef, setRef, syncLb, topLb, myRank, topWeekly, topToday, getConfig, setConfig, createSession, getSession, deleteSession, overview, getActiveRaid, setActiveRaid, clearActiveRaid, allActiveRaids, addGrudge, getGrudges, addRaidHist, getRaidHist, recentRaiders, tgNotify, listBots, getBot, saveBot, deleteBot, nextBotId, brainLock, addEvent, getEvents, bumpCounter, getCounters};
+// 💥 Gelen emoji bombaları (kurban oyuna girince animasyon için)
+async function addIncomingEmoji(targetId, entry) {
+  const list = await getIncomingEmojis(targetId);
+  list.unshift(entry);
+  await kvSet(`emojiIn/${targetId}`, list.slice(0, 20));
+}
+async function getIncomingEmojis(targetId) {
+  const v = await kvGet(`emojiIn/${targetId}`);
+  return Array.isArray(v) ? v : [];
+}
+async function clearIncomingEmojis(targetId) {
+  await kvDel(`emojiIn/${targetId}`);
+}
+
+return {dbMode, getUser, saveUser, allUsers, scanUserKeys, getRef, setRef, syncLb, topLb, myRank, topWeekly, topToday, getConfig, setConfig, createSession, getSession, deleteSession, overview, getActiveRaid, setActiveRaid, clearActiveRaid, allActiveRaids, addGrudge, getGrudges, addRaidHist, getRaidHist, recentRaiders, tgNotify, listBots, getBot, saveBot, deleteBot, nextBotId, brainLock, addEvent, getEvents, bumpCounter, getCounters, addIncomingEmoji, getIncomingEmojis, clearIncomingEmojis};
 })();
 __lib['auth'] = (() => {
 // 🔐 Bal Vakti — Telegram WebApp initData doğrulaması
@@ -1245,7 +1274,7 @@ return {PERSONALITIES, NAME_POOL, AVATAR_POOL, randPick, randInt, randName, POWE
 const __handlers = {};
 __handlers['me'] = (() => {
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
-const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify } = __lib['db'];
+const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
 const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
@@ -1359,6 +1388,7 @@ async function handle(req, res) {
     boostActive: (st.boostUntil || 0) > now,
     boostUntil: st.boostUntil || 0,
     canSpin: (st.lastSpin || 0) < Math.floor(now / 86400000) * 86400000,
+    incomingEmojis: await popIncomingEmojis(id),
     demo: !!info.demo,
     cfg: {
       bot: process.env.BOT_USERNAME || '',
@@ -1371,13 +1401,21 @@ async function handle(req, res) {
   });
 }
 
+// 💥 Gelen emoji bombalarını oku ve temizle (oyuncu oyuna girince tek seferlik)
+async function popIncomingEmojis(id) {
+  const list = await getIncomingEmojis(id);
+  if (list.length) await clearIncomingEmojis(id);
+  return list;
+}
+
 return route;
 })();
 __handlers['action'] = (() => {
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
-const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter } = __lib['db'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot } = __lib['game'];
+const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
+const { escTg } = __lib['raidcore'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot, throwEmoji, THROW_EMOJI_COST } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1407,6 +1445,7 @@ async function handle(req, res) {
   if (!info) return res.status(401).json({ error: 'auth_hatasi' });
 
   const id = String(info.user.id);
+  const me = id;
   let st = await getUser(id);
   if (!st) return res.status(404).json({ error: 'oyuncu_yok' });
   if (st.banned) return res.status(403).json({ error: 'banlandin' });
@@ -1485,6 +1524,21 @@ async function handle(req, res) {
       const r = game === 'slot' ? gambleSlot(st, bet, now) : gambleCoin(st, bet, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = { ...r, game };
+      break;
+    }
+    case 'throw_emoji': {
+      const targetId = String(payload.targetId || '');
+      const emoji = String(payload.emoji || '');
+      if (!targetId || targetId === me) return res.status(400).json({ error: 'hedef_gecersiz' });
+      const target = await getUser(targetId);
+      if (!target) return res.status(404).json({ error: 'hedef_yok' });
+      if (target.banned) return res.status(400).json({ error: 'hedef_banli' });
+      const r = throwEmoji(st, targetId, emoji, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      await addIncomingEmoji(targetId, { by: me, byName: st.name || 'Bir arıcı', emoji, ts: now });
+      await addEvent({ type: 'emoji', emoji: '💥', txt: `${st.name || 'Bir arıcı'}, ${target.name || 'Bir arıcı'}'e ${emoji} fırlattı!` });
+      await tgNotify(targetId, `💥 ${escTg(st.name || 'Bir arıcı')} sana ${emoji} fırlattı! 😂 Oyunu aç ve gör!`);
+      result = { emoji, targetId, cost: THROW_EMOJI_COST };
       break;
     }
     default:
@@ -2024,7 +2078,8 @@ return route;
 __handlers['leaderboard'] = (() => {
 // 🏆 GET /api/leaderboard — en iyi 30 arıcı
 // mode=today → bugünün kazançları · mode=week → haftalık · mode=cnt → dünya sayaçları
-const { topLb, topToday, topWeekly, getCounters } = __lib['db'];
+// mode=ticker → kayan bant verisi (events + counters + bugünün kazançları)
+const { topLb, topToday, topWeekly, getCounters, getEvents } = __lib['db'];
 
 async function route(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET bekleniyor' });
@@ -2042,6 +2097,10 @@ async function route(req, res) {
     const wk = await topWeekly(10);
     const weekTotal = wk.reduce((a, x) => a + x.score, 0);
     return res.json({ ok: true, warCount: c.war || 0, spinCount: c.spin || 0, weekTotal });
+  }
+  if (mode === 'ticker') {
+    const [events, c, today] = await Promise.all([getEvents(), getCounters(), topToday(3)]);
+    return res.json({ ok: true, events: events.slice(0, 15), counters: c, today });
   }
   const top = await topLb(30);
   res.json({ ok: true, top });

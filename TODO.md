@@ -1,42 +1,34 @@
-# 🐝 Bal Vakti v3.0 — 🎰 EĞLENCE ODASI + FOMO BÜYÜSÜ Planı
+# 🐝 Bal Vakti v3.1 — 💥 BAL BOMBASI + KAYAN BANT + TASARIM Planı
 
-> Kurgu: Kovanında bal biriktiren arılar, akşamları "Eğlence Odası"nda kumar oynar.
-> Kraliçe Arı çarkı çevirir, işçi arılar yazı-tura atar, slot makinesi döner.
-> Ama dikkat: arılar da kaybeder! Dünya canlı sayaçlarla nefes alır — kazananlar
-> bar bar yükselir, herkes görür. FOMO garantili.
+> Kurgu: Arılar artık sadece bal üretmiyor — komşu kovanlara mizahi emoji
+> bombaları atıyor. 💩 Poop Pelt utanç verir, 💣 Bomba ekranı sarsar,
+> 🎉 Konfeti dostça kutlar. Her fırlatma dünya olayı olur, kayan bantta akar.
 
-## A. 🎡 Çarkıfelek (günde 1 bedava)
-- [ ] A1. game.js: `spinWheel()` — 8 dilim (0 / 50 / 100 / 250 / 500 / 1000 / x2 üretim 5dk / 25)
-- [ ] A2. game.js: `spinDaily` takibi (state.lastSpin, günde 1)
-- [ ] A3. action.js: `spin` aksiyonu
-- [ ] A4. İstemci: çark animasyonu (CSS rotate + easing), kazanınca confetti + fanfar
+## A. 💥 Emoji Fırlatma (Bal Bombası)
+- [ ] A1. game.js: `throwEmoji(s, targetId, emoji)` — 10 bal, 30 sn soğuma, sayaç
+- [ ] A2. game.js: `THROW_EMOJIS` listesi (💩🍅🔥💣🎉🐝🍯🥊💧👑)
+- [ ] A3. db.js: `addIncomingEmoji` / `getIncomingEmojis` / `clearIncomingEmojis`
+- [ ] A4. action.js: `throw_emoji` aksiyonu (kaydet + tgNotify + dünya olayı)
+- [ ] A5. me.js: gelen emojileri döndür + temizle
+- [ ] A6. İstemci: hedeflere "💥 Fırlat" butonu + emoji seçme modalı
+- [ ] A7. İstemci: gelen emoji animasyonu (uçar → çarpar → 3 zıplama + her zıplamada haptic)
 
-## B. 🌙 Gece Etkinliği (üretim x2)
-- [ ] B1. game.js: `isNight()` (22:00-06:00) + `totalProd` gece x2 çarpanı
-- [ ] B2. İstemci: 🌙 rozeti "Gece Bonusu x2 Aktif!", hero'da ay görseli
+## B. 📜 Kayan Bant (Ticker)
+- [ ] B1. index.html: header'ı kaldır → üstte CSS marquee (sürekli akan)
+- [ ] B2. leaderboard.js: `mode=ticker` (events + counters + today top)
+- [ ] B3. İstemci: renderTicker — olaylar + kazançlar + savaşlar akar
+- [ ] B4. 15 sn'de bir tazele
 
-## C. 🐝 Özel Arı Görünümleri
-- [ ] C1. game.js: `beeEmoji(level)` — seviyeye göre farklı emoji (🐝→🦋→🦅→🐉...)
-- [ ] C2. İstemci: arı grid + savaş ekranında seviyeye göre görünüm
+## C. 🎨 Ana Ekran Tasarımı
+- [ ] C1. Hero: bal damlası animasyonları, glow'lu bal sayacı, daha canlı gradyan
+- [ ] C2. Nav şıklaştırma + hero'ya küçük 👥 Davet butonu
+- [ ] C3. Arka plan animasyonu (yüzen baloncuklar)
+- [ ] C4. Kovan sekmesinde FOMO paneli + ticker uyumu
 
-## D. 🏆 Haftalık Lig + Bugünün Kazançları
-- [ ] D1. game.js: `weeklyEarned` (state) — her kazançta işlenir
-- [ ] D2. db.js: `topWeekly(n)`, `topToday(n)` — sıralamalar
-- [ ] D3. İstemci: "Bu Hafta" lig sekmesi + "Bugün" canlı barlar
+## D. 🔊 Ses & Efekt
+- [ ] D1. Sfx.throw (fırlatma), Sfx.splat (çarpma), zıplamada tick
+- [ ] D2. Ekran shake (çarpma anında)
 
-## E. 🎰 Eğlence Odası (kumarhane mini oyunları)
-- [ ] E1. game.js: `gambleCoin(s, bet)` — yazı-tura 2x (sunucu tarafı adil rastgele)
-- [ ] E2. game.js: `gambleSlot(s, bet)` — 3 emoji, 3 aynı 3x / 2 aynı 1.5x
-- [ ] E3. game.js: sorumlu oyun limitleri: max bahis = balın %20'si, günlük max kayıp = 2000
-- [ ] E4. action.js: `gamble` aksiyonu
-- [ ] E5. İstemci: 🎰 Eğlence Odası sekmesi (yazı-tura + slot + çark)
-- [ ] E6. Kaybetme/kazanma animasyonları + sesler (kazan: altın sesi, kaybet: bozuk para düşme)
-
-## F. 📊 Canlı FOMO Paneli
-- [ ] F1. İstemci: ana ekran üstü "🔥 Bugünün Kazançları" — top 3 canlı yatay barlar
-- [ ] F2. Sol/sağ dikey mini sayaçlar: "⚔️ Aktif Savaş", "🎡 Bugün Çark: X", "🏆 Haftalık: Y bal"
-- [ ] F3. Her kazançta bar animasyonu (canlı yükselme)
-
-## G. 🧪 Test & Yayın
-- [ ] G1. Testler: çark, gece, kumar (adillik, limitler, haftalık)
-- [ ] G2. Bundle + push + canlı doğrulama
+## E. 🧪 Test & Yayın
+- [ ] E1. Testler: throwEmoji maliyet/soğuma/limit
+- [ ] E2. Bundle + push + canlı doğrulama

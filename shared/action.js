@@ -1,7 +1,8 @@
 // 🐝 POST /api/action — oyun aksiyonları (tek uç, tek doğrulama noktası)
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
-import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter } from './lib/db.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot } from './lib/game.js';
+import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
+import { escTg } from './raidcore.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot, throwEmoji, THROW_EMOJI_COST } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -31,6 +32,7 @@ async function handle(req, res) {
   if (!info) return res.status(401).json({ error: 'auth_hatasi' });
 
   const id = String(info.user.id);
+  const me = id;
   let st = await getUser(id);
   if (!st) return res.status(404).json({ error: 'oyuncu_yok' });
   if (st.banned) return res.status(403).json({ error: 'banlandin' });
@@ -109,6 +111,21 @@ async function handle(req, res) {
       const r = game === 'slot' ? gambleSlot(st, bet, now) : gambleCoin(st, bet, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = { ...r, game };
+      break;
+    }
+    case 'throw_emoji': {
+      const targetId = String(payload.targetId || '');
+      const emoji = String(payload.emoji || '');
+      if (!targetId || targetId === me) return res.status(400).json({ error: 'hedef_gecersiz' });
+      const target = await getUser(targetId);
+      if (!target) return res.status(404).json({ error: 'hedef_yok' });
+      if (target.banned) return res.status(400).json({ error: 'hedef_banli' });
+      const r = throwEmoji(st, targetId, emoji, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      await addIncomingEmoji(targetId, { by: me, byName: st.name || 'Bir arıcı', emoji, ts: now });
+      await addEvent({ type: 'emoji', emoji: '💥', txt: `${st.name || 'Bir arıcı'}, ${target.name || 'Bir arıcı'}'e ${emoji} fırlattı!` });
+      await tgNotify(targetId, `💥 ${escTg(st.name || 'Bir arıcı')} sana ${emoji} fırlattı! 😂 Oyunu aç ve gör!`);
+      result = { emoji, targetId, cost: THROW_EMOJI_COST };
       break;
     }
     default:

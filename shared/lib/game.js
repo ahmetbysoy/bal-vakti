@@ -346,6 +346,21 @@ export function giveAchievement(s, achId) {
   return { ok: true, reward: a.reward };
 }
 
+/* ═══════════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════════ */
+export const THROW_EMOJI_COST = 10;
+export const THROW_EMOJI_COOLDOWN_MS = 30 * 1000;
+export const THROW_EMOJIS = ['💩', '🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑'];
+
+export function throwEmoji(s, targetId, emoji, now = Date.now()) {
+  if (!THROW_EMOJIS.includes(emoji)) return { ok: false, why: 'emoji_gecersiz' };
+  if (now - (s.lastThrow || 0) < THROW_EMOJI_COOLDOWN_MS) return { ok: false, why: 'bekleme' };
+  if ((s.bal || 0) < THROW_EMOJI_COST) return { ok: false, why: 'yetersiz_bal' };
+  s.bal -= THROW_EMOJI_COST;
+  s.lastThrow = now;
+  s.thrownCount = (s.thrownCount || 0) + 1;
+  return { ok: true, emoji, targetId };
+}
+
 // ── Oyuncu seviyesi (kozmetik) ──
 const LEVEL_THRESHOLDS = [0, 200, 1000, 5000, 20000, 100000, 500000, 2.5e6, 1e7, 5e7, 2.5e8];
 const LEVEL_TITLES = ['Yavru Arı', 'Bal Toplayıcı', 'Kovan Çırağı', 'Arıcı', 'Usta Arıcı',

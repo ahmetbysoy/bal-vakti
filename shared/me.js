@@ -1,5 +1,5 @@
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
-import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify } from './lib/db.js';
+import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
 import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
@@ -113,6 +113,7 @@ async function handle(req, res) {
     boostActive: (st.boostUntil || 0) > now,
     boostUntil: st.boostUntil || 0,
     canSpin: (st.lastSpin || 0) < Math.floor(now / 86400000) * 86400000,
+    incomingEmojis: await popIncomingEmojis(id),
     demo: !!info.demo,
     cfg: {
       bot: process.env.BOT_USERNAME || '',
@@ -123,4 +124,11 @@ async function handle(req, res) {
       ...getActiveCfg(),
     },
   });
+}
+
+// 💥 Gelen emoji bombalarını oku ve temizle (oyuncu oyuna girince tek seferlik)
+async function popIncomingEmojis(id) {
+  const list = await getIncomingEmojis(id);
+  if (list.length) await clearIncomingEmojis(id);
+  return list;
 }

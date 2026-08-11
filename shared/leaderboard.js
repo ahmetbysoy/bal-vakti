@@ -1,6 +1,7 @@
 // 🏆 GET /api/leaderboard — en iyi 30 arıcı
 // mode=today → bugünün kazançları · mode=week → haftalık · mode=cnt → dünya sayaçları
-import { topLb, topToday, topWeekly, getCounters } from './lib/db.js';
+// mode=ticker → kayan bant verisi (events + counters + bugünün kazançları)
+import { topLb, topToday, topWeekly, getCounters, getEvents } from './lib/db.js';
 
 export async function route(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET bekleniyor' });
@@ -18,6 +19,10 @@ export async function route(req, res) {
     const wk = await topWeekly(10);
     const weekTotal = wk.reduce((a, x) => a + x.score, 0);
     return res.json({ ok: true, warCount: c.war || 0, spinCount: c.spin || 0, weekTotal });
+  }
+  if (mode === 'ticker') {
+    const [events, c, today] = await Promise.all([getEvents(), getCounters(), topToday(3)]);
+    return res.json({ ok: true, events: events.slice(0, 15), counters: c, today });
   }
   const top = await topLb(30);
   res.json({ ok: true, top });
