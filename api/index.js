@@ -2115,10 +2115,14 @@ async function route(req, res) {
   if (req.method === 'POST') {
     if (!bot) return res.status(500).json({ error: 'BOT_TOKEN tanımlı değil' });
     try {
-      await bot.handleUpdate(req.body, res);
+      // ⚠️ res'i Telegraf'a VERME — Vercel'in res objesinde send() yok,
+      // Telegraf res.send() çağırınca hata fırlar ve bot sessizce ölür.
+      // Res'siz çağırırız, cevabı kendimiz yazarız.
+      await bot.handleUpdate(req.body);
+      if (!res.headersSent) res.json({ ok: true });
     } catch (e) {
       console.error('Webhook hatası:', e);
-      if (!res.headersSent) res.status(500).json({ error: 'webhook_hatasi' });
+      if (!res.headersSent) res.status(500).json({ error: 'webhook_hatasi', detail: String(e?.message || e) });
     }
     return;
   }
