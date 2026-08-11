@@ -341,7 +341,17 @@
   <!-- KOVA -->
   <section id="tab-kovan">
     <div id="drops"></div>
-    <div class="hero" id="hero-card">
+    <div class="hero">
+      <div class="jar">🍯</div>
+      <div class="balcount" id="bal">0</div>
+      <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
+      <div class="capbar"><i id="capfill"></i></div>
+      <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
+      <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLU — Topla!</div>
+      <button class="btn" id="btn-collect" onclick="doCollect()">🍯 Topla</button>
+    </div>
+
+    <div class="fomo" id="fomo-panel" style="display:none">
       <div class="fomo-main">
         <h4>🔥 Bugünün Kazançları</h4>
         <div id="fomo-bars"></div>
@@ -351,15 +361,6 @@
         <div class="fsq" id="fomo-spin"><div class="e">🎡</div><div class="v">0</div><div class="l">Çark Bugün</div></div>
         <div class="fsq" id="fomo-week"><div class="e">🏆</div><div class="v">0</div><div class="l">Haftalık Toplam</div></div>
       </div>
-    </div>
-    <div class="hero">
-      <div class="jar">🍯</div>
-      <div class="balcount" id="bal">0</div>
-      <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
-      <div class="capbar"><i id="capfill"></i></div>
-      <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
-      <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLU — Topla!</div>
-      <button class="btn" id="btn-collect" onclick="doCollect()">🍯 Topla</button>
     </div>
 
     <div class="quicks">
@@ -708,13 +709,17 @@ async function loadFomoOnce() {
 
 /* ── API (15 sn zaman aşımı — oyun asla sonsuz bekleyip "kilitlenmez") ── */
 async function api(path, body) {
+  const b = body || {};
+  // 🔌 Tarayıcı önizlemesinde (Telegram yok): initData boş → demo bayrağı gönder
+  // (ALLOW_DEMO=1 iken local'de çalışır; prod'da tg her zaman var, bu yol kullanılmaz)
+  if (!b.initData) b.demo = true;
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), 15000);
   try {
     const r = await fetch(path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body || {}),
+      body: JSON.stringify(b),
       signal: ctrl.signal,
     });
     return await r.json();

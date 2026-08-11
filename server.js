@@ -37,7 +37,7 @@ async function handleApi(req, res, seg) {
       }
     }
     req.body = body || {};
-    await mod.default(req, res);
+    await (mod.default || mod.route)(req, res);
   } catch (e) {
     console.error(`API hatası /api/${seg}:`, e);
     if (!res.headersSent) {
