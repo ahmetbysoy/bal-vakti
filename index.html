@@ -8,9 +8,21 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
-    --bg:#150d03; --card:#2a1c08; --card2:#33230b; --line:#4a3312;
-    --amber:#ffb02e; --gold:#ffd166; --cream:#ffe9c0; --muted:#c9a96b;
+    /* Tasarım sistemi v3 — token'lar */
+    --bg:#120b04; --card:#1c1408; --card2:#241a0c; --line:#3a2a12; --line-soft:#2a1f0f;
+    --amber:#ffb02e; --gold:#ffd166; --cream:#fff3dd; --muted:#c9a96b;
     --green:#7bd88f; --red:#ff7b6b; --blue:#8ecbff;
+    /* Tab kimlik renkleri */
+    --kovan-accent:#ffb02e;   /* amber */
+    --bees-accent:#7bd88f;    /* yeşil */
+    --savas-accent:#ff6b52;   /* kırmızı */
+    --eglence-accent:#a78bfa; /* mor */
+    --rozet-accent:#ffd166;   /* altın */
+    --lig-accent:#60d4ff;     /* mavi */
+    --me-accent:#c9a96b;      /* toprak */
+    /* Spacing & radius */
+    --sp-2:8px; --sp-3:12px; --sp-4:16px;
+    --r-sm:10px; --r-md:14px; --r-lg:20px;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
@@ -75,18 +87,29 @@
   main{max-width:480px;margin:0 auto;padding:8px 14px 20px;position:relative;z-index:1}
   .hero{
     background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);
-    border-radius:22px;padding:22px 18px 18px;text-align:center;position:relative;overflow:hidden;
+    border-radius:22px;padding:16px 18px 12px;position:relative;overflow:hidden;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   }
   .hero::after{content:"";position:absolute;inset:0;pointer-events:none;
     background:radial-gradient(300px 120px at 50% 0%, #ffd16622, transparent 70%)}
-  .jar{font-size:64px;display:inline-block;animation:bob 3s ease-in-out infinite;filter:drop-shadow(0 8px 16px #00000066)}
-  @keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
-  .balcount{font-size:38px;font-weight:900;color:var(--gold);line-height:1.1;text-shadow:0 2px 0 #00000055}
-  .subline{font-size:13px;color:var(--muted);margin-top:4px}
-  .capbar{height:14px;background:#171003;border:1px solid var(--line);border-radius:99px;margin:14px 4px 4px;overflow:hidden}
+  .hero-left{flex:1;min-width:0;text-align:left}
+  .jar{font-size:42px;display:inline-block;animation:bob 3s ease-in-out infinite;filter:drop-shadow(0 8px 16px #00000066)}
+  .balcount{font-size:32px;font-weight:900;color:var(--gold);line-height:1.1;text-shadow:0 2px 0 #00000055}
+  .subline{font-size:12px;color:var(--muted);margin-top:2px}
+  .btn.big-round{
+    width:88px;height:88px;border-radius:50%;font-size:15px;padding:6px;flex-shrink:0;
+    background:linear-gradient(180deg,#ffd166,#f59e0b);color:#241703;font-weight:900;
+    box-shadow:0 4px 0 #a16207,0 10px 24px #00000066;border:none;cursor:pointer;font-family:inherit;line-height:1.25;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  }
+  .btn.big-round:active{transform:translateY(3px) scale(.97);box-shadow:0 1px 0 #a16207}
+  .btn.big-round.full{animation:fullpulse 1s infinite}
+  @keyframes fullpulse{0%,100%{box-shadow:0 4px 0 #a16207,0 0 0 0 #ffd16688}50%{box-shadow:0 4px 0 #a16207,0 0 0 12px #ffd16600}}
+  .hero-capbar{width:100%;order:3}
+  .capbar{height:12px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
   .capbar i{display:block;height:100%;width:0%;border-radius:99px;
     background:linear-gradient(90deg,#f59e0b,#ffd166);transition:width .5s ease}
-  .captxt{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;padding:0 4px}
+  .captxt{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;padding:0 2px;margin-top:2px}
   .fullwarn{display:none;color:var(--red);font-weight:800;font-size:13px;margin-top:8px;animation:pulse 1s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .btn{
@@ -113,6 +136,9 @@
     border-radius:18px;padding:14px;margin-top:12px;
   }
   .card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .pillrow{display:flex;gap:6px;flex-wrap:wrap}
+  .pill{background:#171003;border:1px solid var(--line);border-radius:99px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
+  .pill b{color:var(--gold);font-size:12px}
   .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .stat{background:#171003;border:1px solid var(--line);border-radius:14px;padding:9px 6px;text-align:center}
   .stat .v{font-size:17px;font-weight:900;color:var(--cream)}
@@ -131,7 +157,7 @@
   .bee .n{font-size:14px;font-weight:900;margin-top:4px}
   .bee .p{font-size:10px;color:var(--muted)}
   .bee.locked{filter:grayscale(1);opacity:.45}
-  .buybee{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:8px}
+  .buybee{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:8px;position:sticky;top:64px;z-index:15}
   .buybee .e{font-size:34px}
   .buybee .info{flex:1}
   .buybee .info b{font-size:16px;color:var(--gold)}
@@ -240,17 +266,16 @@
   #tab-savas .card{position:relative;z-index:1}
   #tab-savas .card:first-child{margin-top:4px}
   .raidbanner{margin-top:8px}
-  /* ── Tab bazlı aksanlar ── */
-  #tab-savas .card{border-color:#7a3322}
-  #tab-savas .card h3{color:#ff9a8b}
-  #tab-eglence .card{border-color:#4a2d77}
-  #tab-eglence .card h3{color:#c9a4ff}
-  #tab-bees .card{border-color:#3d6b2a}
-  #tab-bees .card h3{color:#9be8ab}
-  #tab-achs .card{border-color:#6b5a1a}
-  #tab-achs .card h3{color:#ffd166}
-  #tab-lb .card{border-color:#1f5a8f}
-  #tab-lb .card h3{color:#8ecbff}
+  /* ── Tab bazlı aksanlar (border-top renk çizgisi — tasarım sistemi) ── */
+  #tab-kovan .card{border-top:3px solid var(--kovan-accent)}
+  #tab-bees .card{border-top:3px solid var(--bees-accent)}
+  #tab-savas .card{border-top:3px solid var(--savas-accent)}
+  #tab-eglence .card{border-top:3px solid var(--eglence-accent)}
+  #tab-achs .card{border-top:3px solid var(--rozet-accent)}
+  #tab-lb .card{border-top:3px solid var(--lig-accent)}
+  #tab-me .card{border-top:3px solid var(--me-accent)}
+  /* Kart aralığı --sp-2 (8px) — dikey alan tasarrufu */
+  .card{border-radius:var(--r-md)}
   /* ── Lig zebra + kendi sıram ── */
   .lrow:nth-child(even){background:#1a1206}
   .lrow.top3{border-color:var(--gold)}
@@ -277,6 +302,11 @@
   .gbtn.purple{background:linear-gradient(180deg,#c9a4ff,#8b5cf6);color:#1c0f33;box-shadow:0 3px 0 #5b21b6}
   .gbtn.green{background:linear-gradient(180deg,#9be8ab,#3fae5e);color:#10240f;box-shadow:0 3px 0 #1f5c31}
   .gbtn:disabled{filter:grayscale(.8);opacity:.5}
+  .gamegrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .gamegrid .gbtn{margin:0;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:16px}
+  .gamegrid .gbig{font-size:34px;line-height:1}
+  .gamegrid b{font-size:13px}
+  .gamegrid .gsub{font-size:9px;opacity:.85;font-weight:600}
   .wheelwrap{position:relative;width:260px;height:260px;margin:10px auto;user-select:none}
   .wheel{position:absolute;inset:0;border-radius:50%;transition:transform 4s cubic-bezier(.15,.8,.25,1);
     background:conic-gradient(#ffd166 0 45deg,#f59e0b 45deg 90deg,#ff7b6b 90deg 135deg,#ffd166 135deg 180deg,#4ade80 180deg 225deg,#ffd166 225deg 270deg,#60a5fa 270deg 315deg,#ffd166 315deg 360deg);
@@ -289,11 +319,23 @@
   @keyframes slotspin{0%{transform:translateY(-12px)}100%{transform:none}}
   .betrow{display:flex;gap:8px;align-items:center}
   .betrow input{flex:1;background:#171003;border:1px solid var(--line);border-radius:12px;color:var(--cream);padding:12px;font-size:15px;font-family:inherit}
+  .lossbar-wrap{margin-top:10px}
+  .lossbar-txt{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px}
+  .lossbar-txt b{color:var(--red)}
+  .lossbar{height:10px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
+  .lossbar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#e0523f,#ff9a8b);transition:width .4s}
   .resp{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;min-height:18px}
   .resp.win{color:var(--gold);font-weight:900}
   .resp.lose{color:var(--red);font-weight:900}
   /* ── Canlı FOMO paneli ── */
-  .fomo{display:flex;gap:8px;margin-top:8px;align-items:stretch}
+  .fomo{margin-top:8px}
+  .fomo-toggle{
+    width:100%;background:linear-gradient(180deg,#2a1c08,#1d1306);border:1px solid var(--line);
+    border-radius:14px;padding:10px 14px;color:var(--gold);font-weight:800;font-size:13px;
+    cursor:pointer;font-family:inherit;text-align:left;display:flex;justify-content:space-between;align-items:center;
+  }
+  .fomo-toggle:active{transform:scale(.98)}
+  #fomo-body{display:flex;gap:8px;margin-top:8px;align-items:stretch}
   .fomo-main{flex:1;background:linear-gradient(180deg,#2a1c08,#1d1306);border:1px solid var(--line);border-radius:16px;padding:12px}
   .fomo-main h4{font-size:12px;color:var(--gold);margin-bottom:8px}
   .fbar{display:flex;align-items:center;gap:6px;margin-top:5px}
@@ -342,16 +384,22 @@
   <section id="tab-kovan">
     <div id="drops"></div>
     <div class="hero">
-      <div class="jar">🍯</div>
-      <div class="balcount" id="bal">0</div>
-      <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
-      <div class="capbar"><i id="capfill"></i></div>
-      <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
+      <div class="hero-left">
+        <div class="jar">🍯</div>
+        <div class="balcount glowtxt" id="bal">0</div>
+        <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
+      </div>
+      <button class="btn big-round" id="btn-collect" onclick="doCollect()">🍯<br>Topla</button>
+      <div class="hero-capbar">
+        <div class="capbar"><i id="capfill"></i></div>
+        <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
+      </div>
       <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLU — Topla!</div>
-      <button class="btn" id="btn-collect" onclick="doCollect()">🍯 Topla</button>
     </div>
 
     <div class="fomo" id="fomo-panel" style="display:none">
+      <button class="fomo-toggle" onclick="toggleFomo()">🔥 Bugün neler oldu? <span id="fomo-arrow">▾</span></button>
+      <div id="fomo-body" style="display:none">
       <div class="fomo-main">
         <h4>🔥 Bugünün Kazançları</h4>
         <div id="fomo-bars"></div>
@@ -360,6 +408,7 @@
         <div class="fsq" id="fomo-war"><div class="e">⚔️</div><div class="v">0</div><div class="l">Aktif Savaş</div></div>
         <div class="fsq" id="fomo-spin"><div class="e">🎡</div><div class="v">0</div><div class="l">Çark Bugün</div></div>
         <div class="fsq" id="fomo-week"><div class="e">🏆</div><div class="v">0</div><div class="l">Haftalık Toplam</div></div>
+      </div>
       </div>
     </div>
 
@@ -370,11 +419,11 @@
 
     <div class="card">
       <h3>📊 İstatistikler</h3>
-      <div class="stats">
-        <div class="stat"><div class="v" id="st-bees">0</div><div class="l">🐝 Arı</div></div>
-        <div class="stat"><div class="v" id="st-prod">0</div><div class="l">⚡ Bal/sn</div></div>
-        <div class="stat"><div class="v" id="st-cap">0</div><div class="l">🏺 Depo</div></div>
-        <div class="stat"><div class="v" id="st-total">0</div><div class="l">💰 Toplam</div></div>
+      <div class="pillrow">
+        <span class="pill">🐝 <b id="st-bees">0</b></span>
+        <span class="pill">⚡ <b id="st-prod">0</b>/sn</span>
+        <span class="pill">🏺 <b id="st-cap">0</b></span>
+        <span class="pill">💰 <b id="st-total">0</b></span>
       </div>
     </div>
 
@@ -486,15 +535,17 @@
     <div class="casino">
       <h3>🎰 Eğlence Odası</h3>
       <p class="hint" style="margin-bottom:4px">Kovanın yorgun arıları burada kumar oynar... Kazanır ya da kaybedersin! 😈</p>
-      <button class="gbtn gold" id="btn-spin" onclick="openWheel()">
-        <div class="gr"><span><span class="e">🎡</span> Çarkıfelek</span><b id="spin-txt">Günde 1 bedava</b></div>
-      </button>
-      <button class="gbtn purple" onclick="openCoin()">
-        <div class="gr"><span><span class="e">🪙</span> Yazı-Tura (2x)</span><b>Kraliçe Arı karar verir</b></div>
-      </button>
-      <button class="gbtn green" onclick="openSlot()">
-        <div class="gr"><span><span class="e">🎰</span> Slot Makinesi (3x)</span><b>3 aynı = büyük ödül</b></div>
-      </button>
+      <div class="gamegrid">
+        <button class="gbtn gold" id="btn-spin" onclick="openWheel()">
+          <div class="gbig">🎡</div><b>Çarkıfelek</b><span id="spin-txt" class="gsub">Günde 1 bedava</span>
+        </button>
+        <button class="gbtn purple" onclick="openCoin()">
+          <div class="gbig">🪙</div><b>Yazı-Tura</b><span class="gsub">2x kazanç</span>
+        </button>
+        <button class="gbtn green" onclick="openSlot()">
+          <div class="gbig">🎰</div><b>Slot</b><span class="gsub">3x büyük ödül</span>
+        </button>
+      </div>
     </div>
     <div class="card">
       <h3>📊 Kumar İstatistiklerim</h3>
@@ -504,7 +555,11 @@
         <div class="stat"><div class="v" id="gam-lost">0</div><div class="l">💸 Bugün Kayıp</div></div>
         <div class="stat"><div class="v" id="gam-week">0</div><div class="l">🏆 Haftalık</div></div>
       </div>
-      <p class="hint" style="text-align:center;margin-top:8px">🎲 Bahis = balının %20'si (max) · 💸 Günlük kayıp limiti: 2000 bal<br>⚠️ Kaybettiğin bal geri gelmez — sorumlu oyna!</p>
+      <div class="lossbar-wrap">
+        <div class="lossbar-txt"><span>💸 Bugünkü kayıp</span><b id="gam-lostbar">0 / 2000</b></div>
+        <div class="lossbar"><i id="gam-lostfill"></i></div>
+      </div>
+      <p class="hint" style="text-align:center;margin-top:8px">🎲 Bahis = balının %20'si (max)<br>⚠️ Kaybettiğin bal geri gelmez — sorumlu oyna!</p>
     </div>
   </section>
 
@@ -683,9 +738,12 @@ const Sfx = (() => {
 })();
 
 function toast(msg) {
+  const box = $('#toasts');
+  // 🛑 Aynı anda en fazla 3 toast — eskisini sil, yenisini ekle
+  while (box.children.length >= 3) box.firstChild.remove();
   const t = document.createElement('div');
   t.className = 'toast'; t.textContent = msg;
-  $('#toasts').appendChild(t);
+  box.appendChild(t);
   setTimeout(() => t.remove(), 2600);
 }
 function confetti() {
@@ -784,7 +842,8 @@ async function load() {
     S = res.state; cfg = { ...cfg, ...(res.cfg || {}) }; myRankCache = res.myRank;
     uid = res.id || 1;
     mode = 'server';
-    if (res.gained > 0) toast('🍯 +' + fmt(res.gained) + ' bal üretildi');
+    // 🍯 Pasif üretim toast GÖSTERME — bal sayacı zaten canlı görünüyor
+    // (res.gained toast'u kaldırıldı: toast yığılmasının ana kaynağıydı)
     res.freshAch.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); });
     if (res.isNew) toast('🐝 Hoş geldin! ' + fmt(cfg.startBal) + ' bal + ' + cfg.startFreeBees + ' arı seni bekliyor');
     // 💥 Gelen emoji bombalarını animasyonla göster (sırayla)
@@ -1225,8 +1284,12 @@ function closeModal() {
 $('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeModal(); });
 
 function openDaily() {
-  const daily = mode === 'demo' ? { available: true, streak: Math.min(S.streak || 0, 7) } : dailyInfo(S);
+  // Demo'da nextReward'ı doğru hesapla (NaN bug'ı fix)
+  const daily = mode === 'demo'
+    ? { available: true, streak: Math.max(1, Math.min(S.streak || 1, 7)), nextReward: DAILY_REWARDS[Math.max(0, Math.min((S.streak || 0), 6))] }
+    : dailyInfo(S);
   if (!daily.available) { toast('✅ Bugünkü ödülü zaten aldın'); return; }
+  const nextVal = Number.isFinite(daily.nextReward) ? daily.nextReward : 50; // güvenlik
   const body = $('#modal-body');
   let days = '';
   for (let i = 1; i <= 7; i++) {
@@ -1236,7 +1299,7 @@ function openDaily() {
   body.innerHTML =
     '<h2>🎁 Günlük Ödül</h2><p>Her gün gir, serini büyüt! Seri bozulursa baştan başlar.</p>' +
     '<div class="days">' + days + '</div>' +
-    '<button class="btn" onclick="doDaily()">🎁 Ödülü Al (+' + fmt(daily.nextReward) + ')</button>';
+    '<button class="btn" onclick="doDaily()">🎁 Ödülü Al (+' + fmt(nextVal) + ')</button>';
   showModal();
 }
 function openInvite() {
@@ -1458,12 +1521,28 @@ function renderEglence() {
   $('#gam-count').textContent = S.gambleCount || 0;
   $('#gam-bal').textContent = fmt(S.bal);
   $('#gam-lost').textContent = fmt(S.gambleLost || 0);
+  const lostFill = document.getElementById('gam-lostfill');
+  if (lostFill) {
+    const lostPct = Math.min(100, ((S.gambleLost || 0) / 2000) * 100);
+    lostFill.style.width = lostPct + '%';
+    const lbTxt = document.getElementById('gam-lostbar');
+    if (lbTxt) lbTxt.textContent = fmt(S.gambleLost || 0) + ' / 2000';
+  }
   $('#gam-week').textContent = fmt(S.weeklyEarned || 0);
   const can = (S.lastSpin || 0) < Math.floor(Date.now() / DAY) * DAY;
   $('#spin-txt').textContent = can ? 'Çevrilmedi — bedava!' : 'Bugün çevrildi ✅';
 }
 
 /* ═══════════════ 🔥 CANLI FOMO PANELİ ═══════════════ */
+function toggleFomo() {
+  const body = document.getElementById('fomo-body');
+  const arrow = document.getElementById('fomo-arrow');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'flex';
+  if (arrow) arrow.textContent = open ? '▾' : '▴';
+  if (!open && S && mode === 'server') renderFomo();
+}
 async function renderFomo() {
   const panel = $('#fomo-panel');
   if (mode === 'demo' || !S) { panel.style.display = 'none'; return; }
@@ -1484,7 +1563,7 @@ async function renderFomo() {
     $('#fomo-war').querySelector('.v').textContent = (cntRes && cntRes.warCount) || 0;
     $('#fomo-spin').querySelector('.v').textContent = (cntRes && cntRes.spinCount) || 0;
     $('#fomo-week').querySelector('.v').textContent = fmt((cntRes && cntRes.weekTotal) || 0);
-    panel.style.display = 'flex';
+    panel.style.display = 'block'; // toggle ile açılır
   } catch (e) { panel.style.display = 'none'; }
 }
 
