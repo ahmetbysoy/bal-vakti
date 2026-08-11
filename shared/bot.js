@@ -42,7 +42,15 @@ if (bot) {
         { parse_mode: 'HTML' }
       );
     }
-    if (uid !== owner) return ctx.reply('⛔ Bu komut yalnızca bot sahibine özeldir.');
+    if (uid !== owner) {
+      return ctx.reply(
+        `⛔ Bu komut yalnızca bot sahibine özeldir.\n\n` +
+        `🔍 <b>Senin Telegram ID'n:</b> <code>${uid}</code>\n` +
+        `Vercel'deki <b>OWNER_ID</b>: <code>${owner}</code>\n\n` +
+        `Eşleşmiyor! Vercel → Settings → Environment Variables → OWNER_ID'i <code>${uid}</code> olarak güncelle ve redeploy et.`,
+        { parse_mode: 'HTML' }
+      );
+    }
     ctx.reply(
       '👑 Tanrı Modu — oyuncu yönetimi, bonuslar, canlı ekonomi ayarları.',
       Markup.inlineKeyboard([[Markup.button.webApp('👑 Admin Panel', appUrl + '/admin.html')]])
