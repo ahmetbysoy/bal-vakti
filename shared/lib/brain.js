@@ -42,10 +42,10 @@ export function randName(existing) {
 
 // ── Güç seviyeleri ──
 export const POWER_LEVELS = {
-  zayif:   { label: 'Zayıf',   bees: [3, 8],   kovan: 0, depo: 0, bal: [300, 1200] },
-  orta:    { label: 'Orta',    bees: [12, 28], kovan: 1, depo: 1, bal: [2000, 8000] },
-  guclu:   { label: 'Güçlü',   bees: [35, 90], kovan: [2, 4], depo: 2, bal: [15000, 60000] },
-  efsane:  { label: 'Efsane',  bees: [120, 350], kovan: [5, 8], depo: 4, bal: [100000, 500000] },
+  zayif:   { label: 'Zayıf',   bees: [2, 5],    kovan: 0, depo: 0, bal: [50, 300] },
+  orta:    { label: 'Orta',    bees: [6, 14],   kovan: 1, depo: 1, bal: [400, 1500] },
+  guclu:   { label: 'Güçlü',   bees: [15, 35],  kovan: [2, 3], depo: 2, bal: [3000, 12000] },
+  efsane:  { label: 'Efsane',  bees: [40, 100], kovan: [4, 6], depo: 3, bal: [20000, 80000] },
 };
 
 // Bot oyuncu durumu üret (güç seviyesine göre)

@@ -16,23 +16,24 @@ __lib['game'] = (() => {
 const MAX_LEVEL = 12;
 
 // ── Ekonomi parametreleri (varsayılan; admin paneli canlı değiştirebilir) ──
+// ⚠️ CİMRİ EKONOMİ (v4): ilerleme yavaş ve istikrarlı olmalı
 const DEFAULT_CONFIG = {
-  beeBaseCost: 10,       // 1. seviye arı taban fiyatı
-  beeCostGrowth: 1.09,   // her arıda fiyat %9 artar
-  p1: 0.25,              // 1. seviye arı: bal/sn
-  pMult: 3,              // her seviye 3x üretim
-  capBase: 500,          // başlangıç depo kapasitesi
-  capUpgMult: 4,         // depo seviyesi başına 4x kapasite
-  capUpgBase: 200,       // depo yükseltme taban fiyatı
-  capUpgCostMult: 3,
-  kovanBase: 400,        // kovan (üretim x2) taban fiyatı
-  kovanCostMult: 4,
-  startBal: 25,          // yeni oyuncu başlangıç balı
+  beeBaseCost: 25,       // 1. seviye arı taban fiyatı
+  beeCostGrowth: 1.18,   // her arıda fiyat %18 artar (cimri!)
+  p1: 0.08,              // 1. seviye arı: bal/sn (saatte ~288 bal)
+  pMult: 2.5,            // her seviye 2.5x üretim (birleştirme %25 bonus)
+  capBase: 300,          // başlangıç depo kapasitesi
+  capUpgMult: 3,         // depo seviyesi başına 3x kapasite
+  capUpgBase: 800,       // depo yükseltme taban fiyatı
+  capUpgCostMult: 4,
+  kovanBase: 2500,       // kovan (üretim x2) taban fiyatı — pahalı!
+  kovanCostMult: 6,
+  startBal: 15,          // yeni oyuncu başlangıç balı
   startFreeBees: 1,      // yeni oyuncuya ücretsiz arı
-  vzvzTapReward: 2,      // VızVız: dokunuş başına bal
-  vzvzMaxTaps: 30,       // VızVız hile koruması: max dokunuş
+  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal
+  vzvzMaxTaps: 20,       // VızVız max dokunuş
   vzvzMaxMs: 12000,      // VızVız hile koruması: max süre
-  vzvzCooldownMs: 300000, // VızVız bekleme (5 dk)
+  vzvzCooldownMs: 600000, // VızVız bekleme (10 dk!)
   dailyEnabled: true,    // günlük ödül açık/kapalı
   vzvzEnabled: true,     // VızVız açık/kapalı
   maintenance: false,    // bakım modu (oyun kapanır)
@@ -43,11 +44,11 @@ let ACTIVE_CFG = DEFAULT_CONFIG;
 function setActiveCfg(c) { ACTIVE_CFG = c || DEFAULT_CONFIG; }
 function getActiveCfg() { return ACTIVE_CFG; }
 
-const DAILY_REWARDS = [50, 100, 200, 400, 800, 1600, 3000]; // 7 günlük seri
-const REF_INVITER = 100;       // davet edenin ödülü
-const REF_FRIEND = 50;         // davet edilenin ödülü
+const DAILY_REWARDS = [15, 30, 60, 120, 240, 500, 1000]; // 7 günlük seri (cimri)
+const REF_INVITER = 40;        // davet edenin ödülü
+const REF_FRIEND = 20;         // davet edilenin ödülü
 const VIZVIZ_MAX_MS = 12000;   // hile koruması: max süre (yedek sabit)
-const VIZVIZ_COOLDOWN_MS = 5 * 60 * 1000; // yedek sabit
+const VIZVIZ_COOLDOWN_MS = 10 * 60 * 1000; // yedek sabit (config ile uyumlu)
 
 // ── Oyuncu durumu ──
 function newState(now = Date.now()) {
@@ -94,7 +95,7 @@ function isNight(now = Date.now()) {
   return h >= 22 || h < 6;
 }
 function prodMultiplier(now = Date.now()) {
-  return isNight(now) ? 2 : 1;
+  return isNight(now) ? 1.5 : 1; // gece bonusu kısıldı (2x -> 1.5x)
 }
 function totalProd(s, now = Date.now()) {
   let t = 0;
@@ -103,8 +104,8 @@ function totalProd(s, now = Date.now()) {
 }
 // ⚡ Üretim çarpanı: gece x2 + çark boostu +1 (çakışırsa x3)
 function effectiveMult(s, now = Date.now()) {
-  let m = prodMultiplier(now);
-  if ((s.boostUntil || 0) > now) m += 1;
+  let m = prodMultiplier(now); // gece 1.5
+  if ((s.boostUntil || 0) > now) m += 0.5; // çark boostu +0.5 (toplam max 2)
   return m;
 }
 function capacity(s) {
@@ -122,7 +123,9 @@ function collect(s, now = Date.now()) {
   const elapsed = Math.max(0, now - s.lastCollect);
   const cap = capacity(s);
   let gain = (totalProd(s, now) * elapsed) / 1000;
-  if (gain > cap) gain = cap;
+  // 🛑 CAP BUG FIX: bal zaten cap'e yakınsa gain, kalan boşluğa kesilir
+  const room = Math.max(0, cap - (s.bal || 0));
+  if (gain > room) gain = room;
   if (gain > 0) {
     s.bal += gain;
     s.totalEarned += gain;
@@ -204,14 +207,14 @@ function vzvzPlay(s, taps, durMs, now = Date.now()) {
 
 // 🎡 Çarkıfelek dilimleri
 const WHEEL_SLICES = [
-  { id: 'x2', label: 'Üretim x2', emoji: '⚡', kind: 'boost', value: 300 },  // 5 dk x2
+  { id: 'x2', label: 'Üretim x1.5', emoji: '⚡', kind: 'boost', value: 150 },  // 5 dk x1.5
   { id: 'z0', label: '0', emoji: '😬', kind: 'zero', value: 0 },
-  { id: 's50', label: '+50', emoji: '🍯', kind: 'bal', value: 50 },
-  { id: 's250', label: '+250', emoji: '🍯', kind: 'bal', value: 250 },
+  { id: 's15', label: '+15', emoji: '🍯', kind: 'bal', value: 15 },
+  { id: 's60', label: '+60', emoji: '🍯', kind: 'bal', value: 60 },
+  { id: 's30', label: '+30', emoji: '🍯', kind: 'bal', value: 30 },
+  { id: 's250', label: '+250', emoji: '💛', kind: 'bal', value: 250 },
   { id: 's100', label: '+100', emoji: '🍯', kind: 'bal', value: 100 },
-  { id: 's1000', label: '+1000', emoji: '💛', kind: 'bal', value: 1000 },
-  { id: 's500', label: '+500', emoji: '🍯', kind: 'bal', value: 500 },
-  { id: 's25', label: '+25', emoji: '🍯', kind: 'bal', value: 25 },
+  { id: 's5', label: '+5', emoji: '🍯', kind: 'bal', value: 5 },
 ];
 
 // Günde 1 bedava çevirme
@@ -235,7 +238,7 @@ function spinWheel(s, now = Date.now()) {
 
 
 // 🎲 Yazı-Tura (2x) — sunucu tarafı adil rastgele
-const GAMBLE_DAILY_LOSS_LIMIT = 2000; // günlük max kayıp
+const GAMBLE_DAILY_LOSS_LIMIT = 500; // günlük max kayıp (cimri)
 const GAMBLE_MAX_BET_RATIO = 0.2;     // max bahis = balın %20'si
 function gambleCoin(s, bet, now = Date.now()) {
   if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
@@ -356,7 +359,7 @@ function giveAchievement(s, achId) {
 }
 
 /* ═══════════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════════ */
-const THROW_EMOJI_COST = 10;
+const THROW_EMOJI_COST = 25;
 const THROW_EMOJI_COOLDOWN_MS = 30 * 1000;
 const THROW_EMOJIS = ['💩', '🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑'];
 
@@ -413,7 +416,7 @@ function killBees(s, n) {
 }
 
 // Savunma geliri eşiği: aşılırsa bir sonraki başarılı saldırıda arı ölümü tetiklenir
-const DEFENSE_BAL_THRESHOLD = 2000;
+const DEFENSE_BAL_THRESHOLD = 800;
 
 // ── Savaş çözümü ──
 // A: saldırgan, T: hedef, defendActive: hedef 'Püskürt'e bastı mı (çevrimiçi savunma)
@@ -437,7 +440,7 @@ function resolveRaid(A, T, defendActive, now = Date.now()) {
 
     // Bal çalma: hedefin balından depo kapasitesinin %8'i (en fazla)
     const capT = capacity(T);
-    stolen = Math.min(capT * 0.08, (T.bal || 0) * 0.15, (T.bal || 0));
+    stolen = Math.min(capT * 0.03, (T.bal || 0) * 0.06, (T.bal || 0)); // cimri: %3 depo / %6 bal
     T.bal = Math.max(0, (T.bal || 0) - stolen);
     // Çalınan bal saldırganın deposuna sığarsa
     A.bal = (A.bal || 0) + Math.min(stolen, capacity(A));
@@ -1034,10 +1037,10 @@ function randName(existing) {
 
 // ── Güç seviyeleri ──
 const POWER_LEVELS = {
-  zayif:   { label: 'Zayıf',   bees: [3, 8],   kovan: 0, depo: 0, bal: [300, 1200] },
-  orta:    { label: 'Orta',    bees: [12, 28], kovan: 1, depo: 1, bal: [2000, 8000] },
-  guclu:   { label: 'Güçlü',   bees: [35, 90], kovan: [2, 4], depo: 2, bal: [15000, 60000] },
-  efsane:  { label: 'Efsane',  bees: [120, 350], kovan: [5, 8], depo: 4, bal: [100000, 500000] },
+  zayif:   { label: 'Zayıf',   bees: [2, 5],    kovan: 0, depo: 0, bal: [50, 300] },
+  orta:    { label: 'Orta',    bees: [6, 14],   kovan: 1, depo: 1, bal: [400, 1500] },
+  guclu:   { label: 'Güçlü',   bees: [15, 35],  kovan: [2, 3], depo: 2, bal: [3000, 12000] },
+  efsane:  { label: 'Efsane',  bees: [40, 100], kovan: [4, 6], depo: 3, bal: [20000, 80000] },
 };
 
 // Bot oyuncu durumu üret (güç seviyesine göre)

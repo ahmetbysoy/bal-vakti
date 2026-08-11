@@ -28,19 +28,19 @@ const now0 = (() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d.ge
 const NIGHT_TS = (() => { const d = new Date(); d.setHours(23, 30, 0, 0); return d.getTime(); })();
 
 // 1) Yeni oyuncu
-t('Yeni oyuncu 25 bal + 1 arı ile başlar', () => {
+t('Yeni oyuncu 15 bal + 1 arı ile başlar (cimri)', () => {
   const s = newState(now0);
-  assert.strictEqual(s.bal, 25);
+  assert.strictEqual(s.bal, 15);
   assert.strictEqual(s.bees[1], 1);
   assert.strictEqual(s.beesOwned, 1);
 });
 
 // 2) Üretim işleme
-t('1 seviye arı 10 sn de 2.5 bal üretir', () => {
+t('1 seviye arı 10 sn de 0.8 bal üretir (cimri)', () => {
   const s = newState(now0);
   const g = collect(s, now0 + 10000);
-  near(g, 2.5);
-  near(s.bal, 27.5);
+  near(g, 0.8);
+  near(s.bal, 15.8); // startBal 15
 });
 
 // 3) Kapasite sınırı (taşan bal kaybolur)
@@ -77,6 +77,7 @@ t('4 arı alınca 1 seviye-3 arı oluşur', () => {
 // 6) Arı fiyatı arttıkça pahalılaşır
 t('Arı fiyatı her arıda artar', () => {
   const s = newState(now0);
+  s.bal = 10000;
   const c1 = beeCost(s);
   buyBee(s, 1);
   assert.ok(beeCost(s) > c1);
@@ -106,10 +107,10 @@ t('Günlük seri 1,2,3... şeklinde ilerler', () => {
   const day = 86400000;
   const r1 = claimDaily(s, now0 + day);
   assert.strictEqual(r1.streak, 1);
-  assert.strictEqual(r1.reward, 50);
+  assert.strictEqual(r1.reward, 15);
   const r2 = claimDaily(s, now0 + day * 2);
   assert.strictEqual(r2.streak, 2);
-  assert.strictEqual(r2.reward, 100);
+  assert.strictEqual(r2.reward, 30);
   // aynı gün tekrar alamaz
   const again = claimDaily(s, now0 + day * 2 + 1000);
   assert.strictEqual(again, null);
@@ -128,11 +129,11 @@ t('dailyInfo günlük ödül uygunluğunu söyler', () => {
 });
 
 // 11) VızVız
-t('VızVız dokunuş başına 2 bal verir, 5 dk bekleme koyar', () => {
+t('VızVız dokunuş başına 1 bal verir, 10 dk bekleme koyar', () => {
   const s = newState(now0);
   const r = vzvzPlay(s, 20, 9500, now0);
   assert.strictEqual(r.ok, true);
-  assert.strictEqual(r.reward, 40);
+  assert.strictEqual(r.reward, 20); // 20 x 1 bal
   const r2 = vzvzPlay(s, 5, 1000, now0 + 1000);
   assert.strictEqual(r2.ok, false); // bekleme süresi
   const r3 = vzvzPlay(s, 5, 1000, now0 + VIZVIZ_COOLDOWN_MS + 1);
@@ -182,9 +183,9 @@ t('Konfigürasyon override ekonomiyi değiştirir', () => {
   setActiveCfg({ ...DEFAULT_CONFIG, p1: 1, beeBaseCost: 99 });
   const s = newState(now0); // 1 ücretsiz arı ile başlar
   near(beeProd(1), 1);
-  assert.strictEqual(beeCost(s), Math.floor(99 * Math.pow(1.09, 1))); // 107
+  assert.strictEqual(beeCost(s), Math.floor(99 * Math.pow(1.18, 1)));
   setActiveCfg(DEFAULT_CONFIG); // geri al
-  near(beeProd(1), 0.25);
+  near(beeProd(1), 0.08);
 });
 
 t('Günlük ödül kapatılınca claimDaily null döner', () => {
@@ -193,7 +194,7 @@ t('Günlük ödül kapatılınca claimDaily null döner', () => {
   assert.strictEqual(claimDaily(s, now0 + 86400000), null);
   assert.strictEqual(dailyInfo(s, now0).available, false);
   setActiveCfg(DEFAULT_CONFIG);
-  assert.strictEqual(claimDaily(s, now0 + 86400000).reward, 50);
+  assert.strictEqual(claimDaily(s, now0 + 86400000).reward, 15);
 });
 
 t('VızVız kapatılınca oynanamaz', () => {
@@ -312,12 +313,12 @@ t('Kişilik profilleri tanımlı ve 0-100 aralığında', () => {
 
 t('makeBotState güç seviyesine göre arı/bal üretir', () => {
   const z = makeBotState('zayif');
-  assert.ok(z.beesOwned >= 3 && z.beesOwned <= 8);
-  assert.ok(z.bal >= 300);
+  assert.ok(z.beesOwned >= 2 && z.beesOwned <= 5);
+  assert.ok(z.bal >= 50);
   const e = makeBotState('efsane');
-  assert.ok(e.beesOwned >= 120);
-  assert.ok(e.bal >= 100000);
-  assert.ok(e.kovan >= 5);
+  assert.ok(e.beesOwned >= 40);
+  assert.ok(e.bal >= 20000);
+  assert.ok(e.kovan >= 4);
 });
 
 t('randName havuzdan isim verir, tekrarlamaz', () => {
@@ -350,13 +351,13 @@ t('thinkBots kilitle çalışır, bot sayısı döner', async () => {
 });
 
 // ── 🎰 Eğlence Odası testleri ──
-t('Gece etkinliği 22-06 arası x2 üretim', () => {
+t('Gece etkinliği 22-06 arası x1.5 üretim', () => {
   const day = new Date(2026, 0, 1, 12).getTime(); // öğlen
   const night = new Date(2026, 0, 1, 23).getTime(); // gece
   assert.strictEqual(isNight(day), false);
   assert.strictEqual(isNight(night), true);
   assert.strictEqual(prodMultiplier(day), 1);
-  assert.strictEqual(prodMultiplier(night), 2);
+  assert.strictEqual(prodMultiplier(night), 1.5);
 });
 
 t('Çarkıfelek günde 1 kez çevrilebilir', () => {

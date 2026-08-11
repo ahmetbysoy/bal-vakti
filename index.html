@@ -676,7 +676,7 @@ const tg = window.Telegram?.WebApp;
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 
 const DAY = 86400000;
-const DAILY_REWARDS = [50, 100, 200, 400, 800, 1600, 3000];
+const DAILY_REWARDS = [15, 30, 60, 120, 240, 500, 1000];
 const MAX_LEVEL = 12;
 
 let S = null;          // oyun durumu
@@ -685,10 +685,10 @@ let uid = 1;           // kullanıcı id (davet kodu için)
 let cfg = {
   bot: '', appUrl: '', vzvzCooldownSec: 300, vzvzDurationSec: 10,
   // ekonomi (sunucudan gelir; gelmezse varsayılanlar kullanılır)
-  beeBaseCost: 10, beeCostGrowth: 1.09, p1: 0.25, pMult: 3,
-  capBase: 500, capUpgMult: 4, capUpgBase: 200, capUpgCostMult: 3,
-  kovanBase: 400, kovanCostMult: 4,
-  vzvzTapReward: 2, vzvzMaxTaps: 30, vzvzMaxMs: 12000,
+  beeBaseCost: 25, beeCostGrowth: 1.18, p1: 0.08, pMult: 2.5,
+  capBase: 300, capUpgMult: 3, capUpgBase: 800, capUpgCostMult: 4,
+  kovanBase: 2500, kovanCostMult: 6,
+  vzvzTapReward: 1, vzvzMaxTaps: 20, vzvzMaxMs: 12000,
 };
 let myRankCache = null;
 let tab = 'kovan';
@@ -825,7 +825,8 @@ const dDepoCost = (s) => Math.floor(cfg.capUpgBase * Math.pow(cfg.capUpgCostMult
 function dCollect(s) {
   const elapsed = Math.max(0, Date.now() - s.lastCollect);
   let gain = (dProd(s) * elapsed) / 1000;
-  if (gain > dCap(s)) gain = dCap(s);
+  const room = Math.max(0, dCap(s) - s.bal);
+  if (gain > room) gain = room;
   s.bal += gain; s.totalEarned += gain; s.lastCollect = Date.now();
   return gain;
 }
@@ -1420,14 +1421,14 @@ function playerLevel(s) {
 
 /* ═══════════════ 🎰 EĞLENCE ODASI ═══════════════ */
 const WHEEL_SLICES = [
-  { label: '⚡', kind: 'boost', value: 300 },
+  { label: '⚡', kind: 'boost', value: 150 },
   { label: '😬', kind: 'zero', value: 0 },
-  { label: '🍯50', kind: 'bal', value: 50 },
-  { label: '🍯250', kind: 'bal', value: 250 },
+  { label: '🍯15', kind: 'bal', value: 15 },
+  { label: '🍯60', kind: 'bal', value: 60 },
+  { label: '🍯30', kind: 'bal', value: 30 },
+  { label: '💛250', kind: 'bal', value: 250 },
   { label: '🍯100', kind: 'bal', value: 100 },
-  { label: '💛1000', kind: 'bal', value: 1000 },
-  { label: '🍯500', kind: 'bal', value: 500 },
-  { label: '🍯25', kind: 'bal', value: 25 },
+  { label: '🍯5', kind: 'bal', value: 5 },
 ];
 let wheelSpinLock = false;
 
@@ -1636,7 +1637,7 @@ function openThrow(targetId) {
   const body = $('#modal-body');
   body.innerHTML =
     '<h2>💥 Bal Bombası</h2>' +
-    '<p><b>' + esc(name) + '</b>\'e hangi bombayı atıyorsun? (10 🍯)</p>' +
+    '<p><b>' + esc(name) + '</b>\'e hangi bombayı atıyorsun? (25 🍯)</p>' +
     '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px">' +
     THROW_EMOJIS.map((e) => '<button class="gbtn gold" style="text-align:center;padding:10px;font-size:24px;margin:0" onclick="doThrow(\'' + e + '\')">' + e + '</button>').join('') +
     '</div>' +
@@ -2035,7 +2036,7 @@ function liveBal() {
   const prod = mode === 'demo' ? dProd(S) : totalProd(S);
   const cap = mode === 'demo' ? dCap(S) : capacity(S);
   const elapsed = Math.max(0, Date.now() - S.lastCollect);
-  const gain = Math.min(cap, (prod * elapsed) / 1000);
+  const gain = Math.min(Math.max(0, cap - S.bal), (prod * elapsed) / 1000);
   return { bal: Math.min(cap, S.bal + gain), prod, cap };
 }
 function liveTick() {
