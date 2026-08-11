@@ -122,7 +122,7 @@
   .upg .info{flex:1}
   .upg .info b{font-size:15px}
   .upg .info span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
-  .upg .btn{width:104px;flex-shrink:0}
+  .upg .btn{width:auto;min-width:104px;max-width:100%;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .divider{height:1px;background:var(--line);margin:12px 0}
   /* ── Arılar ── */
   .bees{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -207,7 +207,8 @@
   #loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:16px;color:var(--muted)}
   #loader .e{font-size:54px;animation:bob 1.2s ease-in-out infinite}
   .demoflag{display:none;text-align:center;font-size:11px;color:var(--blue);margin-top:10px}
-  .linkbox{background:#171003;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);word-break:break-all;margin:10px 0}
+  .linkbox{background:#171003;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);word-break:break-all;margin:0;flex:1;min-width:0}
+  .invitebox{display:flex;gap:8px;align-items:stretch;margin-top:10px}
   .row2{display:flex;gap:8px}
   .row2 .btn{flex:1}
   /* ── ⚔️ SAVAŞ ── */
@@ -222,13 +223,37 @@
   @keyframes raidpulse{0%,100%{box-shadow:0 0 0 0 #ff6b5255}50%{box-shadow:0 0 0 8px #ff6b5200}}
   .xpbar{height:10px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
   .xpbar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#ff6b52,#ffd166);transition:width .4s}
-  .enemy{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
-  .enemy .av{font-size:28px}
+  .enemy{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
+  .enemy .av{font-size:30px;min-width:34px;text-align:center}
   .enemy .inf{flex:1;min-width:0}
-  .enemy .inf b{font-size:14px;display:block}
-  .enemy .inf span{font-size:11px;color:var(--muted)}
-  .enemy .btn{width:96px;flex-shrink:0}
+  .enemy .inf b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .enemy .stats{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .enemy .stats .s{font-size:11px;color:var(--muted);background:#241703;border:1px solid var(--line);border-radius:99px;padding:2px 8px;white-space:nowrap}
+  .enemy .stats .s b{color:var(--gold);font-size:11px;display:inline}
+  .enemy .acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
+  .enemy .btn{width:auto;min-width:74px;flex-shrink:0;padding:10px 12px;font-size:13px}
+  .enemy .iconbtn-sm{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 10px;font-size:16px;cursor:pointer;flex-shrink:0}
+  .enemy .iconbtn-sm:active{transform:scale(.92)}
   .enemy.me{border-color:var(--amber)}
+  /* ── Tab bazlı aksanlar ── */
+  #tab-savas .card{border-color:#7a3322}
+  #tab-savas .card h3{color:#ff9a8b}
+  #tab-eglence .card{border-color:#4a2d77}
+  #tab-eglence .card h3{color:#c9a4ff}
+  #tab-bees .card{border-color:#3d6b2a}
+  #tab-bees .card h3{color:#9be8ab}
+  #tab-achs .card{border-color:#6b5a1a}
+  #tab-achs .card h3{color:#ffd166}
+  #tab-lb .card{border-color:#1f5a8f}
+  #tab-lb .card h3{color:#8ecbff}
+  /* ── Lig zebra + kendi sıram ── */
+  .lrow:nth-child(even){background:#1a1206}
+  .lrow.top3{border-color:var(--gold)}
+  .myrankbar{position:fixed;bottom:64px;left:0;right:0;z-index:28;background:#241703f5;border-top:1px solid var(--gold);
+    padding:8px 14px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(6px)}
+  .myrankbar .rk{background:var(--amber);color:#241703;font-weight:900;border-radius:99px;padding:2px 10px;font-size:13px}
+  .myrankbar .nm{flex:1;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .myrankbar .sc{font-size:12px;color:var(--gold);font-weight:800}
   .grudge{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid #5a2418;border-radius:14px;padding:10px 12px;margin-top:8px}
   .grudge .av{font-size:24px}
   .grudge .inf{flex:1;min-width:0}
@@ -369,8 +394,10 @@
     <div class="card">
       <h3>🎁 Arkadaşlarını Davet Et</h3>
       <p style="font-size:12px;color:var(--muted)">Davet ettiğin arkadaş oyuna başlayınca <b style="color:var(--amber)">ikinize de bonus bal!</b> 🐝</p>
-      <div class="linkbox" id="invlink">yükleniyor...</div>
-      <button class="btn gray small" onclick="copyInvite()">📋 Linki Kopyala</button>
+      <div class="invitebox">
+        <div class="linkbox" id="invlink">yükleniyor...</div>
+        <button class="btn gray small" style="flex-shrink:0" onclick="copyInvite()">📋 Kopyala</button>
+      </div>
       <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px" id="refcount">Davet ettiğin: 0</p>
     </div>
 
@@ -410,6 +437,11 @@
       <h3>🏆 En İyi Arıcılar</h3>
       <div class="lb" id="lb-list"></div>
       <p class="hint" id="lb-note"></p>
+    </div>
+    <div class="myrankbar" id="myrankbar" style="display:none">
+      <span class="rk" id="mrk-rk">#0</span>
+      <span class="nm" id="mrk-nm">Sen</span>
+      <span class="sc" id="mrk-sc">0 🍯</span>
     </div>
   </section>
 
@@ -503,6 +535,7 @@
 
     <div class="card">
       <h3>⚙️ Ayarlar</h3>
+      <p class="hint" style="font-weight:900;color:var(--green);margin-bottom:6px">🔊 BİLDİRİM & SES</p>
       <div class="cfgrow">
         <div class="switch">
           <b>🔊 Ses efektleri</b>
@@ -514,6 +547,16 @@
         </div>
       </div>
       <div class="divider"></div>
+      <p class="hint" style="font-weight:900;color:var(--gold);margin-bottom:6px">👤 HESAP</p>
+      <div class="upg">
+        <div class="info">
+          <b>✏️ Kullanıcı adı</b>
+          <span id="me-name2">Arıcı</span>
+        </div>
+        <button class="btn small gray" onclick="promptRename()">Değiştir</button>
+      </div>
+      <div class="divider"></div>
+      <p class="hint" style="font-weight:900;color:var(--red);margin-bottom:6px">⚠️ TEHLİKELİ ALAN</p>
       <div class="upg">
         <div class="info">
           <b>🗑️ Hesabı sıfırla</b>
@@ -842,13 +885,16 @@ function renderAll() {
 }
 function renderAchs() {
   const grid = $('#ach-grid'); grid.innerHTML = '';
-  ACHS.forEach((a) => {
-    const got = S.ach.includes(a.id);
-    const div = document.createElement('div');
-    div.className = 'ach' + (got ? '' : ' locked');
-    div.innerHTML = '<div class="e">' + (got ? a.emoji : '🔒') + '</div><b>' + a.name + '</b><span>' + a.desc + '</span><div class="r">+' + fmt(a.reward) + ' 🍯</div>';
-    grid.appendChild(div);
-  });
+  const owned = ACHS.filter((a) => S.ach.includes(a.id));
+  const locked = ACHS.filter((a) => !S.ach.includes(a.id));
+  const mk = (a, got) =>
+    '<div class="ach' + (got ? '' : ' locked') + '"><div class="e">' + (got ? a.emoji : '🔒') + '</div><b>' + a.name + '</b><span>' + a.desc + '</span><div class="r">+' + fmt(a.reward) + ' 🍯</div></div>';
+  if (owned.length) {
+    grid.innerHTML += '<div style="grid-column:1/-1;font-size:11px;color:var(--green);font-weight:900;margin-top:4px">🏆 KAZANDIKLARIN (' + owned.length + ')</div>';
+    grid.innerHTML += owned.map((a) => mk(a, true)).join('');
+  }
+  grid.innerHTML += '<div style="grid-column:1/-1;font-size:11px;color:var(--muted);font-weight:900;margin-top:10px">🔒 KİLİTLİLER (' + locked.length + ')</div>';
+  grid.innerHTML += locked.map((a) => mk(a, false)).join('');
 }
 const ACHS = [
   { id:'bee1', emoji:'🐝', name:'İlk Arı', desc:'İlk arını al', reward:10 },
@@ -870,6 +916,7 @@ function renderProfile() {
   const lvl = mode === 'demo' ? dLevel(S) : playerLevel(S);
   $('#me-avatar').textContent = S.avatar || '🐝';
   $('#me-name').textContent = S.name || 'Arıcı';
+  const n2 = $('#me-name2'); if (n2) n2.textContent = S.name || 'Arıcı';
   $('#me-lvl').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
   $('#me-id').textContent = mode === 'demo' ? 'ID: önizleme' : 'ID: ' + uid;
   $('#me-st-bal').textContent = fmt(S.bal);
@@ -952,22 +999,33 @@ function renderInvite() {
 }
 async function renderLb() {
   const list = $('#lb-list'); const note = $('#lb-note');
-  if (mode === 'demo') { note.textContent = 'Sıralama yalnızca sunucu modunda çalışır.'; return; }
+  const mybar = $('#myrankbar');
+  if (mode === 'demo') { note.textContent = 'Sıralama yalnızca sunucu modunda çalışır.'; if (mybar) mybar.style.display = 'none'; return; }
   if (Date.now() - lastLbFetch < 15000) return;
   lastLbFetch = Date.now();
   try {
     const r = await fetch('/api/leaderboard'); const j = await r.json();
     if (!j.ok) throw 0;
     list.innerHTML = '';
+    let myScore = null;
     j.top.slice(0, 20).forEach((x, i) => {
+      const isMe = x.id === String(uid);
+      if (isMe) myScore = x.score;
       const div = document.createElement('div');
-      div.className = 'lrow' + (x.id === String(uid) ? ' me' : '');
+      div.className = 'lrow' + (isMe ? ' me' : '') + (i < 3 ? ' top3' : '');
       div.innerHTML = '<div class="rk">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1) + '</div>' +
-        '<div class="nm">' + esc(x.name) + '</div><div class="sc">' + fmt(x.score) + ' 🍯</div>';
+        '<div class="nm">' + esc(x.name) + (isMe ? ' <span class="me-badge">SEN</span>' : '') + '</div><div class="sc">' + fmt(x.score) + ' 🍯</div>';
       list.appendChild(div);
     });
-    note.textContent = myRankCache ? 'Senin sıran: #' + myRankCache : '';
-  } catch (e) { note.textContent = 'Sıralama yüklenemedi.'; }
+    note.textContent = '';
+    // 📌 Alt sabit bar: kendi sıram (top 20'deysem satırda da var ama her zaman görünür)
+    if (myRankCache) {
+      mybar.style.display = 'flex';
+      $('#mrk-rk').textContent = '#' + myRankCache;
+      $('#mrk-nm').textContent = j.top.find((x) => x.id === String(uid))?.name || 'Sen';
+      $('#mrk-sc').textContent = fmt(myScore ?? 0) + ' 🍯';
+    } else if (mybar) mybar.style.display = 'none';
+  } catch (e) { note.textContent = 'Sıralama yüklenemedi.'; if (mybar) mybar.style.display = 'none'; }
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
@@ -1619,9 +1677,16 @@ function renderRaid() {
     box.innerHTML = w.targets.map((t) =>
       '<div class="enemy"><div class="av">' + (t.avatar || '🐝') + '</div>' +
       '<div class="inf"><b>' + esc(t.name) + '</b>' +
-      '<span>💪 ' + fmt(t.power) + ' · 🎖️ Sv ' + t.war + ' · 🍯 ' + fmt(t.bal) + ' · 🐝 ' + t.bees + '</span></div>' +
-      '<button class="btn small" style="margin-right:4px" onclick="openThrow(\'' + t.id + '\')">💥</button>' +
-      '<button class="btn small" onclick="startRaid(\'' + t.id + '\')">⚔️</button></div>'
+      '<div class="stats">' +
+      '<span class="s">💪 <b>' + fmt(t.power) + '</b></span>' +
+      '<span class="s">🎖️ <b>Sv ' + t.war + '</b></span>' +
+      '<span class="s">🍯 <b>' + fmt(t.bal) + '</b></span>' +
+      '<span class="s">🐝 <b>' + t.bees + '</b></span>' +
+      '</div></div>' +
+      '<div class="acts">' +
+      '<button class="iconbtn-sm" title="Emoji fırlat" onclick="openThrow(\'' + t.id + '\')">💥</button>' +
+      '<button class="btn small" onclick="startRaid(\'' + t.id + '\')">⚔️ Saldır</button>' +
+      '</div></div>'
     ).join('');
   } else {
     box.innerHTML = '<p class="hint">Şu an gücüne uygun hedef yok — biraz sonra tekrar dene. (Saldırdıkların düşman listene eklenir!)</p>';
