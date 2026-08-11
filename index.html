@@ -24,14 +24,13 @@
   .ticker{
     position:sticky;top:0;z-index:25;overflow:hidden;white-space:nowrap;
     background:linear-gradient(90deg,#3a2408,#241705);border-bottom:1px solid var(--line);
-    padding:8px 0;height:32px;display:flex;align-items:center;
+    padding:0;height:34px;display:flex;align-items:center;
   }
-  .ticker-track{display:inline-block;animation:ticker 28s linear infinite;will-change:transform}
-  .ticker:hover .ticker-track{animation-play-state:paused}
-  @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-  .ticker span{font-size:12px;color:var(--gold);margin:0 18px;font-weight:700}
-  .ticker span .e{font-size:13px}
-  .ticker span.gray{color:var(--muted)}
+  .ticker-track{display:flex;align-items:center;white-space:nowrap;flex:1;overflow:hidden}
+  .ticker-track span{display:inline-block;font-size:12px;color:var(--gold);font-weight:700;padding:0 4px;animation:tickerfade .5s ease}
+  .ticker-track span .e{font-size:13px}
+  .ticker-track span.gray{color:var(--muted)}
+  @keyframes tickerfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   .toprow{display:flex;align-items:center;gap:8px;padding:8px 14px 0}
   .toprow .logo{font-size:24px}
   .toprow .titles{flex:1;min-width:0}
@@ -73,7 +72,7 @@
   @keyframes dropfall{0%{transform:translateY(-30px) scale(.6)}100%{transform:translateY(105vh) scale(1)}}
   .glowtxt{text-shadow:0 0 18px #ffd16666,0 0 40px #f59e0b33}
   /* ── İçerik ── */
-  main{max-width:480px;margin:0 auto;padding:14px 14px 20px}
+  main{max-width:480px;margin:0 auto;padding:8px 14px 20px;position:relative;z-index:1}
   .hero{
     background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);
     border-radius:22px;padding:22px 18px 18px;text-align:center;position:relative;overflow:hidden;
@@ -107,7 +106,7 @@
   .switch{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:12px;padding:12px}
   .switch b{flex:1;font-size:13px}
   .switch input{width:22px;height:22px;accent-color:var(--amber)}
-  .quicks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .quicks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
   /* ── Kartlar ── */
   .card{
     background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);
@@ -115,7 +114,7 @@
   }
   .card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
   .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .stat{background:#171003;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+  .stat{background:#171003;border:1px solid var(--line);border-radius:14px;padding:9px 6px;text-align:center}
   .stat .v{font-size:17px;font-weight:900;color:var(--cream)}
   .stat .l{font-size:11px;color:var(--muted);margin-top:2px}
   .upg{display:flex;align-items:center;gap:12px}
@@ -132,7 +131,7 @@
   .bee .n{font-size:14px;font-weight:900;margin-top:4px}
   .bee .p{font-size:10px;color:var(--muted)}
   .bee.locked{filter:grayscale(1);opacity:.45}
-  .buybee{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px}
+  .buybee{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:8px}
   .buybee .e{font-size:34px}
   .buybee .info{flex:1}
   .buybee .info b{font-size:16px;color:var(--gold)}
@@ -207,14 +206,15 @@
   #loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:16px;color:var(--muted)}
   #loader .e{font-size:54px;animation:bob 1.2s ease-in-out infinite}
   .demoflag{display:none;text-align:center;font-size:11px;color:var(--blue);margin-top:10px}
-  .linkbox{background:#171003;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);word-break:break-all;margin:0;flex:1;min-width:0}
-  .invitebox{display:flex;gap:8px;align-items:stretch;margin-top:10px}
+  .linkbox{background:#171003;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);width:100%;white-space:nowrap;overflow-x:auto;margin:0;flex:1;min-width:0;-webkit-overflow-scrolling:touch}
+  .invitebox{display:flex;gap:8px;align-items:center;margin-top:10px;min-width:0}
+  .invitebox .linkbox{flex:1;min-width:0}
   .row2{display:flex;gap:8px}
   .row2 .btn{flex:1}
   /* ── ⚔️ SAVAŞ ── */
   .raidbanner{
     background:linear-gradient(180deg,#5a1f12,#3d1208);border:1px solid #8f3a22;border-radius:16px;
-    padding:14px;margin-top:12px;position:relative;overflow:hidden;
+    padding:14px;margin-top:8px;position:relative;overflow:hidden;
   }
   .raidbanner .t{font-weight:900;font-size:15px;color:#ffb4a0}
   .raidbanner .s{font-size:12px;color:#ffd9cf;margin-top:3px}
@@ -235,6 +235,11 @@
   .enemy .iconbtn-sm{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 10px;font-size:16px;cursor:pointer;flex-shrink:0}
   .enemy .iconbtn-sm:active{transform:scale(.92)}
   .enemy.me{border-color:var(--amber)}
+  /* ── Savaş sekmesi: içerik kesilme önlemi (ticker altında) ── */
+  #tab-savas{padding-top:2px}
+  #tab-savas .card{position:relative;z-index:1}
+  #tab-savas .card:first-child{margin-top:4px}
+  .raidbanner{margin-top:8px}
   /* ── Tab bazlı aksanlar ── */
   #tab-savas .card{border-color:#7a3322}
   #tab-savas .card h3{color:#ff9a8b}
@@ -262,7 +267,7 @@
   .grudge .btn{width:88px;flex-shrink:0}
   /* savaş animasyon ekranı */
   /* ── 🎰 EĞLENCE ODASI ── */
-  .casino{background:linear-gradient(180deg,#1d1030,#12081e);border:1px solid #4a2d77;border-radius:18px;padding:14px;margin-top:12px}
+  .casino{background:linear-gradient(180deg,#1d1030,#12081e);border:1px solid #4a2d77;border-radius:18px;padding:14px;margin-top:8px}
   .casino h3{color:#c9a4ff}
   .gbtn{display:block;width:100%;border:none;border-radius:14px;cursor:pointer;padding:14px;margin-top:10px;font-family:inherit;font-size:15px;font-weight:900;text-align:left;transition:transform .08s}
   .gbtn:active{transform:scale(.97)}
@@ -288,7 +293,7 @@
   .resp.win{color:var(--gold);font-weight:900}
   .resp.lose{color:var(--red);font-weight:900}
   /* ── Canlı FOMO paneli ── */
-  .fomo{display:flex;gap:8px;margin-top:12px;align-items:stretch}
+  .fomo{display:flex;gap:8px;margin-top:8px;align-items:stretch}
   .fomo-main{flex:1;background:linear-gradient(180deg,#2a1c08,#1d1306);border:1px solid var(--line);border-radius:16px;padding:12px}
   .fomo-main h4{font-size:12px;color:var(--gold);margin-bottom:8px}
   .fbar{display:flex;align-items:center;gap:6px;margin-top:5px}
@@ -336,7 +341,7 @@
   <!-- KOVA -->
   <section id="tab-kovan">
     <div id="drops"></div>
-    <div class="fomo" id="fomo-panel" style="display:none">
+    <div class="hero" id="hero-card">
       <div class="fomo-main">
         <h4>🔥 Bugünün Kazançları</h4>
         <div id="fomo-bars"></div>
@@ -391,18 +396,9 @@
       </div>
     </div>
 
-    <div class="card">
-      <h3>🎁 Arkadaşlarını Davet Et</h3>
-      <p style="font-size:12px;color:var(--muted)">Davet ettiğin arkadaş oyuna başlayınca <b style="color:var(--amber)">ikinize de bonus bal!</b> 🐝</p>
-      <div class="invitebox">
-        <div class="linkbox" id="invlink">yükleniyor...</div>
-        <button class="btn gray small" style="flex-shrink:0" onclick="copyInvite()">📋 Kopyala</button>
-      </div>
-      <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px" id="refcount">Davet ettiğin: 0</p>
-    </div>
-
     <div class="card" style="text-align:center">
       <button class="btn gray small" onclick="openHowto()">ℹ️ Nasıl Oynanır?</button>
+      <p class="hint" style="margin-top:8px">👥 Arkadaşlarını davet etmek için üstteki <b style="color:var(--gold)">Davet</b> butonuna bas!</p>
     </div>
   </section>
 
@@ -991,11 +987,23 @@ async function reconnect() {
   toast('⛔ ' + why);
 }
 
-function renderInvite() {
+function inviteLink() {
   const uname = cfg.bot || 'BalVaktiBot';
   const code = uid.toString(36);
-  $('#invlink').textContent = 'https://t.me/' + uname + '?start=' + code;
-  $('#refcount').textContent = 'Davet ettiğin: ' + S.refs + ' 🎁';
+  return 'https://t.me/' + uname + '?start=' + code;
+}
+// URL'i ortadan kısalt: https://t.me/bal_vakti_bot?start=abc…def
+function shortInvite() {
+  const full = inviteLink();
+  if (full.length <= 34) return full;
+  return full.slice(0, 22) + '…' + full.slice(-8);
+}
+function renderInvite() {
+  // Kovan kartındaki davet kutusu kaldırıldı; modal'daki alanları doldur (varsa)
+  const inv = document.getElementById('invlink');
+  if (inv) inv.textContent = shortInvite();
+  const rc = document.getElementById('refcount');
+  if (rc) rc.textContent = 'Davet ettiğin: ' + S.refs + ' 🎁';
 }
 async function renderLb() {
   const list = $('#lb-list'); const note = $('#lb-note');
@@ -1233,14 +1241,12 @@ function openInvite() {
   body.innerHTML =
     '<h2>👥 Arkadaşlarını Davet Et</h2>' +
     '<p>Linkten giren her arkadaş için <b style="color:var(--amber)">+100 bal</b>, arkadaşına da <b style="color:var(--amber)">+50 bal</b>! 🎁</p>' +
-    '<div class="linkbox">https://t.me/' + uname + '?start=' + code + '</div>' +
+    '<div class="linkbox" id="invlink" style="white-space:nowrap;overflow-x:auto">' + shortInvite() + '</div>' +
     '<button class="btn" onclick="copyInvite()">📋 Linki Kopyala</button>';
   showModal();
 }
 async function copyInvite() {
-  const uname = cfg.bot || 'BalVaktiBot';
-  const code = uid.toString(36);
-  const link = 'https://t.me/' + uname + '?start=' + code;
+  const link = inviteLink();
   try { await navigator.clipboard.writeText(link); toast('📋 Link kopyalandı!'); }
   catch (e) {
     const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select();
@@ -1550,6 +1556,11 @@ function playEmojiHit(emoji, byName) {
 
 /* ═══════════════ 📜 KAYAN BANT (Ticker) ═══════════════ */
 let tickerFetchedAt = 0;
+let tickerItems = [];
+let tickerIdx = 0;
+let tickerTimer = null;
+// 📜 Kayan bant: FADE-CYCLE — mesajlar sırayla, tek tek, 4 sn'de bir geçer.
+// Marquee yerine bu yöntem taşma/kesilme yapmaz (375px'te bile tek satır).
 async function renderTicker() {
   if (mode === 'demo') return;
   if (Date.now() - tickerFetchedAt < 15000) return;
@@ -1558,22 +1569,29 @@ async function renderTicker() {
     const r = await fetch('/api/leaderboard?mode=ticker').then((x) => x.json()).catch(() => null);
     if (!r?.ok) return;
     const items = [];
-    // dünya olayları
     for (const e of r.events || []) {
       items.push('<span>' + e.emoji + ' ' + esc(e.txt) + '</span>');
     }
-    // bugünün kazananları
     for (const t of r.today || []) {
       items.push('<span class="gray">🔥 ' + esc(t.name) + ' bugün ' + fmt(t.score) + ' bal kazandı</span>');
     }
-    // sayaçlar
     const c = r.counters || {};
     items.push('<span>🎡 Bugün ' + (c.spin || 0) + ' çark çevrildi</span>');
     items.push('<span>⚔️ Bugün ' + (c.war || 0) + ' savaş oldu</span>');
     if (!items.length) items.push('<span>🐝 Bal Vaktiye hos geldin!</span>');
-    // çift kopya (döngü için)
-    $('#ticker-track').innerHTML = items.join('') + items.join('');
+    tickerItems = items;
+    tickerIdx = 0;
+    showTickerItem();
+    if (tickerTimer) clearInterval(tickerTimer);
+    tickerTimer = setInterval(showTickerItem, 4000);
   } catch (e) {}
+}
+function showTickerItem() {
+  if (!tickerItems.length) return;
+  const el = document.getElementById('ticker-track');
+  if (!el) return;
+  el.innerHTML = tickerItems[tickerIdx % tickerItems.length];
+  tickerIdx++;
 }
 
 /* ═══════════════ 💧 BAL DAMLA EFEKTİ ═══════════════ */
