@@ -136,6 +136,12 @@
     border-radius:18px;padding:14px;margin-top:12px;
   }
   .card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .sec-tabs{display:flex;gap:6px}
+  .sec-tabs .st{
+    flex:1;background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px;
+    color:var(--muted);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
+  }
+  .sec-tabs .st.active{background:var(--amber);color:#241703;border-color:var(--amber)}
   .pillrow{display:flex;gap:6px;flex-wrap:wrap}
   .pill{background:#171003;border:1px solid var(--line);border-radius:99px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
   .pill b{color:var(--gold);font-size:12px}
@@ -156,7 +162,11 @@
   .bee .lv{position:absolute;top:6px;right:8px;background:var(--amber);color:#241703;font-size:10px;font-weight:900;border-radius:99px;padding:1px 6px}
   .bee .n{font-size:14px;font-weight:900;margin-top:4px}
   .bee .p{font-size:10px;color:var(--muted)}
-  .bee.locked{filter:grayscale(1);opacity:.45}
+  .bee.locked{filter:grayscale(1);opacity:.55}
+  .bee-prog{margin-top:5px}
+  .bee-prog .bp-txt{font-size:8px;color:var(--muted)}
+  .bee-prog .bp-bar{height:4px;background:#2a1f0f;border-radius:99px;overflow:hidden;margin-top:2px}
+  .bee-prog .bp-bar i{display:block;height:100%;border-radius:99px;background:var(--green);transition:width .4s}
   .buybee{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#3a2509,#241705);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:8px;position:sticky;top:64px;z-index:15}
   .buybee .e{font-size:34px}
   .buybee .info{flex:1}
@@ -418,31 +428,34 @@
     </div>
 
     <div class="card">
-      <h3>📊 İstatistikler</h3>
-      <div class="pillrow">
-        <span class="pill">🐝 <b id="st-bees">0</b></span>
-        <span class="pill">⚡ <b id="st-prod">0</b>/sn</span>
-        <span class="pill">🏺 <b id="st-cap">0</b></span>
-        <span class="pill">💰 <b id="st-total">0</b></span>
+      <div class="sec-tabs">
+        <button class="st active" data-st="genel" onclick="secTab('genel')">📊 Genel</button>
+        <button class="st" data-st="upg" onclick="secTab('upg')">🏭 Yükseltmeler</button>
       </div>
-    </div>
-
-    <div class="card">
-      <h3>🏭 Kovan</h3>
-      <div class="upg">
-        <div class="info">
-          <b>Kovanı Yükselt</b>
-          <span>Seviye <b id="kv-lv">0</b> → <b id="kv-nx">1</b> · üretim <b>x2</b></span>
+      <div id="sec-genel">
+        <div class="pillrow" style="margin-top:10px">
+          <span class="pill">🐝 <b id="st-bees">0</b></span>
+          <span class="pill">⚡ <b id="st-prod">0</b>/sn</span>
+          <span class="pill">🏺 <b id="st-cap">0</b></span>
+          <span class="pill">💰 <b id="st-total">0</b></span>
         </div>
-        <button class="btn small" id="btn-kovan" onclick="doUpgrade('kovan')">🍯 400</button>
       </div>
-      <div class="divider"></div>
-      <div class="upg">
-        <div class="info">
-          <b>Depoyu Büyüt</b>
-          <span>Seviye <b id="dp-lv">0</b> → <b id="dp-nx">1</b> · kapasite <b>x4</b></span>
+      <div id="sec-upg" style="display:none">
+        <div class="upg" style="margin-top:10px">
+          <div class="info">
+            <b>Kovanı Yükselt</b>
+            <span>Seviye <b id="kv-lv">0</b> → <b id="kv-nx">1</b> · üretim <b>x2</b></span>
+          </div>
+          <button class="btn small" id="btn-kovan" onclick="doUpgrade('kovan')">🍯 400</button>
         </div>
-        <button class="btn small" id="btn-depo" onclick="doUpgrade('depo')">🍯 200</button>
+        <div class="divider"></div>
+        <div class="upg">
+          <div class="info">
+            <b>Depoyu Büyüt</b>
+            <span>Seviye <b id="dp-lv">0</b> → <b id="dp-nx">1</b> · kapasite <b>x4</b></span>
+          </div>
+          <button class="btn small" id="btn-depo" onclick="doUpgrade('depo')">🍯 200</button>
+        </div>
       </div>
     </div>
 
@@ -514,19 +527,21 @@
     </div>
 
     <div class="card">
-      <h3>😠 Kin Listem</h3>
-      <p class="hint" style="margin-bottom:4px">Sana saldıranlar — intikam tatlıdır ⚔️</p>
-      <div id="raid-grudges"><p class="hint">Henüz kimse sana saldırmadı. (Ya da daha kimse seni keşfetmedi...) 🐝</p></div>
-    </div>
-
-    <div class="card">
-      <h3>📜 Savaş Geçmişim</h3>
-      <div id="raid-hist"><p class="hint">Henüz savaş yok.</p></div>
-    </div>
-
-    <div class="card">
-      <h3>🌍 Dünya Olayları <span style="font-size:10px;color:var(--muted);font-weight:400">(canlı)</span></h3>
-      <div id="raid-events"><p class="hint">Dünya henüz sessiz... ilk kıvılcımı sen çak! ⚔️</p></div>
+      <div class="sec-tabs">
+        <button class="st active" data-rs="kin" onclick="raidSecTab('kin')">😠 Kin</button>
+        <button class="st" data-rs="gecmis" onclick="raidSecTab('gecmis')">📜 Geçmiş</button>
+        <button class="st" data-rs="dunya" onclick="raidSecTab('dunya')">🌍 Dünya</button>
+      </div>
+      <div id="rs-kin" style="margin-top:10px">
+        <p class="hint" style="margin-bottom:4px">Sana saldıranlar — intikam tatlıdır ⚔️</p>
+        <div id="raid-grudges"><p class="hint">Henüz kimse sana saldırmadı. (Ya da daha kimse seni keşfetmedi...) 🐝</p></div>
+      </div>
+      <div id="rs-gecmis" style="display:none;margin-top:10px">
+        <div id="raid-hist"><p class="hint">Henüz savaş yok.</p></div>
+      </div>
+      <div id="rs-dunya" style="display:none;margin-top:10px">
+        <div id="raid-events"><p class="hint">Dünya henüz sessiz... ilk kıvılcımı sen çak! ⚔️</p></div>
+      </div>
     </div>
   </section>
 
@@ -929,7 +944,16 @@ function renderAll() {
     const div = document.createElement('div');
     div.className = 'bee' + (S.bees[l] === 0 ? ' locked' : '');
     const beeEm = BEE_EMOJIS[Math.min(l - 1, BEE_EMOJIS.length - 1)];
-    div.innerHTML = '<div class="lv">' + l + '</div><div class="e">' + beeEm + '</div><div class="n">' + (S.bees[l] || 0) + '</div><div class="p">' + fmtP(beeProd(l)) + '/sn</div>';
+    let inner = '<div class="lv">' + l + '</div><div class="e">' + beeEm + '</div><div class="n">' + (S.bees[l] || 0) + '</div><div class="p">' + fmtP(beeProd(l)) + '/sn</div>';
+    // 🎯 Kilitli hücre: "sıradaki hedef" ilerlemesi (2 arı l-1 gerekir)
+    if (S.bees[l] === 0 && l > 1) {
+      const need = 2; // 2 adet (l-1) arısı → 1 adet (l)
+      const have = S.bees[l - 1] || 0;
+      const pct = Math.min(100, (have / need) * 100);
+      inner += '<div class="bee-prog"><div class="bp-txt">' + (l - 1) + '. seviye: ' + have + '/' + need + '</div>' +
+        '<div class="bp-bar"><i style="width:' + pct + '%"></i></div></div>';
+    }
+    div.innerHTML = inner;
     grid.appendChild(div);
   }
 
@@ -1171,6 +1195,16 @@ async function doCollect() {
   if (handleActionErr(res)) return doCollect();
   if (handleRes(res)) { toast('🍯 +' + fmt(res.collected) + ' bal toplandı'); Sfx.collect(); }
 }
+// Kovan kartı alt-sekmeleri (Genel / Yükseltmeler)
+function secTab(name) {
+  document.querySelectorAll('.sec-tabs .st').forEach((b) => b.classList.toggle('active', b.dataset.st === name));
+  const g = document.getElementById('sec-genel');
+  const u = document.getElementById('sec-upg');
+  if (g) g.style.display = name === 'genel' ? 'block' : 'none';
+  if (u) u.style.display = name === 'upg' ? 'block' : 'none';
+  Sfx.tap();
+}
+
 async function doBuy() {
   haptic('impact');
   if (mode === 'demo') {
@@ -1339,6 +1373,17 @@ function openHowto() {
 }
 
 /* ═══════════════ SEKMELER ═══════════════ */
+// Savaş alt-sekmeleri (Kin / Geçmiş / Dünya)
+function raidSecTab(name) {
+  document.querySelectorAll('.sec-tabs [data-rs]').forEach((b) => b.classList.toggle('active', b.dataset.rs === name));
+  const map = { kin: 'rs-kin', gecmis: 'rs-gecmis', dunya: 'rs-dunya' };
+  for (const [k, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = k === name ? 'block' : 'none';
+  }
+  Sfx.tap();
+}
+
 function switchTab(name) {
   tab = name;
   document.querySelectorAll('main > section').forEach((s) => s.style.display = 'none');
