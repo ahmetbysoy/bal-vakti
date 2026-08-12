@@ -12,6 +12,7 @@ import {
   playBalloon, balloonReward, balloonComboMult, playTimer, timerReward,
   rollRainbow, rainbowActive, RAINBOW_CHANCE,
   playMaze, MAZE_LEVELS, rollCircus, circusActive, rollAlien, buyCosmetic, MARKET_ITEMS,
+  playCircusBalloon, playCircusSpin, playCircusPaint,
   throwEmoji, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
@@ -658,6 +659,49 @@ t('Market: yıldız tozu ile kozmetik alınır', () => {
   const r3 = buyCosmetic(s, 'crown', now0);
   assert.strictEqual(r3.ok, false);
   assert.strictEqual(r3.why, 'zaten_var');
+});
+
+console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
+
+// ── 🎪 Sirk Oyunları ──
+t('Sirk Palyaço Balonu: sirk yoksa reddedilir, günde 1 hak', () => {
+  const s = newState(now0);
+  const r0 = playCircusBalloon(s, 10, now0);
+  assert.strictEqual(r0.ok, false); // sirk aktif değil
+  assert.strictEqual(r0.why, 'sirk_yok');
+  // sirk aktif yap
+  s.circusUntil = now0 + 3600000;
+  const r1 = playCircusBalloon(s, 10, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.strictEqual(r1.popped, false);
+  assert.strictEqual(r1.reward, 5 + 10 * 2); // 25
+  // günde 1 hak
+  const r2 = playCircusBalloon(s, 5, now0 + 1000);
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.why, 'hak_yok');
+});
+
+t('Sirk Dönüş Atlatma: hedef 0.7, mükemmel 80 bal', () => {
+  const s = newState(now0);
+  s.circusUntil = now0 + 3600000;
+  const r1 = playCircusSpin(s, 0.71, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.strictEqual(r1.reward, 80);
+  const r2 = playCircusSpin(s, 0.5, now0 + 1000);
+  assert.strictEqual(r2.ok, false); // günde 1
+});
+
+t('Sirk Yüz Boyama: geçici kozmetik + 30-60 bal', () => {
+  const s = newState(now0);
+  s.circusUntil = now0 + 3600000;
+  const r1 = playCircusPaint(s, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.ok(r1.skin.length > 0);
+  assert.ok(r1.reward >= 30 && r1.reward <= 60);
+  assert.strictEqual(s.circusSkin, r1.skin);
+  // günde 1
+  const r2 = playCircusPaint(s, now0 + 1000);
+  assert.strictEqual(r2.ok, false);
 });
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);

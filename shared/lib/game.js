@@ -715,3 +715,73 @@ export function buyCosmetic(s, id, now = Date.now()) {
   s.cosmetics.push(id);
   return { ok: true, item, stardust: s.stardust };
 }
+
+/* ═══════════════════ 🎪 SİRK MİNİ OYUNLARI (sirk aktifken) ═══════════════════ */
+export const CIRCUS_GAMES = {
+  palyaco: { name: 'Palyaço Balonu', emoji: '🤡', min: 20, max: 100 },
+  donus:   { name: 'Dönüş Atlatma',  emoji: '🎠', min: 15, max: 80 },
+  boyama:  { name: 'Yüz Boyama',     emoji: '🎨', min: 30, max: 60 },
+};
+
+// 🤡 Palyaço Balonu: pump sayısına göre ödül (ne kadar şişirirsen o kadar — ama çok kaçırırsan risk)
+export function playCircusBalloon(s, pumps, now = Date.now()) {
+  if (!circusActive(s, now)) return { ok: false, why: 'sirk_yok' };
+  if (!Number.isInteger(pumps) || pumps < 1 || pumps > 50) return { ok: false, why: 'hile' };
+  const day = Math.floor(now / 86400000);
+  if (s.circusBalloonDay === day) return { ok: false, why: 'hak_yok' }; // günde 1
+  s.circusBalloonDay = day;
+  // Patlama riski: 30+ pump'ta patlama şansı artar
+  const popChance = pumps >= 40 ? 0.6 : pumps >= 30 ? 0.3 : 0;
+  const popped = Math.random() < popChance;
+  let reward = 0;
+  if (!popped) {
+    reward = Math.min(CIRCUS_GAMES.palyaco.max, 5 + pumps * 2); // 5 + 2x pump
+  } else {
+    reward = 3; // patladı — teselli
+  }
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, pumps, popped };
+}
+
+// 🎠 Dönüş Atlatma: doğru zamanda durdur (timer benzeri ama sirk teması)
+export function playCircusSpin(s, stoppedAt, now = Date.now()) {
+  if (!circusActive(s, now)) return { ok: false, why: 'sirk_yok' };
+  if (!Number.isFinite(stoppedAt) || stoppedAt < 0 || stoppedAt > 1) return { ok: false, why: 'hile' };
+  const day = Math.floor(now / 86400000);
+  if (s.circusSpinDay === day) return { ok: false, why: 'hak_yok' };
+  s.circusSpinDay = day;
+  // Hedef: 0.6-0.8 arası "atlayış noktası"
+  const target = 0.7;
+  const diff = Math.abs(stoppedAt - target);
+  let reward = 0;
+  if (diff <= 0.08) reward = 80;       // mükemmel atlayış
+  else if (diff <= 0.15) reward = 50;  // iyi
+  else if (diff <= 0.25) reward = 25;  // orta
+  else reward = 10;                     // düştü ama kalktı
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, diff, target };
+}
+
+// 🎨 Yüz Boyama: geçici kozmetik (sirk süresince)
+export function playCircusPaint(s, now = Date.now()) {
+  if (!circusActive(s, now)) return { ok: false, why: 'sirk_yok' };
+  const day = Math.floor(now / 86400000);
+  if (s.circusPaintDay === day) return { ok: false, why: 'hak_yok' };
+  s.circusPaintDay = day;
+  // Geçici kozmetik: sirk süresince yüz boyası
+  const skins = ['🎭', '🤡', '🦋', '🐯'];
+  const skin = skins[Math.floor(Math.random() * skins.length)];
+  s.circusSkin = skin;
+  const reward = 30 + Math.floor(Math.random() * 30); // 30-60
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, skin };
+}

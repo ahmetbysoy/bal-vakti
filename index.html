@@ -375,6 +375,12 @@
   .lossbar-txt b{color:var(--red)}
   .lossbar{height:10px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
   .lossbar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#e0523f,#ff9a8b);transition:width .4s}
+  /* 🎪 Sirk kartı */
+  .circus-card{
+    background:linear-gradient(180deg,#3a1030,#1d0818);border:2px dashed #ff69b4;
+    border-radius:18px;padding:12px;margin-top:10px;animation:circuspulse 2s ease-in-out infinite;
+  }
+  @keyframes circuspulse{0%,100%{box-shadow:0 0 8px #ff69b444}50%{box-shadow:0 0 20px #ff69b488}}
   /* 🎈 Balon oyunu */
   .balloon-field{position:relative;height:300px;background:linear-gradient(180deg,#1d2a3a,#12202e);border-radius:16px;overflow:hidden;margin:12px 0;border:1px solid var(--line)}
   .balloon{position:absolute;font-size:36px;cursor:pointer;animation:balloonfloat 3s ease-in-out infinite;user-select:none;transition:transform .05s}
@@ -701,6 +707,20 @@ function showEventPopup(title, html, color) {
         <button class="gbtn green" onclick="openEgg()">
           <div class="gbig">🥚</div><b>Mystery Egg</b><span class="gsub">Yakında!</span>
         </button>
+      </div>
+      <div class="circus-card" id="circus-card" style="display:none">
+        <h3 style="color:#ff69b4">🎪 SİRK BURADA! (24 saat)</h3>
+        <div class="gamegrid">
+          <button class="gbtn red" onclick="openCircusGame(\'palyaco\')">
+            <div class="gbig">🤡</div><b>Palyaço Balonu</b><span class="gsub">Şişir, patlatma!</span>
+          </button>
+          <button class="gbtn blue" onclick="openCircusGame(\'donus\')">
+            <div class="gbig">🎠</div><b>Dönüş Atlatma</b><span class="gsub">Zamanla!</span>
+          </button>
+          <button class="gbtn gold" onclick="openCircusGame(\'boyama\')">
+            <div class="gbig">🎨</div><b>Yüz Boyama</b><span class="gsub">Kozmetik!</span>
+          </button>
+        </div>
       </div>
       <p class="hint" style="font-weight:900;color:var(--gold);margin-top:12px">🎪 MİNİ OYUNLAR</p>
       <div class="gamegrid">
@@ -1050,7 +1070,8 @@ async function load() {
     }
     // 🎪 Sirk olayı
     if (res.circus) {
-      setTimeout(() => showEventPopup('🎪 SİRK GELDİ!', 'Bugün balon ödülleri <b>x2</b>! (24 saat)', '#ff69b4'), 1600);
+      setTimeout(() => showEventPopup('🎪 SİRK GELDİ!', 'Eglence Odasinda 3 oyun acik! (24 saat)', '#ff69b4'), 1600);
+      setTimeout(() => toast('🎪 Sirk oyunlari Eglence Odasinda!'), 3000);
     }
     // 👽 Uzaylı
     if (res.alien) {
@@ -1334,7 +1355,9 @@ const ACHS = [
 function renderProfile() {
   if (!S) return;
   const lvl = mode === 'demo' ? dLevel(S) : playerLevel(S);
-  $('#me-avatar').textContent = S.avatar || '🐝';
+  // 🎨 Sirk yüz boyası aktifse avatar'a yansıt
+  const sirkFace = (S.circusUntil || 0) > Date.now() && S.circusSkin ? S.circusSkin + ' ' : '';
+  $('#me-avatar').textContent = sirkFace + (S.avatar || '🐝');
   $('#me-name').textContent = S.name || 'Arıcı';
   const n2 = $('#me-name2'); if (n2) n2.textContent = S.name || 'Arıcı';
   $('#me-lvl').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
@@ -1888,6 +1911,89 @@ function openEgg() {
 
 
 
+/* ═══════════════ 🎪 SİRK OYUNLARI ═══════════════ */
+let circusPump = 0;
+function openCircusGame(game) {
+  haptic('impact');
+  const body = $('#modal-body');
+  if (game === 'palyaco') {
+    circusPump = 0;
+    body.innerHTML =
+      '<h2>🤡 Palyaço Balonu</h2>' +
+      '<p>Balonu şişir! Ne kadar büyükse o kadar bal — ama çok kaçırırsan <b>PATLAR!</b> 💥</p>' +
+      '<div class="vztimer" id="cp-size">0</div>' +
+      '<div class="balloon-field" style="height:200px;display:flex;align-items:flex-end;justify-content:center">' +
+      '<div style="font-size:30px;transition:font-size .1s" id="cp-ballon">🎈</div></div>' +
+      '<button class="btn" id="cp-btn" onclick="circusPumpIt()">🎈 ŞİŞİR!</button>' +
+      '<button class="btn gray small" style="margin-top:8px;width:100%" onclick="circusStop(\'palyaco\')">✋ Bırak (ödülü al)</button>';
+  } else if (game === 'donus') {
+    body.innerHTML =
+      '<h2>🎠 Dönüş Atlatma</h2>' +
+      '<p>Trapeze atlamak için doğru anı yakala! Bar 0.7 ye yaklaşırken <b>DURDUR</b>.</p>' +
+      '<div class="timer-bar"><div class="timer-zone" style="left:65%;width:10%"></div><div class="timer-fill" id="cs-fill"></div></div>' +
+      '<div class="timer-val" id="cs-val">0.00</div>' +
+      '<button class="btn" onclick="circusSpinStop()">🎠 ATLA!</button>';
+    startCircusSpin();
+  } else if (game === 'boyama') {
+    body.innerHTML =
+      '<h2>🎨 Yüz Boyama</h2>' +
+      '<p>Sirk palyaçosu yüzünü boyasın! Geçici kozmetik — sirk süresince sende kalır!</p>' +
+      '<div style="font-size:80px;text-align:center;margin:16px 0" id="cs-face">🐝</div>' +
+      '<button class="btn" onclick="circusPaint()">🎨 BOYA!</button>';
+  }
+  showModal();
+}
+let circusSpinIv = null, circusSpinVal = 0;
+function startCircusSpin() {
+  circusSpinVal = 0;
+  circusSpinIv = setInterval(() => {
+    circusSpinVal += 0.008;
+    const f = $('#cs-fill'); if (f) f.style.width = Math.min(100, circusSpinVal * 100) + '%';
+    const v = $('#cs-val'); if (v) v.textContent = circusSpinVal.toFixed(2);
+    if (circusSpinVal >= 1) { clearInterval(circusSpinIv); circusSpinIv = null; }
+  }, 16);
+}
+function circusPumpIt() {
+  haptic('light');
+  Sfx.viz();
+  circusPump++;
+  $('#cp-size').textContent = circusPump;
+  const b = $('#cp-ballon');
+  if (b) b.style.fontSize = Math.min(90, 30 + circusPump * 1.2) + 'px';
+}
+async function circusStop(game) {
+  haptic('impact');
+  clearInterval(circusSpinIv);
+  circusSpinIv = null;
+  const payload = game === 'palyaco' ? { game: 'palyaco', pumps: circusPump } : { game: 'donus', stoppedAt: circusSpinVal };
+  const res = await api('/api/action', { initData: initData(), action: 'circus', payload });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  const body = $('#modal-body');
+  if (res.popped) {
+    body.innerHTML = '<h2>💥 PATLADI!</h2><p>Balonu fazla şişirdin... +' + res.reward + ' bal teselli 🍯</p><button class="btn" onclick="closeModal()">Tamam 😅</button>';
+    Sfx.error();
+  } else {
+    body.innerHTML = '<h2>🎉 Balon kurtuldu!</h2><p>🎈 Boyut: ' + res.pumps + ' · 🍯 +' + res.reward + ' bal</p><button class="btn" onclick="closeModal()">Süper!</button>';
+    Sfx.ach(); confetti();
+  }
+  handleRes(res);
+}
+async function circusSpinStop() {
+  haptic('impact');
+  await circusStop('donus');
+}
+async function circusPaint() {
+  haptic('impact');
+  const res = await api('/api/action', { initData: initData(), action: 'circus', payload: { game: 'boyama' } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  $('#cs-face').textContent = res.skin + '🐝';
+  $('#modal-body').innerHTML = '<h2>🎨 Yüzün boyandı!</h2><p>Yeni yüzün: <b style="font-size:40px">' + res.skin + '</b><br>+' + res.reward + ' 🍯 (sirk süresince sende!)</p><button class="btn" onclick="closeModal()">Harika!</button>';
+  Sfx.ach(); confetti();
+  handleRes(res);
+}
+
 /* ═══════════════ 🎈 BALON PATLATMA ═══════════════ */
 let balloonTimer = null, balloonScore = 0, balloonCombo = 0, balloonMax = 0;
 function openBalloon() {
@@ -2172,6 +2278,9 @@ function renderEglence() {
   $('#gam-week').textContent = fmt(S.weeklyEarned || 0);
   const sd = document.getElementById('stardust-txt');
   if (sd) sd.textContent = (S.stardust || 0) + ' 👽';
+  // 🎪 Sirk kartı (aktifse göster)
+  const cc = document.getElementById('circus-card');
+  if (cc) cc.style.display = (S.circusUntil || 0) > Date.now() ? 'block' : 'none';
   const can = (S.lastSpin || 0) < Math.floor(Date.now() / DAY) * DAY;
   $('#spin-txt').textContent = can ? 'Çevrilmedi — bedava!' : 'Bugün çevrildi ✅';
 }

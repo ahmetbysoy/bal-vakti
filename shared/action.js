@@ -2,7 +2,7 @@
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
 import { escTg } from './raidcore.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer, playMaze, buyCosmetic } from './lib/game.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer, playMaze, buyCosmetic, playCircusBalloon, playCircusSpin, playCircusPaint } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -139,6 +139,23 @@ async function handle(req, res) {
       const r = buyCosmetic(st, String(payload.itemId || ''), now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
+      break;
+    }
+    case 'circus': {
+      const game = payload.game;
+      if (game === 'palyaco') {
+        const r = playCircusBalloon(st, Math.floor(Number(payload.pumps) || 0), now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else if (game === 'donus') {
+        const r = playCircusSpin(st, Number(payload.stoppedAt) || 0, now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else if (game === 'boyama') {
+        const r = playCircusPaint(st, now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else return res.status(400).json({ error: 'bilinmeyen_oyun' });
       break;
     }
     case 'onboard_done': {

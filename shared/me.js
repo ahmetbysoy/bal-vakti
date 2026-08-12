@@ -133,6 +133,7 @@ async function handle(req, res) {
     rainbow: rainbow ? { until: rainbow.until } : null,
     rainbowActive: rainbowActive(st, now),
     circus: circus ? { until: circus.until } : null,
+    circusSkin: st.circusSkin || null,
     circusActive: circusActive(st, now),
     alien: alien ? { stardust: alien.stardust, gift: alien.gift } : null,
     stardust: st.stardust || 0,

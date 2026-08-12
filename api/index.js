@@ -72,6 +72,7 @@ function newState(now = Date.now()) {
     // 🌟 Kozmetik & yıldız tozu
     cosmetics: [],
     stardust: 0,
+    onboarded: false,            // mikro-onboarding tamamlandı mı
     // ⚔️ PvP
     xp: 0,                           // savaş XP'si
     raidWins: 0,                     // kazandığı saldırılar
@@ -723,7 +724,77 @@ function buyCosmetic(s, id, now = Date.now()) {
   return { ok: true, item, stardust: s.stardust };
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo, balloonReward, balloonComboMult, playBalloon, timerReward, playTimer, RAINBOW_CHANCE, RAINBOW_DURATION_MS, rollRainbow, rainbowActive, MAZE_LEVELS, MAZE_DAILY_PLAYS, playMaze, CIRCUS_CHANCE, CIRCUS_DURATION_MS, rollCircus, circusActive, ALIEN_CHANCE, ALIEN_GIFT_STARDUST, rollAlien, MARKET_ITEMS, buyCosmetic};
+/* ═══════════════════ 🎪 SİRK MİNİ OYUNLARI (sirk aktifken) ═══════════════════ */
+const CIRCUS_GAMES = {
+  palyaco: { name: 'Palyaço Balonu', emoji: '🤡', min: 20, max: 100 },
+  donus:   { name: 'Dönüş Atlatma',  emoji: '🎠', min: 15, max: 80 },
+  boyama:  { name: 'Yüz Boyama',     emoji: '🎨', min: 30, max: 60 },
+};
+
+// 🤡 Palyaço Balonu: pump sayısına göre ödül (ne kadar şişirirsen o kadar — ama çok kaçırırsan risk)
+function playCircusBalloon(s, pumps, now = Date.now()) {
+  if (!circusActive(s, now)) return { ok: false, why: 'sirk_yok' };
+  if (!Number.isInteger(pumps) || pumps < 1 || pumps > 50) return { ok: false, why: 'hile' };
+  const day = Math.floor(now / 86400000);
+  if (s.circusBalloonDay === day) return { ok: false, why: 'hak_yok' }; // günde 1
+  s.circusBalloonDay = day;
+  // Patlama riski: 30+ pump'ta patlama şansı artar
+  const popChance = pumps >= 40 ? 0.6 : pumps >= 30 ? 0.3 : 0;
+  const popped = Math.random() < popChance;
+  let reward = 0;
+  if (!popped) {
+    reward = Math.min(CIRCUS_GAMES.palyaco.max, 5 + pumps * 2); // 5 + 2x pump
+  } else {
+    reward = 3; // patladı — teselli
+  }
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, pumps, popped };
+}
+
+// 🎠 Dönüş Atlatma: doğru zamanda durdur (timer benzeri ama sirk teması)
+function playCircusSpin(s, stoppedAt, now = Date.now()) {
+  if (!circusActive(s, now)) return { ok: false, why: 'sirk_yok' };
+  if (!Number.isFinite(stoppedAt) || stoppedAt < 0 || stoppedAt > 1) return { ok: false, why: 'hile' };
+  const day = Math.floor(now / 86400000);
+  if (s.circusSpinDay === day) return { ok: false, why: 'hak_yok' };
+  s.circusSpinDay = day;
+  // Hedef: 0.6-0.8 arası "atlayış noktası"
+  const target = 0.7;
+  const diff = Math.abs(stoppedAt - target);
+  let reward = 0;
+  if (diff <= 0.08) reward = 80;       // mükemmel atlayış
+  else if (diff <= 0.15) reward = 50;  // iyi
+  else if (diff <= 0.25) reward = 25;  // orta
+  else reward = 10;                     // düştü ama kalktı
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, diff, target };
+}
+
+// 🎨 Yüz Boyama: geçici kozmetik (sirk süresince)
+function playCircusPaint(s, now = Date.now()) {
+  if (!circusActive(s, now)) return { ok: false, why: 'sirk_yok' };
+  const day = Math.floor(now / 86400000);
+  if (s.circusPaintDay === day) return { ok: false, why: 'hak_yok' };
+  s.circusPaintDay = day;
+  // Geçici kozmetik: sirk süresince yüz boyası
+  const skins = ['🎭', '🤡', '🦋', '🐯'];
+  const skin = skins[Math.floor(Math.random() * skins.length)];
+  s.circusSkin = skin;
+  const reward = 30 + Math.floor(Math.random() * 30); // 30-60
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, skin };
+}
+
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo, balloonReward, balloonComboMult, playBalloon, timerReward, playTimer, RAINBOW_CHANCE, RAINBOW_DURATION_MS, rollRainbow, rainbowActive, MAZE_LEVELS, MAZE_DAILY_PLAYS, playMaze, CIRCUS_CHANCE, CIRCUS_DURATION_MS, rollCircus, circusActive, ALIEN_CHANCE, ALIEN_GIFT_STARDUST, rollAlien, MARKET_ITEMS, buyCosmetic, CIRCUS_GAMES, playCircusBalloon, playCircusSpin, playCircusPaint};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -1463,7 +1534,7 @@ const __handlers = {};
 __handlers['me'] = (() => {
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
-const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive, rollCircus, circusActive, rollAlien } = __lib['game'];
+const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive, rollCircus, circusActive, rollAlien, capacity } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -1538,6 +1609,15 @@ async function handle(req, res) {
 
   const now = Date.now();
   const collected = collect(st, now);
+
+  // 📩 DEPO DOLDU bildirimi (12 saatte max 1 — spam yok)
+  if (!isNew && capacity(st) > 0) {
+    const capNow = capacity(st);
+    if (st.bal >= capNow * 0.95 && (st.depoBildirimiAt || 0) < now - 43200000) {
+      st.depoBildirimiAt = now;
+      tgNotify(id, '🍯 <b>Depon doldu!</b>\n\nArıların durdu, balın bekliyor!\nKovanına dön ve topla → 🐝');
+    }
+  }
   // 🌈 Gökkuşağı: girişte %5 şans
   const rainbow = rollRainbow(st, now);
   // 🎪 Sirk: %3 şans
@@ -1587,6 +1667,7 @@ async function handle(req, res) {
     rainbow: rainbow ? { until: rainbow.until } : null,
     rainbowActive: rainbowActive(st, now),
     circus: circus ? { until: circus.until } : null,
+    circusSkin: st.circusSkin || null,
     circusActive: circusActive(st, now),
     alien: alien ? { stardust: alien.stardust, gift: alien.gift } : null,
     stardust: st.stardust || 0,
@@ -1618,7 +1699,7 @@ __handlers['action'] = (() => {
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
 const { escTg } = __lib['raidcore'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer, playMaze, buyCosmetic } = __lib['game'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer, playMaze, buyCosmetic, playCircusBalloon, playCircusSpin, playCircusPaint } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1755,6 +1836,28 @@ async function handle(req, res) {
       const r = buyCosmetic(st, String(payload.itemId || ''), now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
+      break;
+    }
+    case 'circus': {
+      const game = payload.game;
+      if (game === 'palyaco') {
+        const r = playCircusBalloon(st, Math.floor(Number(payload.pumps) || 0), now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else if (game === 'donus') {
+        const r = playCircusSpin(st, Number(payload.stoppedAt) || 0, now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else if (game === 'boyama') {
+        const r = playCircusPaint(st, now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else return res.status(400).json({ error: 'bilinmeyen_oyun' });
+      break;
+    }
+    case 'onboard_done': {
+      st.onboarded = true;
+      result = { onboarded: true };
       break;
     }
     case 'quest_claim': {
