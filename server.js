@@ -2,7 +2,7 @@
 // Vercel'e deploy etmeden önce: npm start → http://localhost:8787
 // Aynı API fonksiyonlarını çalıştırır (api/*.js), static index.html'i sunar.
 import http from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, watch } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dbMode } from './shared/lib/db.js';
@@ -47,17 +47,40 @@ async function handleApi(req, res, seg) {
   }
 }
 
+// ── 🔄 LIVERELOAD (dev): index.html değişince tarayıcı otomatik yenilenir ──
+const liveClients = new Set();
+if (process.env.LIVERELOAD !== '0') {
+  watch('index.html', () => {
+    const msg = 'data: reload\n\n';
+    for (const c of liveClients) { try { c.write(msg); } catch (e) {} }
+  });
+  console.log('   🔄 Livereload aktif — index.html kaydedince otomatik yenilenir');
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
+  if (url.pathname === '/__livereload') {
+    res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+    res.write(': connected\n\n');
+    liveClients.add(res);
+    req.on('close', () => liveClients.delete(res));
+    return;
+  }
   if (url.pathname === '/api/me' || url.pathname === '/api/action' || url.pathname === '/api/leaderboard' || url.pathname === '/api/bot' || url.pathname === '/api/admin' || url.pathname === '/api/raid') {
     return handleApi(req, res, url.pathname.split('/')[2]);
   }
   if (url.pathname === '/' || url.pathname === '/index.html') {
     const file = path.join(__dirname, 'index.html');
     if (existsSync(file)) {
+      let html = readFileSync(file, 'utf8');
+      // 🔄 Dev'de livereload scripti inject et (production'a asla girmez)
+      if (process.env.LIVERELOAD !== '0') {
+        html = html.replace('</body>',
+          '<script>new EventSource(\'/__livereload\').onmessage=function(){location.reload()}</script></body>');
+      }
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      return res.end(readFileSync(file));
+      return res.end(html);
     }
   }
   if (url.pathname === '/admin.html') {

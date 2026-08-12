@@ -94,6 +94,7 @@
     <nav>
       <button class="active" data-t="players" onclick="tab('players')">🔍 Oyuncular</button>
       <button data-t="bots" onclick="tab('bots')">🤖 Botlar</button>
+      <button data-t="events" onclick="tab('events')">🎪 Olaylar</button>
       <button data-t="settings" onclick="tab('settings')">⚙️ Canlı Ayarlar</button>
       <button data-t="gift" onclick="tab('gift')">🎁 Toplu Bonus</button>
     </nav>
@@ -132,6 +133,20 @@
       <div class="card">
         <h3>📋 Bot Listesi <span id="bot-count-txt" style="font-size:11px;color:var(--muted)"></span></h3>
         <div id="bot-list"><p class="hint">Henüz bot yok — oyunu canlandırmak için birkaç tane oluştur!</p></div>
+      </div>
+    </div>
+
+    <div class="tab" id="t-events">
+      <div class="card">
+        <h3>🎪 Olay Test Tetikleyicileri</h3>
+        <p class="hint">Olaylar rastgele (%5/%3/%1) — test için manuel tetikle!</p>
+        <input type="text" id="ev-target" placeholder="Oyuncu ID (örn. 88001295)" style="margin-top:10px">
+        <div class="row" style="margin-top:10px">
+          <button class="btn gold" style="background:linear-gradient(180deg,#ffd166,#f59e0b)" onclick="triggerEvent('sirk')">🎪 Sirk (24s)</button>
+          <button class="btn" onclick="triggerEvent('gokkusagi')">🌈 Gökkuşağı (10dk)</button>
+          <button class="btn purple" onclick="triggerEvent('uzayli')">👽 Uzaylı (+50💫)</button>
+        </div>
+        <p class="hint" id="ev-msg" style="margin-top:10px"></p>
       </div>
     </div>
 
@@ -199,6 +214,7 @@ function tab(name){
   if (name==='players') search();
   if (name==='settings') loadCfg();
   if (name==='bots') botsTab();
+  if (name==='events') document.getElementById('ev-msg').textContent='';
 }
 
 async function refreshOverview(){
@@ -302,6 +318,17 @@ async function giftAll(){
 }
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* 🎪 Olay test tetikleyicileri */
+async function triggerEvent(ev) {
+  const targetId = document.getElementById('ev-target').value.trim();
+  if (!targetId) { toast('Önce oyuncu ID gir!'); return; }
+  const j = await call('event_trigger', { targetId, event: ev });
+  document.getElementById('ev-msg').textContent = j.ok
+    ? '✅ ' + { sirk: '🎪 Sirk 24 saat aktif!', gokkusagi: '🌈 Gökkuşağı 10 dk!', uzayli: '👽 +50 yıldız tozu!' }[ev]
+    : '⛔ ' + j.error;
+  if (j.ok) toast('Olay tetiklendi!');
+}
 
 /* ═══════════════ 🤖 BOTLAR ═══════════════ */
 let BOT_META = null;

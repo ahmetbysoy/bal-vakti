@@ -281,6 +281,27 @@ export async function route(req, res) {
         return res.json({ ok: true, enabled: bot.enabled });
       }
 
+      case 'event_trigger': {
+        const targetId = String(body.targetId || '');
+        if (!targetId) return res.status(400).json({ error: 'hedef_gerekli' });
+        const st = await getUser(targetId);
+        if (!st) return res.status(404).json({ error: 'oyuncu_yok' });
+        const ev = body.event;
+        if (ev === 'sirk') {
+          st.circusDay = 0; // yeni gün — roll'ü zorla
+          st.circusUntil = Date.now() + 24 * 3600 * 1000;
+          st.circusSkin = null;
+        } else if (ev === 'gokkusagi') {
+          st.rainbowDay = 0;
+          st.rainbowUntil = Date.now() + 10 * 60 * 1000;
+        } else if (ev === 'uzayli') {
+          st.alienDay = 0;
+          st.stardust = (st.stardust || 0) + 50;
+        } else return res.status(400).json({ error: 'bilinmeyen_olay' });
+        await saveUser(targetId, st);
+        return res.json({ ok: true, event: ev, targetId });
+      }
+
       case 'bot_run': {
         const r = await thinkBots({ force: true });
         return res.json({ ok: true, ...r });
