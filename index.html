@@ -30,7 +30,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     background:radial-gradient(1200px 600px at 50% -10%, #3a2408 0%, var(--bg) 60%);
     color:var(--cream); user-select:none; touch-action:manipulation;
-    padding-bottom:92px;
+    padding-bottom:calc(92px + env(safe-area-inset-bottom));
   }
   /* ── Kayan Bant (Ticker) — header yerine ── */
   .ticker{
@@ -191,7 +191,11 @@
   .ach b{display:block;font-size:13px;margin-top:6px}
   .ach span{display:block;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
   .ach .r{display:inline-block;margin-top:6px;font-size:10px;font-weight:900;color:#241703;background:var(--amber);border-radius:99px;padding:2px 8px}
-  .ach.locked{filter:grayscale(1);opacity:.5}
+  .ach.locked{filter:grayscale(1);opacity:.6}
+  .ach-prog{margin-top:6px}
+  .ach-prog .ap-txt{font-size:9px;color:var(--muted);font-weight:800}
+  .ach-prog .ap-bar{height:4px;background:#2a1f0f;border-radius:99px;overflow:hidden;margin-top:2px}
+  .ach-prog .ap-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffd166,#f59e0b);transition:width .4s}
   .ach.locked .r{background:#4a4026;color:var(--muted)}
   /* ── Sıralama ── */
   .lb{display:flex;flex-direction:column;gap:6px}
@@ -205,6 +209,7 @@
   nav{
     position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;
     background:linear-gradient(180deg,#241705f2,#1a1004f2);border-top:1px solid var(--line);backdrop-filter:blur(8px);
+    padding-bottom:env(safe-area-inset-bottom);
   }
   nav button{
     flex:1;border:none;background:none;color:var(--muted);padding:9px 0 10px;cursor:pointer;
@@ -299,7 +304,7 @@
   /* ── Lig zebra + kendi sıram ── */
   .lrow:nth-child(even){background:#1a1206}
   .lrow.top3{border-color:var(--gold)}
-  .myrankbar{position:fixed;bottom:64px;left:0;right:0;z-index:28;background:#241703f5;border-top:1px solid var(--gold);
+  .myrankbar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:0;right:0;z-index:28;background:#241703f5;border-top:1px solid var(--gold);
     padding:8px 14px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(6px)}
   .myrankbar .rk{background:var(--amber);color:#241703;font-weight:900;border-radius:99px;padding:2px 10px;font-size:13px}
   .myrankbar .nm{flex:1;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -444,7 +449,7 @@ function showEventPopup(title, html, color) {
   .fomo-main h4{font-size:12px;color:var(--gold);margin-bottom:8px}
   .fbar{display:flex;align-items:center;gap:6px;margin-top:5px}
   .fbar .nm{font-size:10px;width:52px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .fbar .bar{flex:1;height:12px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
+  .fbar .bar{flex:1;height:12px;background:#2a1f0f;border:1px solid var(--line-soft);border-radius:99px;overflow:hidden}
   .fbar .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f59e0b,#ffd166);transition:width 1s ease;min-width:2px}
   .fbar .vl{font-size:10px;color:var(--gold);width:42px;text-align:right}
   .fomo-side{display:flex;flex-direction:column;gap:8px;width:84px}
@@ -790,7 +795,17 @@ function showEventPopup(title, html, color) {
 /* ═══════════════ Bal Vakti 🐝 — Mini App ═══════════════ */
 const $ = (s) => document.querySelector(s);
 const tg = window.Telegram?.WebApp;
-if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+if (tg) {
+  try {
+    tg.ready();
+    tg.expand();
+    // 🎨 Telegram native renklerine uy (oyun teması korunur)
+    tg.setHeaderColor('#150d03');
+    tg.setBackgroundColor('#120b04');
+    // 🔙 BackButton: modal açıkken geri = kapat
+    tg.BackButton.onClick(() => { if ($('#overlay').classList.contains('show')) closeModal(); });
+  } catch (e) {}
+}
 
 const DAY = 86400000;
 const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500];
@@ -1085,6 +1100,8 @@ function renderAll() {
   const pct = Math.min(100, (S.bal / cap) * 100);
   $('#capfill').style.width = pct + '%';
   $('#fullwarn').style.display = S.bal >= cap * 0.9 ? 'block' : 'none';
+  const collectBtn = document.getElementById('btn-collect');
+  if (collectBtn) collectBtn.classList.toggle('full', S.bal >= cap * 0.9);
   $('#lvltxt').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
 
   renderProfile();
@@ -1188,12 +1205,30 @@ function checkLevelUp() {
   }
   lastLevelShown = lvl;
 }
+// 📊 Rozet ilerleme hesaplayıcı (kilitli rozetler için "3/10" motivasyonu)
+function achProgress(a) {
+  const p = {
+    bee1: [S.beesOwned, 1], bees10: [S.beesOwned, 10], bees50: [S.beesOwned, 50], bees100: [S.beesOwned, 100],
+    cap10k: [capacity(S), 10000], kovan5: [S.kovan, 5],
+    mil: [S.totalEarned, 1000000], streak7: [S.streak, 7],
+    ref3: [S.refs, 3], vzvz10: [S.vzvzCount, 10],
+  };
+  const pr = p[a.id];
+  if (!pr) return null; // booleansal rozetler (level8/10, fast) — ilerleme yok
+  return { cur: Math.min(pr[0], pr[1]), max: pr[1], pct: Math.min(100, (pr[0] / pr[1]) * 100) };
+}
 function renderAchs() {
   const grid = $('#ach-grid'); grid.innerHTML = '';
   const owned = ACHS.filter((a) => S.ach.includes(a.id));
   const locked = ACHS.filter((a) => !S.ach.includes(a.id));
-  const mk = (a, got) =>
-    '<div class="ach' + (got ? '' : ' locked') + '"><div class="e">' + (got ? a.emoji : '🔒') + '</div><b>' + a.name + '</b><span>' + a.desc + '</span><div class="r">+' + fmt(a.reward) + ' 🍯</div></div>';
+  const mk = (a, got) => {
+    const prog = got ? null : achProgress(a);
+    const progHtml = prog
+      ? '<div class="ach-prog"><div class="ap-txt">' + prog.cur + '/' + prog.max + '</div>' +
+        '<div class="ap-bar"><i style="width:' + prog.pct + '%"></i></div></div>'
+      : '';
+    return '<div class="ach' + (got ? '' : ' locked') + '"><div class="e">' + (got ? a.emoji : '🔒') + '</div><b>' + a.name + '</b><span>' + a.desc + '</span>' + progHtml + '<div class="r">+' + fmt(a.reward) + ' 🍯</div></div>';
+  };
   if (owned.length) {
     grid.innerHTML += '<div style="grid-column:1/-1;font-size:11px;color:var(--green);font-weight:900;margin-top:4px">🏆 KAZANDIKLARIN (' + owned.length + ')</div>';
     grid.innerHTML += owned.map((a) => mk(a, true)).join('');
@@ -1553,9 +1588,13 @@ async function finishVzvz() {
 }
 
 /* ═══════════════ MODALLAR ═══════════════ */
-function showModal() { $('#overlay').classList.add('show'); }
+function showModal() {
+  $('#overlay').classList.add('show');
+  try { if (tg) tg.BackButton.show(); } catch (e) {}
+}
 function closeModal() {
   $('#overlay').classList.remove('show');
+  try { if (tg) tg.BackButton.hide(); } catch (e) {}
   if (vzvzTimer) { clearInterval(vzvzTimer); vzvzTimer = null; vzvzRunning = false; }
 }
 $('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeModal(); });
@@ -2535,6 +2574,8 @@ function liveTick() {
   $('#capnow').textContent = fmt(lv.bal) + ' 🍯';
   $('#capmax').textContent = fmt(lv.cap);
   $('#fullwarn').style.display = lv.bal >= lv.cap * 0.9 ? 'block' : 'none';
+  const collectBtn2 = document.getElementById('btn-collect');
+  if (collectBtn2) collectBtn2.classList.toggle('full', lv.bal >= lv.cap * 0.9);
 }
 
 const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥'];

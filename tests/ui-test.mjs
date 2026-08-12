@@ -49,7 +49,16 @@ async function layoutCheck(tabName) {
           }
         }
       }
-      // 3) Dikey metin akışı: linkbox gibi — metin her karakterde satır atlıyorsa
+      // 3) Tek başına '<' veya '>' text node'u (stray karakter)
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    const t = node.textContent.trim();
+    if (t === '<' || t === '>') {
+      issues.push({ type: 'stray_karakter', msg: 'tek başına "' + t + '" text node bulundu' });
+    }
+  }
+  // 4) Dikey metin akışı: linkbox gibi — metin her karakterde satır atlıyorsa
       if (el.scrollHeight > el.clientHeight * 4 && el.clientHeight > 0) {
         const txt = (el.textContent || '').trim().slice(0, 30);
         if (txt && txt.length > 20) {
