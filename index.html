@@ -146,6 +146,13 @@
   .quest .qp i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#7bd88f,#ffd166);transition:width .4s}
   .quest .qa{flex-shrink:0}
   .quest .qa .btn{padding:6px 10px;font-size:11px}
+  /* ── Utility'ler (inline style yerine) ── */
+  .mt-1{margin-top:4px}
+  .mt-2{margin-top:8px}
+  .center{text-align:center}
+  .txt-gold{color:var(--gold)}
+  .btn-block{width:100%}
+  .badge-boost{background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900}
   .sec-tabs{display:flex;gap:6px}
   .sec-tabs .st{
     flex:1;background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px;
@@ -156,6 +163,15 @@
   .pill{background:#171003;border:1px solid var(--line);border-radius:99px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
   .pill b{color:var(--gold);font-size:12px}
   .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  /* ── ORTAK component: stat-card (Kovan, Savaş, Rozet aynı dil) ── */
+  .stat-card{
+    background:#171003;border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:9px 6px;text-align:center;
+  }
+  .stat-card .v{font-size:17px;font-weight:900;color:var(--cream)}
+  .stat-card .l{font-size:10px;color:var(--muted);margin-top:2px}
+  .stat-card.hot{border-color:var(--amber)}
   .stat{background:#171003;border:1px solid var(--line);border-radius:14px;padding:9px 6px;text-align:center}
   .stat .v{font-size:17px;font-weight:900;color:var(--cream)}
   .stat .l{font-size:11px;color:var(--muted);margin-top:2px}
@@ -496,7 +512,7 @@ function showEventPopup(title, html, color) {
       <div class="hero-left">
         <div class="jar">🍯</div>
         <div class="balcount glowtxt" id="bal">0</div>
-        <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
+        <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" class="badge-boost" style="display:none"></span></div>
       </div>
       <button class="btn big-round" id="btn-collect" onclick="doCollect()">🍯<br>Topla</button>
       <span class="streakbadge" id="streak-badge" style="display:none"></span>
@@ -538,11 +554,11 @@ function showEventPopup(title, html, color) {
         <button class="st" data-st="upg" onclick="secTab('upg')">🏭 Yükseltmeler</button>
       </div>
       <div id="sec-genel">
-        <div class="pillrow" style="margin-top:10px">
-          <span class="pill">🐝 <b id="st-bees">0</b></span>
-          <span class="pill">⚡ <b id="st-prod">0</b>/sn</span>
-          <span class="pill">🏺 <b id="st-cap">0</b></span>
-          <span class="pill">💰 <b id="st-total">0</b></span>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="v" id="st-bees">0</div><div class="l">🐝 Arı</div></div>
+          <div class="stat-card"><div class="v" id="st-prod">0</div><div class="l">⚡ Bal/sn</div></div>
+          <div class="stat-card"><div class="v" id="st-cap">0</div><div class="l">🏺 Depo</div></div>
+          <div class="stat-card"><div class="v" id="st-total">0</div><div class="l">💰 Toplam</div></div>
         </div>
       </div>
       <div id="sec-upg" style="display:none">
@@ -566,7 +582,7 @@ function showEventPopup(title, html, color) {
 
     <div class="card" style="text-align:center">
       <button class="btn gray small" onclick="openHowto()">ℹ️ Nasıl Oynanır?</button>
-      <p class="hint" style="margin-top:8px">👥 Arkadaşlarını davet etmek için üstteki <b style="color:var(--gold)">Davet</b> butonuna bas!</p>
+      <p class="hint mt-1">👥 Arkadaşlarını davet etmek için üstteki <b class="txt-gold">Davet</b> butonuna bas!</p>
     </div>
   </section>
 
@@ -615,20 +631,20 @@ function showEventPopup(title, html, color) {
     <div class="card">
       <h3>⚔️ Saldırı Merkezi</h3>
       <div class="stats">
-        <div class="stat"><div class="v" id="war-lvl">1</div><div class="l">🎖️ Savaşçı Sv</div></div>
-        <div class="stat"><div class="v" id="war-xp">0</div><div class="l">⭐ XP</div></div>
-        <div class="stat"><div class="v" id="war-pow">0</div><div class="l">💪 Güç</div></div>
-        <div class="stat"><div class="v" id="war-wins">0</div><div class="l">🏆 Galibiyet</div></div>
+        <div class="stat-card"><div class="v" id="war-lvl">1</div><div class="l">🎖️ Savaşçı Sv</div></div>
+        <div class="stat-card"><div class="v" id="war-xp">0</div><div class="l">⭐ XP</div></div>
+        <div class="stat-card"><div class="v" id="war-pow">0</div><div class="l">💪 Güç</div></div>
+        <div class="stat-card"><div class="v" id="war-wins">0</div><div class="l">🏆 Galibiyet</div></div>
       </div>
       <div class="xpbar"><i id="war-xpbar"></i></div>
-      <p class="hint" id="war-xptxt" style="text-align:center;margin-top:4px"></p>
+      <p class="hint center mt-1" id="war-xptxt"></p>
     </div>
 
     <div class="card">
       <h3>🎯 Hedef Önerileri</h3>
       <p class="hint" style="margin-bottom:4px">Gücüne yakın arıcılar — saldır, XP kap!</p>
       <div id="raid-targets"></div>
-      <button class="btn gray small" style="margin-top:10px;width:100%" onclick="raidRandom()">🎲 Rastgele Düşman Bul</button>
+      <button class="btn gray small btn-block mt-2" onclick="raidRandom()">🎲 Rastgele Düşman Bul</button>
     </div>
 
     <div class="card">
@@ -690,10 +706,10 @@ function showEventPopup(title, html, color) {
     <div class="card">
       <h3>📊 Kumar İstatistiklerim</h3>
       <div class="stats">
-        <div class="stat"><div class="v" id="gam-count">0</div><div class="l">🎁 Açılan Sandık</div></div>
-        <div class="stat"><div class="v" id="gam-bal">0</div><div class="l">🍯 Mevcut Bal</div></div>
-        <div class="stat"><div class="v" id="gam-jackpot">0</div><div class="l">💛 Jackpot</div></div>
-        <div class="stat"><div class="v" id="gam-week">0</div><div class="l">🏆 Haftalık</div></div>
+        <div class="stat-card"><div class="v" id="gam-count">0</div><div class="l">🎁 Açılan Sandık</div></div>
+        <div class="stat-card"><div class="v" id="gam-bal">0</div><div class="l">🍯 Mevcut Bal</div></div>
+        <div class="stat-card"><div class="v" id="gam-jackpot">0</div><div class="l">💛 Jackpot</div></div>
+        <div class="stat-card"><div class="v" id="gam-week">0</div><div class="l">🏆 Haftalık</div></div>
       </div>
       <p class="hint" style="text-align:center;margin-top:8px">🎁 Günlük 1 bedava sandık · 2. kart 100 bal<br>💛 Jackpot: 1000 bal (%5 şans!)</p>
     </div>
@@ -712,12 +728,12 @@ function showEventPopup(title, html, color) {
     <div class="card">
       <h3>📊 İstatistiklerim</h3>
       <div class="stats">
-        <div class="stat"><div class="v" id="me-st-bal">0</div><div class="l">🍯 Bal</div></div>
-        <div class="stat"><div class="v" id="me-st-bees">0</div><div class="l">🐝 Arı</div></div>
-        <div class="stat"><div class="v" id="me-st-ach">0</div><div class="l">🏅 Rozet</div></div>
-        <div class="stat"><div class="v" id="me-st-ref">0</div><div class="l">🎁 Davet</div></div>
-        <div class="stat"><div class="v" id="me-st-vz">0</div><div class="l">⚡ VızVız</div></div>
-        <div class="stat"><div class="v" id="me-st-age">-</div><div class="l">📅 Hesap yaşı</div></div>
+        <div class="stat-card"><div class="v" id="me-st-bal">0</div><div class="l">🍯 Bal</div></div>
+        <div class="stat-card"><div class="v" id="me-st-bees">0</div><div class="l">🐝 Arı</div></div>
+        <div class="stat-card"><div class="v" id="me-st-ach">0</div><div class="l">🏅 Rozet</div></div>
+        <div class="stat-card"><div class="v" id="me-st-ref">0</div><div class="l">🎁 Davet</div></div>
+        <div class="stat-card"><div class="v" id="me-st-vz">0</div><div class="l">⚡ VızVız</div></div>
+        <div class="stat-card"><div class="v" id="me-st-age">-</div><div class="l">📅 Hesap yaşı</div></div>
       </div>
     </div>
 
