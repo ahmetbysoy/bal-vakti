@@ -61,6 +61,9 @@ export function newState(now = Date.now()) {
     vzvzAt: 0,                       // son VızVız zamanı (bekleme için)
     vzvzCount: 0,                    // toplam VızVız oyunu
     banned: false,                   // admin tarafından men edildi mi
+    // 🌟 Kozmetik & yıldız tozu
+    cosmetics: [],
+    stardust: 0,
     // ⚔️ PvP
     xp: 0,                           // savaş XP'si
     raidWins: 0,                     // kazandığı saldırılar
@@ -633,4 +636,81 @@ export function rollRainbow(s, now = Date.now()) {
 }
 export function rainbowActive(s, now = Date.now()) {
   return (s.rainbowUntil || 0) > now;
+}
+
+/* ═══════════════════ 🐝 LABİRENT MİNİ OYUNU ═══════════════════ */
+export const MAZE_LEVELS = [
+  { lvl: 1, size: 5, flowers: 3, timeSec: 60, base: 20, flowerBonus: 5,  next: 2 },
+  { lvl: 2, size: 6, flowers: 4, timeSec: 55, base: 40, flowerBonus: 8,  next: 3 },
+  { lvl: 3, size: 7, flowers: 5, timeSec: 50, base: 70, flowerBonus: 12, next: null },
+];
+export const MAZE_DAILY_PLAYS = 3;
+export function playMaze(s, level, flowers, won, now = Date.now()) {
+  const cfg = MAZE_LEVELS[level - 1];
+  if (!cfg) return { ok: false, why: 'seviye_yok' };
+  if (!Number.isInteger(flowers) || flowers < 0 || flowers > cfg.flowers) return { ok: false, why: 'hile' };
+  // Seviye kilitli mi? (ardışık açılır)
+  const unlocked = s.mazeLevel || 1;
+  if (level > unlocked) return { ok: false, why: 'kilitli' };
+  // Günde 3 hak
+  const day = Math.floor(now / 86400000);
+  if (s.mazeDay === day && (s.mazePlays || 0) >= MAZE_DAILY_PLAYS) return { ok: false, why: 'hak_yok' };
+  if (s.mazeDay !== day) { s.mazeDay = day; s.mazePlays = 0; }
+  s.mazePlays = (s.mazePlays || 0) + 1;
+  // Ödül: kazanırsan taban + çiçek bonusu; kaybedersen minik teselli
+  let reward = 0;
+  if (won) {
+    reward = cfg.base + flowers * cfg.flowerBonus;
+    if (cfg.next && unlocked < cfg.next) s.mazeLevel = cfg.next; // sonraki seviyeyi aç
+    s.mazeWins = (s.mazeWins || 0) + 1;
+  } else {
+    reward = 5; // teselli
+  }
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, won, level, unlockedNext: s.mazeLevel || 1 };
+}
+
+/* ═══════════════════ 🎪 SİRK OLAYI (%3/gün) ═══════════════════ */
+export const CIRCUS_CHANCE = 0.03;
+export const CIRCUS_DURATION_MS = 24 * 3600 * 1000; // 24 saat
+export function rollCircus(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  if (s.circusDay === day) return null;
+  if (Math.random() >= CIRCUS_CHANCE) return null;
+  s.circusDay = day;
+  s.circusUntil = now + CIRCUS_DURATION_MS;
+  return { until: s.circusUntil };
+}
+export function circusActive(s, now = Date.now()) {
+  return (s.circusUntil || 0) > now;
+}
+
+/* ═══════════════════ 👽 UZAYLI + YILDIZ TOZU + MARKET ═══════════════════ */
+export const ALIEN_CHANCE = 0.01;
+export const ALIEN_GIFT_STARDUST = 50;
+export function rollAlien(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  if (s.alienDay === day) return null;
+  if (Math.random() >= ALIEN_CHANCE) return null;
+  s.alienDay = day;
+  s.stardust = (s.stardust || 0) + ALIEN_GIFT_STARDUST;
+  return { stardust: s.stardust, gift: ALIEN_GIFT_STARDUST };
+}
+export const MARKET_ITEMS = [
+  { id: 'crown',   name: 'Altın Taç',  emoji: '👑', price: 300, desc: 'Profilde taç gösterir' },
+  { id: 'glow',    name: 'Parlayan Arı', emoji: '✨', price: 500, desc: 'Arıların parıldar' },
+  { id: 'rainbow', name: 'Gökkuşağı Kovan', emoji: '🌈', price: 800, desc: 'Kovan renk değiştirir' },
+];
+export function buyCosmetic(s, id, now = Date.now()) {
+  const item = MARKET_ITEMS.find((i) => i.id === id);
+  if (!item) return { ok: false, why: 'urun_yok' };
+  if ((s.stardust || 0) < item.price) return { ok: false, why: 'toz_yok' };
+  if ((s.cosmetics || []).includes(id)) return { ok: false, why: 'zaten_var' };
+  s.stardust -= item.price;
+  if (!Array.isArray(s.cosmetics)) s.cosmetics = [];
+  s.cosmetics.push(id);
+  return { ok: true, item, stardust: s.stardust };
 }

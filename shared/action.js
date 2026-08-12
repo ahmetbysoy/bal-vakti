@@ -2,7 +2,7 @@
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
 import { escTg } from './raidcore.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer } from './lib/game.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer, playMaze, buyCosmetic } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -127,6 +127,18 @@ async function handle(req, res) {
         if (!r.ok) return res.status(400).json({ error: r.why });
         result = r;
       } else return res.status(400).json({ error: 'bilinmeyen_oyun' });
+      break;
+    }
+    case 'maze': {
+      const r = playMaze(st, Math.floor(Number(payload.level) || 1), Math.floor(Number(payload.flowers) || 0), !!payload.won, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = r;
+      break;
+    }
+    case 'market_buy': {
+      const r = buyCosmetic(st, String(payload.itemId || ''), now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = r;
       break;
     }
     case 'quest_claim': {

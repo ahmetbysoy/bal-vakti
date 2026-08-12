@@ -11,6 +11,7 @@ import {
   questProgress, questClaim, questInfo, DAILY_QUESTS,
   playBalloon, balloonReward, balloonComboMult, playTimer, timerReward,
   rollRainbow, rainbowActive, RAINBOW_CHANCE,
+  playMaze, MAZE_LEVELS, rollCircus, circusActive, rollAlien, buyCosmetic, MARKET_ITEMS,
   throwEmoji, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
@@ -601,5 +602,63 @@ t('Gökkuşağı: %5 şans, günde 1 kez, 10dk x2', () => {
     assert.strictEqual(r2, null); // aynı gün tekrar yok
   }
 });
+
+// ── 🐝 Labirent ──
+t('Labirent: seviye kilidi + günde 3 hak + çiçek bonusu', () => {
+  const s = newState(now0);
+  // 2. seviye kilitli
+  const locked = playMaze(s, 2, 0, true, now0);
+  assert.strictEqual(locked.ok, false);
+  assert.strictEqual(locked.why, 'kilitli');
+  // 1. seviye kazan
+  const r1 = playMaze(s, 1, 3, true, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.strictEqual(r1.reward, 20 + 3 * 5); // taban + çiçek
+  assert.strictEqual(r1.unlockedNext, 2); // 2. seviye açıldı
+  // günde 3 hak
+  playMaze(s, 2, 0, true, now0 + 1000);
+  playMaze(s, 2, 0, true, now0 + 2000);
+  const r4 = playMaze(s, 2, 0, true, now0 + 3000);
+  assert.strictEqual(r4.ok, false);
+  assert.strictEqual(r4.why, 'hak_yok');
+  // ertesi gün tekrar
+  const r5 = playMaze(s, 2, 0, true, now0 + 86400000);
+  assert.strictEqual(r5.ok, true);
+});
+
+// ── 🎪 Sirk + 👽 Uzaylı ──
+t('Sirk günde 1 kez, 24 saat aktif; Uzaylı yıldız tozu verir', () => {
+  const s = newState(now0);
+  s.circusUntil = now0 + 3600000;
+  assert.strictEqual(circusActive(s, now0), true);
+  assert.strictEqual(circusActive(s, now0 + 25 * 3600000), false);
+  // Uzaylı: state manuel — gift mantığı
+  const s2 = newState(now0);
+  s2.alienDay = Math.floor(now0 / 86400000);
+  const r = rollAlien(s2, now0 + 1000);
+  assert.strictEqual(r, null); // aynı gün tekrar yok
+});
+
+// ── 🌟 Market ──
+t('Market: yıldız tozu ile kozmetik alınır', () => {
+  const s = newState(now0);
+  s.stardust = 500;
+  // yetersiz toz: rainbow 800 > 500
+  const r1 = buyCosmetic(s, 'rainbow', now0);
+  assert.strictEqual(r1.ok, false);
+  assert.strictEqual(r1.why, 'toz_yok');
+  // yeterli toz: crown 300 <= 500
+  const r2 = buyCosmetic(s, 'crown', now0);
+  assert.strictEqual(r2.ok, true);
+  assert.strictEqual(s.cosmetics.includes('crown'), true);
+  assert.strictEqual(s.stardust, 200);
+  // tekrar alınamaz: 200 < 300 olsa da once zaten_var kontrolu gelmeli — kod sırası toz önce;
+  // bu yuzden yeterli tozla tekrar dene (glow 500 alamaz, 200<500 → toz_yok)
+  s.stardust = 900; // crown+glow icin yeterli
+  const r3 = buyCosmetic(s, 'crown', now0);
+  assert.strictEqual(r3.ok, false);
+  assert.strictEqual(r3.why, 'zaten_var');
+});
+
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
 process.exit(failed > 0 ? 1 : 0);

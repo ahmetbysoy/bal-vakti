@@ -353,12 +353,39 @@
   @keyframes balloonfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
   .balloon.pop{animation:balloonpop .3s ease forwards}
   @keyframes balloonpop{0%{transform:scale(1)}100%{transform:scale(2.2);opacity:0}}
+  /* 🐝 Labirent */
+  .maze-grid{display:grid;gap:3px;margin:12px 0;background:#171003;padding:8px;border-radius:14px;border:1px solid var(--line);touch-action:none}
+  .maze-cell{aspect-ratio:1;border-radius:6px;background:#241a0c;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .maze-cell.wall{background:#0d0a04;box-shadow:inset 0 0 0 1px #1f170a}
+  .maze-cell.flower{background:#2a2410}
+  .maze-cell.honey{background:#3a2d08;box-shadow:inset 0 0 10px #f59e0b44}
+  .maze-cell.bee{background:#3a2509;box-shadow:0 0 10px #ffd16688}
+  .maze-cell.path{background:#1d1408}
+  /* 🌟 Market */
+  .market-item{display:flex;align-items:center;gap:10px;background:#171003;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+  .market-item .mi{font-size:28px;width:40px;text-align:center}
+  .market-item .mf{flex:1}
+  .market-item .mf b{font-size:14px;display:block}
+  .market-item .mf span{font-size:11px;color:var(--muted)}
+  .market-item .mb{flex-shrink:0}
+  .market-item.owned{border-color:var(--green);opacity:.7}
   /* ⏰ Zamanlayıcı */
   .timer-bar{height:34px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:14px 0;position:relative}
   .timer-fill{display:block;height:100%;background:linear-gradient(90deg,#ff6b52,#ffd166);transition:width .02s linear}
   .timer-zone{position:absolute;top:0;bottom:0;background:#7bd88f33;border-left:2px solid var(--green);border-right:2px solid var(--green);width:15%}
   .timer-val{font-size:32px;font-weight:900;color:var(--gold);text-align:center;font-variant-numeric:tabular-nums}
-  /* 🌈 Gökkuşağı popup */
+  /* 🎪👽 Genel olay popup */
+function showEventPopup(title, html, color) {
+  const ov = document.createElement('div');
+  ov.className = 'rainbow-overlay show';
+  ov.style.background = 'linear-gradient(124deg, ' + color + ', #ffd166, ' + color + ')';
+  ov.innerHTML = '<div class="rainbow-card" style="background:linear-gradient(124deg,' + color + ',#ffd166,' + color + ');background-size:1800% 1800%;animation:rainbowbg 3s ease infinite">' + title + '<br><span style="font-size:14px;font-weight:700">' + html + '</span></div>';
+  document.body.appendChild(ov);
+  Sfx.ach();
+  setTimeout(() => ov.remove(), 6000);
+}
+
+/* 🌈 Gökkuşağı popup */
   .rainbow-overlay{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;background:#000000cc;pointer-events:none}
   .rainbow-overlay.show{display:flex;animation:rainbowfade 6s ease forwards}
   @keyframes rainbowfade{0%{opacity:1}80%{opacity:1}100%{opacity:0}}
@@ -397,6 +424,7 @@
   .hero.neon{box-shadow:0 0 24px #ffd16666,0 0 60px #f59e0b33;border-color:var(--gold)}
   .hero.neon::before{content:"";position:absolute;inset:-3px;border-radius:24px;border:2px solid #ffd16655;animation:neonring 3s linear infinite;pointer-events:none}
   @keyframes neonring{0%{transform:rotate(0) scale(1);opacity:.6}100%{transform:rotate(360deg) scale(1);opacity:.6}}
+  .hero.cosmo-rainbow{border-image:linear-gradient(124deg,#ff2400,#1de840,#1ddde8,#dd00f3) 1;border-radius:22px}
   /* 🐝 Petek pulse */
   .bee{animation:petekpulse 1.2s ease-in-out infinite}
   @keyframes petekpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
@@ -640,6 +668,14 @@
         </button>
         <button class="gbtn blue" onclick="openTimerGame()">
           <div class="gbig">⏰</div><b>Zamanlayıcı</b><span class="gsub">Günde 3 hak</span>
+        </button>
+        <button class="gbtn green" onclick="openMaze()">
+          <div class="gbig">🐝</div><b>Labirent</b><span class="gsub">Günde 3 hak</span>
+        </button>
+      </div>
+      <div class="gamegrid" style="margin-top:8px">
+        <button class="gbtn gold" onclick="openMarket()">
+          <div class="gbig">🌟</div><b>Galaksi Market</b><span class="gsub" id="stardust-txt">0 👽</span>
         </button>
         <button class="gbtn gray" onclick="toast('🍯 Bal Sıçratma yakında!')">
           <div class="gbig">🍯</div><b>Sıçrat</b><span class="gsub">Yakında!</span>
@@ -954,6 +990,14 @@ async function load() {
     if (res.rainbow) {
       setTimeout(showRainbow, 800);
     }
+    // 🎪 Sirk olayı
+    if (res.circus) {
+      setTimeout(() => showEventPopup('🎪 SİRK GELDİ!', 'Bugün balon ödülleri <b>x2</b>! (24 saat)', '#ff69b4'), 1600);
+    }
+    // 👽 Uzaylı
+    if (res.alien) {
+      setTimeout(() => showEventPopup('👽 UZAYLI ZİYARETİ!', 'Dost uzaylı sana <b>+' + res.alien.gift + ' 💫 yıldız tozu</b> hediye etti!', '#8b5cf6'), 2400);
+    }
     // 💥 Gelen emoji bombalarını animasyonla göster (sırayla)
     if (res.incomingEmojis?.length) {
       setTimeout(() => {
@@ -1020,6 +1064,14 @@ function renderAll() {
   if (heroCard) {
     const anyBoost = (S.boostUntil || 0) > Date.now() || (S.streakBoostUntil || 0) > Date.now() || (S.warBoostUntil || 0) > Date.now() || (S.rainbowUntil || 0) > Date.now();
     heroCard.classList.toggle('neon', anyBoost);
+  }
+  // ✨ Kozmetik efektler: glow (arılar parlar), rainbow (hero)
+  if ((S.cosmetics || []).includes('glow')) {
+    document.querySelectorAll('#bee-grid .bee .e').forEach((el) => el.style.textShadow = '0 0 12px #ffd166aa');
+  }
+  const heroEl = document.getElementById('hero-card');
+  if (heroEl) {
+    heroEl.classList.toggle('cosmo-rainbow', (S.cosmetics || []).includes('rainbow'));
   }
   // 🌈 Hologram: seviye 8+ arılar
   document.querySelectorAll('#bee-grid .bee').forEach((el) => {
@@ -1846,12 +1898,161 @@ function showRainbow() {
   setTimeout(() => ov.remove(), 6000);
 }
 
+/* ═══════════════ 🐝 LABİRENT ═══════════════ */
+// Statik labirent haritaları (0=yol 1=duvar)
+const MAZE_MAPS = {
+  1: { size: 5, walls: ['11,1','1,3','2,3','3,1','3,3','4,1','4,3'].map(s=>s.split(',').map(Number)),
+       flowers: [[1,0],[2,4],[4,2]], honey: [4,4] },
+  2: { size: 6, walls: ['1,1','1,3','1,4','2,3','3,1','3,2','4,4','5,1','5,3'].map(s=>s.split(',').map(Number)),
+       flowers: [[0,3],[2,0],[3,5],[5,2]], honey: [5,5] },
+  3: { size: 7, walls: ['1,1','1,3','1,5','2,1','2,4','3,3','3,5','4,1','4,2','5,4','5,5','6,1','6,3'].map(s=>s.split(',').map(Number)),
+       flowers: [[0,2],[2,0],[2,6],[5,0],[6,5]], honey: [6,6] },
+};
+let mazeLevel = 1, mazePos = [0,0], mazeFlowers = 0, mazeTimerIv = null, mazeTimeLeft = 0;
+function openMaze() {
+  haptic('impact');
+  const body = $('#modal-body');
+  mazeLevel = Math.min(S.mazeLevel || 1, 3);
+  body.innerHTML =
+    '<h2>🐝 Arı Labirenti</h2>' +
+    '<p>Arıyı kaydırarak yönlendir — 🌸 çiçekleri topla, 🍯 bala ulaş! (Seviye ' + mazeLevel + ')</p>' +
+    '<div class="vztimer" id="maze-timer">60</div>' +
+    '<div class="maze-grid" id="maze-grid"></div>' +
+    '<div class="vztaps">Çiçek: <b id="maze-flowers">0</b>/' + MAZE_MAPS[mazeLevel].flowers.length + '</div>';
+  showModal();
+  mazePos = [0, 0]; mazeFlowers = 0;
+  renderMaze();
+  mazeTimeLeft = 60 - (mazeLevel - 1) * 5;
+  $('#maze-timer').textContent = mazeTimeLeft;
+  if (mazeTimerIv) clearInterval(mazeTimerIv);
+  mazeTimerIv = setInterval(() => {
+    mazeTimeLeft--;
+    $('#maze-timer').textContent = mazeTimeLeft;
+    if (mazeTimeLeft <= 0) { clearInterval(mazeTimerIv); mazeTimerIv = null; finishMaze(false); }
+  }, 1000);
+}
+function renderMaze() {
+  const map = MAZE_MAPS[mazeLevel];
+  const grid = $('#maze-grid');
+  if (!grid) return;
+  grid.style.gridTemplateColumns = 'repeat(' + map.size + ',1fr)';
+  grid.innerHTML = '';
+  for (let r = 0; r < map.size; r++) {
+    for (let c = 0; c < map.size; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'maze-cell';
+      const isWall = map.walls.some(([wr, wc]) => wr === r && wc === c);
+      const isFlower = map.flowers.some(([fr, fc]) => fr === r && fc === c);
+      const isHoney = map.honey[0] === r && map.honey[1] === c;
+      const isBee = mazePos[0] === r && mazePos[1] === c;
+      if (isBee) cell.classList.add('bee');
+      else if (isWall) cell.classList.add('wall');
+      else if (isHoney) cell.classList.add('honey');
+      else if (isFlower) cell.classList.add('flower');
+      else cell.classList.add('path');
+      if (isHoney && !isBee) cell.textContent = '🍯';
+      else if (isFlower && !isBee) cell.textContent = '🌸';
+      else if (isBee) cell.textContent = '🐝';
+      grid.appendChild(cell);
+    }
+  }
+}
+// Swipe kontrol
+function moveBee(dr, dc) {
+  const map = MAZE_MAPS[mazeLevel];
+  const nr = mazePos[0] + dr, nc = mazePos[1] + dc;
+  if (nr < 0 || nc < 0 || nr >= map.size || nc >= map.size) return;
+  if (map.walls.some(([wr, wc]) => wr === nr && wc === nc)) return; // duvar
+  mazePos = [nr, nc];
+  // çiçek topla
+  if (map.flowers.some(([fr, fc]) => fr === nr && fc === nc)) {
+    mazeFlowers++;
+    Sfx.collect();
+    haptic('light');
+    $('#maze-flowers').textContent = mazeFlowers + '/' + map.flowers.length;
+  }
+  // bala ulaş
+  if (map.honey[0] === nr && map.honey[1] === nc) {
+    clearInterval(mazeTimerIv); mazeTimerIv = null;
+    finishMaze(true);
+    return;
+  }
+  renderMaze();
+}
+async function finishMaze(won) {
+  const res = await api('/api/action', { initData: initData(), action: 'maze', payload: { level: mazeLevel, flowers: mazeFlowers, won } });
+  if (handleActionErr(res)) return;
+  const body = $('#modal-body');
+  if (!res?.ok) { body.innerHTML = '<h2>🐝 Bitti!</h2><p>' + errText(res.error) + '</p><button class="btn" onclick="closeModal()">Tamam</button>'; return; }
+  body.innerHTML =
+    '<h2>' + (won ? '🏆 SEVİYE GEÇTİN!' : '😊 Süre doldu...') + '</h2>' +
+    '<div class="warres"><div class="em">' + (won ? '🏆' : '🐝') + '</div>' +
+    '<div class="rows"><div>🌸 Çiçek: <b>' + mazeFlowers + '</b></div>' +
+    '<div>🍯 Ödül: <b>+' + res.reward + ' bal</b></div>' +
+    (res.unlockedNext > mazeLevel ? '<div style="color:var(--green)">🔓 Seviye ' + res.unlockedNext + ' açıldı!</div>' : '') +
+    '</div></div>' +
+    '<button class="btn" style="margin-top:14px;width:100%" onclick="closeModal()">Süper!</button>';
+  if (won) { confetti(); Sfx.ach(); } else Sfx.lose();
+  handleRes(res);
+}
+// Swipe bağla (modal açıkken)
+document.addEventListener('touchstart', (e) => { if (!document.getElementById('maze-grid')) return; window._mzStart = e.touches[0]; }, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (!window._mzStart || !document.getElementById('maze-grid')) return;
+  const dx = e.changedTouches[0].clientX - window._mzStart.clientX;
+  const dy = e.changedTouches[0].clientY - window._mzStart.clientY;
+  window._mzStart = null;
+  if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+  if (Math.abs(dx) > Math.abs(dy)) moveBee(0, dx > 0 ? 1 : -1);
+  else moveBee(dy > 0 ? 1 : -1, 0);
+}, { passive: true });
+
+/* ═══════════════ 🌟 GALAKSİ MARKET ═══════════════ */
+function openMarket() {
+  haptic('impact');
+  const body = $('#modal-body');
+  const items = [
+    { id: 'crown', name: 'Altın Taç', emoji: '👑', price: 300, desc: 'Profilde taç gösterir' },
+    { id: 'glow', name: 'Parlayan Arı', emoji: '✨', price: 500, desc: 'Arıların parıldar' },
+    { id: 'rainbow', name: 'Gökkuşağı Kovan', emoji: '🌈', price: 800, desc: 'Kovan renk değiştirir' },
+  ];
+  const owned = S.cosmetics || [];
+  body.innerHTML =
+    '<h2>🌟 Galaksi Market</h2>' +
+    '<p>👽 Uzaylı ziyaretinden yıldız tozu kazan! Kozmetikler al — sadece görsel, güç yok!</p>' +
+    '<div class="vztaps">💫 Yıldız Tozun: <b style="color:var(--gold)">' + (S.stardust || 0) + '</b></div>' +
+    items.map((it) =>
+      '<div class="market-item' + (owned.includes(it.id) ? ' owned' : '') + '">' +
+      '<div class="mi">' + it.emoji + '</div>' +
+      '<div class="mf"><b>' + it.name + '</b><span>' + it.desc + '</span></div>' +
+      '<div class="mb">' + (owned.includes(it.id)
+        ? '<span class="pill" style="color:var(--green)">✅ Sahipsin</span>'
+        : '<button class="btn small" onclick="buyItem(\'' + it.id + '\')">' + it.price + ' 💫</button>') +
+      '</div></div>'
+    ).join('') +
+    '<p class="hint" style="text-align:center;margin-top:10px">👽 Uzaylı %1 şansla gelir ve 50 💫 hediye eder!</p>';
+  showModal();
+}
+async function buyItem(id) {
+  haptic('impact');
+  const res = await api('/api/action', { initData: initData(), action: 'market_buy', payload: { itemId: id } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  toast('🌟 ' + res.item.emoji + ' ' + res.item.name + ' satın alındı!');
+  Sfx.ach();
+  confetti();
+  handleRes(res);
+  openMarket();
+}
+
 function renderEglence() {
   if (!S) return;
   $('#gam-count').textContent = S.chestCount || 0;
   $('#gam-bal').textContent = fmt(S.bal);
   $('#gam-jackpot').textContent = S.jackpotCount || 0;
   $('#gam-week').textContent = fmt(S.weeklyEarned || 0);
+  const sd = document.getElementById('stardust-txt');
+  if (sd) sd.textContent = (S.stardust || 0) + ' 👽';
   const can = (S.lastSpin || 0) < Math.floor(Date.now() / DAY) * DAY;
   $('#spin-txt').textContent = can ? 'Çevrilmedi — bedava!' : 'Bugün çevrildi ✅';
 }

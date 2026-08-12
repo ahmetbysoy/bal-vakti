@@ -69,6 +69,9 @@ function newState(now = Date.now()) {
     vzvzAt: 0,                       // son VızVız zamanı (bekleme için)
     vzvzCount: 0,                    // toplam VızVız oyunu
     banned: false,                   // admin tarafından men edildi mi
+    // 🌟 Kozmetik & yıldız tozu
+    cosmetics: [],
+    stardust: 0,
     // ⚔️ PvP
     xp: 0,                           // savaş XP'si
     raidWins: 0,                     // kazandığı saldırılar
@@ -643,7 +646,84 @@ function rainbowActive(s, now = Date.now()) {
   return (s.rainbowUntil || 0) > now;
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo, balloonReward, balloonComboMult, playBalloon, timerReward, playTimer, RAINBOW_CHANCE, RAINBOW_DURATION_MS, rollRainbow, rainbowActive};
+/* ═══════════════════ 🐝 LABİRENT MİNİ OYUNU ═══════════════════ */
+const MAZE_LEVELS = [
+  { lvl: 1, size: 5, flowers: 3, timeSec: 60, base: 20, flowerBonus: 5,  next: 2 },
+  { lvl: 2, size: 6, flowers: 4, timeSec: 55, base: 40, flowerBonus: 8,  next: 3 },
+  { lvl: 3, size: 7, flowers: 5, timeSec: 50, base: 70, flowerBonus: 12, next: null },
+];
+const MAZE_DAILY_PLAYS = 3;
+function playMaze(s, level, flowers, won, now = Date.now()) {
+  const cfg = MAZE_LEVELS[level - 1];
+  if (!cfg) return { ok: false, why: 'seviye_yok' };
+  if (!Number.isInteger(flowers) || flowers < 0 || flowers > cfg.flowers) return { ok: false, why: 'hile' };
+  // Seviye kilitli mi? (ardışık açılır)
+  const unlocked = s.mazeLevel || 1;
+  if (level > unlocked) return { ok: false, why: 'kilitli' };
+  // Günde 3 hak
+  const day = Math.floor(now / 86400000);
+  if (s.mazeDay === day && (s.mazePlays || 0) >= MAZE_DAILY_PLAYS) return { ok: false, why: 'hak_yok' };
+  if (s.mazeDay !== day) { s.mazeDay = day; s.mazePlays = 0; }
+  s.mazePlays = (s.mazePlays || 0) + 1;
+  // Ödül: kazanırsan taban + çiçek bonusu; kaybedersen minik teselli
+  let reward = 0;
+  if (won) {
+    reward = cfg.base + flowers * cfg.flowerBonus;
+    if (cfg.next && unlocked < cfg.next) s.mazeLevel = cfg.next; // sonraki seviyeyi aç
+    s.mazeWins = (s.mazeWins || 0) + 1;
+  } else {
+    reward = 5; // teselli
+  }
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  return { ok: true, reward, won, level, unlockedNext: s.mazeLevel || 1 };
+}
+
+/* ═══════════════════ 🎪 SİRK OLAYI (%3/gün) ═══════════════════ */
+const CIRCUS_CHANCE = 0.03;
+const CIRCUS_DURATION_MS = 24 * 3600 * 1000; // 24 saat
+function rollCircus(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  if (s.circusDay === day) return null;
+  if (Math.random() >= CIRCUS_CHANCE) return null;
+  s.circusDay = day;
+  s.circusUntil = now + CIRCUS_DURATION_MS;
+  return { until: s.circusUntil };
+}
+function circusActive(s, now = Date.now()) {
+  return (s.circusUntil || 0) > now;
+}
+
+/* ═══════════════════ 👽 UZAYLI + YILDIZ TOZU + MARKET ═══════════════════ */
+const ALIEN_CHANCE = 0.01;
+const ALIEN_GIFT_STARDUST = 50;
+function rollAlien(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  if (s.alienDay === day) return null;
+  if (Math.random() >= ALIEN_CHANCE) return null;
+  s.alienDay = day;
+  s.stardust = (s.stardust || 0) + ALIEN_GIFT_STARDUST;
+  return { stardust: s.stardust, gift: ALIEN_GIFT_STARDUST };
+}
+const MARKET_ITEMS = [
+  { id: 'crown',   name: 'Altın Taç',  emoji: '👑', price: 300, desc: 'Profilde taç gösterir' },
+  { id: 'glow',    name: 'Parlayan Arı', emoji: '✨', price: 500, desc: 'Arıların parıldar' },
+  { id: 'rainbow', name: 'Gökkuşağı Kovan', emoji: '🌈', price: 800, desc: 'Kovan renk değiştirir' },
+];
+function buyCosmetic(s, id, now = Date.now()) {
+  const item = MARKET_ITEMS.find((i) => i.id === id);
+  if (!item) return { ok: false, why: 'urun_yok' };
+  if ((s.stardust || 0) < item.price) return { ok: false, why: 'toz_yok' };
+  if ((s.cosmetics || []).includes(id)) return { ok: false, why: 'zaten_var' };
+  s.stardust -= item.price;
+  if (!Array.isArray(s.cosmetics)) s.cosmetics = [];
+  s.cosmetics.push(id);
+  return { ok: true, item, stardust: s.stardust };
+}
+
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo, balloonReward, balloonComboMult, playBalloon, timerReward, playTimer, RAINBOW_CHANCE, RAINBOW_DURATION_MS, rollRainbow, rainbowActive, MAZE_LEVELS, MAZE_DAILY_PLAYS, playMaze, CIRCUS_CHANCE, CIRCUS_DURATION_MS, rollCircus, circusActive, ALIEN_CHANCE, ALIEN_GIFT_STARDUST, rollAlien, MARKET_ITEMS, buyCosmetic};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -1383,7 +1463,7 @@ const __handlers = {};
 __handlers['me'] = (() => {
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
-const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive } = __lib['game'];
+const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive, rollCircus, circusActive, rollAlien } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -1460,6 +1540,10 @@ async function handle(req, res) {
   const collected = collect(st, now);
   // 🌈 Gökkuşağı: girişte %5 şans
   const rainbow = rollRainbow(st, now);
+  // 🎪 Sirk: %3 şans
+  const circus = rollCircus(st, now);
+  // 👽 Uzaylı: %1 şans
+  const alien = rollAlien(st, now);
   const gained = collected.gain || 0;
 
   // ⚔️ Evrensel çözüm: beni ilgilendiren süresi dolmuş saldırıları çöz
@@ -1502,6 +1586,11 @@ async function handle(req, res) {
     quests: questInfo(st, now),
     rainbow: rainbow ? { until: rainbow.until } : null,
     rainbowActive: rainbowActive(st, now),
+    circus: circus ? { until: circus.until } : null,
+    circusActive: circusActive(st, now),
+    alien: alien ? { stardust: alien.stardust, gift: alien.gift } : null,
+    stardust: st.stardust || 0,
+    cosmetics: st.cosmetics || [],
     incomingEmojis: await popIncomingEmojis(id),
     demo: !!info.demo,
     cfg: {
@@ -1529,7 +1618,7 @@ __handlers['action'] = (() => {
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
 const { escTg } = __lib['raidcore'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer } = __lib['game'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer, playMaze, buyCosmetic } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1654,6 +1743,18 @@ async function handle(req, res) {
         if (!r.ok) return res.status(400).json({ error: r.why });
         result = r;
       } else return res.status(400).json({ error: 'bilinmeyen_oyun' });
+      break;
+    }
+    case 'maze': {
+      const r = playMaze(st, Math.floor(Number(payload.level) || 1), Math.floor(Number(payload.flowers) || 0), !!payload.won, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = r;
+      break;
+    }
+    case 'market_buy': {
+      const r = buyCosmetic(st, String(payload.itemId || ''), now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = r;
       break;
     }
     case 'quest_claim': {
