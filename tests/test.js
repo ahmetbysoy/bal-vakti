@@ -410,6 +410,7 @@ t('Günlük Sandık: 100 baldan azsa 2. kart alınamaz', () => {
   s.bal = 50;
   const r1 = openChest(s, 0, now0);
   assert.strictEqual(r1.ok, true);
+  s.bal = 50; // rastgele ödülü sıfırla — deterministik
   const r2 = openChest(s, 1, now0);
   assert.strictEqual(r2.ok, false);
   assert.strictEqual(r2.why, 'yetersiz_bal');
