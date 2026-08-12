@@ -3,17 +3,12 @@
 // 2) UPSTASH_REDIS_* tanımlıysa (yedek) → Upstash Redis
 // 3) Hiçbiri yoksa → bellek modu (yerel test)
 // Firebase tek istekte tüm dalı çekebildiği için en hızlısıdır.
-import { Redis } from '@upstash/redis';
 import { DEFAULT_CONFIG } from './game.js'; // (yalnızca tip referansı — döngü yok)
 
+// 🗄️ Veritabanı: FIREBASE_DB_URL (tek seçenek — Upstash desteği kaldırıldı)
 const HAS_FIREBASE = !!process.env.FIREBASE_DB_URL;
-const HAS_UPSTASH = !HAS_FIREBASE && !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 const DB = (process.env.FIREBASE_DB_URL || '').replace(/\/+$/, '');
 const P = 'balvakti';
-
-const redis = HAS_UPSTASH && Redis
-  ? new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
-  : null;
 const mem = new Map();
 
 function safeParse(v) {
@@ -31,10 +26,6 @@ async function kvGet(key) {
     if (!r.ok) throw new Error(`fb get ${key}: ${r.status}`);
     return r.json();
   }
-  if (HAS_UPSTASH) {
-    const v = await redis.get(`${P}:${key}`);
-    return safeParse(v);
-  }
   return safeParse(mem.get(`${P}/${key}`));
 }
 async function kvSet(key, val) {
@@ -46,7 +37,6 @@ async function kvSet(key, val) {
     if (!r.ok) throw new Error(`fb put ${key}: ${r.status}`);
     return;
   }
-  if (HAS_UPSTASH) { await redis.set(`${P}:${key}`, s); return; }
   mem.set(`${P}/${key}`, s);
 }
 async function kvDel(key) {
@@ -55,7 +45,6 @@ async function kvDel(key) {
     if (!r.ok) throw new Error(`fb del ${key}: ${r.status}`);
     return;
   }
-  if (HAS_UPSTASH) { await redis.del(`${P}:${key}`); return; }
   mem.delete(`${P}/${key}`);
 }
 // Bir prefix altındaki her şeyi { altAnahtar: değer } olarak döner
@@ -65,26 +54,6 @@ async function kvGetAll(prefix) {
     if (!r.ok) throw new Error(`fb get ${prefix}: ${r.status}`);
     const data = await r.json();
     return data || {};
-  }
-  if (HAS_UPSTASH) {
-    const pat = `${P}:${prefix}:*`;
-    const keys = [];
-    let cur = '0';
-    do {
-      const [nc, ks] = await redis.scan(cur, { match: pat, count: 100 });
-      keys.push(...(Array.isArray(ks) ? ks : []));
-      cur = nc;
-    } while (cur !== '0' && keys.length < 500);
-    if (!keys.length) return {};
-    const pipe = redis.pipeline();
-    for (const k of keys) pipe.get(k);
-    const vals = await pipe.exec();
-    const out = {};
-    for (let i = 0; i < keys.length; i++) {
-      const sub = keys[i].slice((`${P}:${prefix}:`).length);
-      out[sub] = safeParse(vals[i]);
-    }
-    return out;
   }
   const out = {};
   for (const [k, v] of mem.entries()) {
@@ -96,9 +65,7 @@ async function kvGetAll(prefix) {
 }
 
 export function dbMode() {
-  if (HAS_FIREBASE) return 'firebase';
-  if (HAS_UPSTASH) return 'upstash';
-  return 'memory';
+  return HAS_FIREBASE ? 'firebase' : 'memory';
 }
 
 /* ── Oyuncular ── */

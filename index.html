@@ -136,6 +136,16 @@
     border-radius:18px;padding:14px;margin-top:12px;
   }
   .card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  /* 📋 Görevler */
+  .quest{display:flex;align-items:center;gap:8px;background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:6px}
+  .quest .qe{font-size:20px;width:26px;text-align:center}
+  .quest .qi{flex:1;min-width:0}
+  .quest .qi b{font-size:12px;display:block}
+  .quest .qi span{font-size:10px;color:var(--muted)}
+  .quest .qp{height:5px;background:#2a1f0f;border-radius:99px;overflow:hidden;margin-top:3px}
+  .quest .qp i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#7bd88f,#ffd166);transition:width .4s}
+  .quest .qa{flex-shrink:0}
+  .quest .qa .btn{padding:6px 10px;font-size:11px}
   .sec-tabs{display:flex;gap:6px}
   .sec-tabs .st{
     flex:1;background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px;
@@ -441,7 +451,7 @@
         <div class="capbar"><i id="capfill"></i></div>
         <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
       </div>
-      <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLU — Topla!</div>
+      <div class="fullwarn" id="fullwarn">⚠️ DEPO DOLMAK ÜZERE — TOPLA! 🍯</div>
     </div>
 
     <div class="fomo" id="fomo-panel" style="display:none">
@@ -462,6 +472,11 @@
     <div class="quicks">
       <button class="btn green small" id="btn-daily" onclick="openDaily()">🎁 Günlük Ödül</button>
       <button class="btn blue small" onclick="openVzvz()">⚡ VızVız</button>
+    </div>
+
+    <div class="card" id="quests-card">
+      <h3>📋 Bugünün Görevleri</h3>
+      <div id="quests-list"></div>
     </div>
 
     <div class="card">
@@ -711,7 +726,7 @@ if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 
 const DAY = 86400000;
 const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500];
-const MAX_LEVEL = 12;
+const MAX_LEVEL = 10;
 
 let S = null;          // oyun durumu
 let mode = 'server';   // 'server' | 'demo'
@@ -722,7 +737,7 @@ let cfg = {
   beeBaseCost: 15, beeCostGrowth: 1.15, p1: 0.12, pMult: 2.5,
   capBase: 400, capUpgMult: 3, capUpgBase: 600, capUpgCostMult: 4,
   kovanBase: 1500, kovanCostMult: 6,
-  vzvzTapReward: 1, vzvzMaxTaps: 30, vzvzMaxMs: 12000,
+  vzvzTapReward: 2, vzvzMaxTaps: 30, vzvzMaxMs: 12000,
 };
 let myRankCache = null;
 let tab = 'kovan';
@@ -896,6 +911,7 @@ async function load() {
   }
   if (res && res.ok) {
     S = res.state; cfg = { ...cfg, ...(res.cfg || {}) }; myRankCache = res.myRank;
+    if (res.quests) S.quests = res.quests;
     uid = res.id || 1;
     mode = 'server';
     // 🍯 Pasif üretim toast GÖSTERME — bal sayacı zaten canlı görünüyor
@@ -980,7 +996,7 @@ function renderAll() {
   $('#capmax').textContent = fmt(cap);
   const pct = Math.min(100, (S.bal / cap) * 100);
   $('#capfill').style.width = pct + '%';
-  $('#fullwarn').style.display = S.bal >= cap * 0.985 ? 'block' : 'none';
+  $('#fullwarn').style.display = S.bal >= cap * 0.9 ? 'block' : 'none';
   $('#lvltxt').textContent = 'Seviye ' + lvl.level + ' · ' + lvl.title;
 
   renderProfile();
@@ -1032,6 +1048,40 @@ function renderAll() {
   if (tab === 'lb') renderLb();
   renderInvite();
   checkLevelUp();
+  renderQuests();
+}
+// 📋 Günlük görevler render
+function renderQuests() {
+  const list = document.getElementById('quests-list');
+  if (!list) return;
+  const qs = (typeof S !== 'undefined' && S) ? (S.quests || []) : [];
+  const quests = Array.isArray(qs) && qs.length ? qs : (S && S.quests ? S.quests : []);
+  if (!quests.length) { list.innerHTML = '<p class="hint">Görevler yükleniyor...</p>'; return; }
+  list.innerHTML = quests.map((q) => {
+    const pct = Math.min(100, (q.prog / q.target) * 100);
+    const claimed = q.claimed;
+    const done = q.done;
+    const btn = claimed
+      ? '<span class="pill" style="color:var(--green);border-color:var(--green)">✅</span>'
+      : done
+        ? '<button class="btn small green" onclick="claimQuest(\'' + q.id + '\')">+'+ q.reward +' 🍯</button>'
+        : '<span class="pill">' + q.prog + '/' + q.target + '</span>';
+    return '<div class="quest"><div class="qe">' + q.emoji + '</div>' +
+      '<div class="qi"><b>' + q.name + '</b><span>' + q.desc + '</span>' +
+      '<div class="qp"><i style="width:' + pct + '%"></i></div></div>' +
+      '<div class="qa">' + btn + '</div></div>';
+  }).join('') +
+  '<p class="hint" style="text-align:center;margin-top:6px">Tümünü bitir → +100 🍯 bonus!</p>';
+}
+async function claimQuest(id) {
+  haptic('impact');
+  const res = await api('/api/action', { initData: initData(), action: 'quest_claim', payload: { questId: id } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { toast('⛔ ' + errText(res.error)); Sfx.error(); return; }
+  toast('📋 Görev tamamlandı: +' + res.reward + ' 🍯' + (res.bonus ? ' + ' + res.bonus + ' BONUS!' : ''));
+  Sfx.ach();
+  if (res.bonus) confetti();
+  handleRes(res);
 }
 // 🎉 DOP-4: Level-Up İnfilak — seviye değişince altın patlama
 let lastLevelShown = 0;
@@ -1217,6 +1267,7 @@ function handleRes(res, okMsg) {
   }
   if (mode === 'server') {
     S = res.state; myRankCache = res.myRank;
+    if (res.quests) S.quests = res.quests;
     res.freshAch?.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); confetti(); Sfx.ach(); });
   }
   if (okMsg) toast(okMsg);
@@ -2099,8 +2150,16 @@ function liveBal() {
   const gain = Math.min(Math.max(0, cap - S.bal), (prod * elapsed) / 1000);
   return { bal: Math.min(cap, S.bal + gain), prod, cap };
 }
+let autoCollectAt = 0;
 function liveTick() {
   if (!S) return;
+  // 🔄 Otomatik toplama: depo %98 dolu ve son otomatik toplama 60sn önceyse
+  const lv0 = liveBal();
+  if (mode === 'server' && lv0.bal >= lv0.cap * 0.98 && Date.now() - autoCollectAt > 60000) {
+    autoCollectAt = Date.now();
+    doCollect();
+    toast('🔄 Depo doldu — otomatik toplandı!');
+  }
   const lv = liveBal();
   $('#bal').textContent = fmt(lv.bal);
   $('#prod').textContent = fmtP(lv.prod);
@@ -2108,10 +2167,10 @@ function liveTick() {
   $('#capfill').style.width = pct + '%';
   $('#capnow').textContent = fmt(lv.bal) + ' 🍯';
   $('#capmax').textContent = fmt(lv.cap);
-  $('#fullwarn').style.display = lv.bal >= lv.cap * 0.985 ? 'block' : 'none';
+  $('#fullwarn').style.display = lv.bal >= lv.cap * 0.9 ? 'block' : 'none';
 }
 
-const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥', '💎', '🌌'];
+const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥'];
 
 /* ═══════════════ BAŞLAT ═══════════════ */
 load();

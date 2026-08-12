@@ -8,6 +8,7 @@ import {
   warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
   isNight, prodMultiplier, spinWheel, openChest, CHEST_REWARDS, CHEST_JACKPOT, WHEEL_SLICES,
   vzvzComboMult, collectStreakMult, beeEmoji, addEarned,
+  questProgress, questClaim, questInfo, DAILY_QUESTS,
   throwEmoji, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
@@ -129,11 +130,11 @@ t('dailyInfo günlük ödül uygunluğunu söyler', () => {
 });
 
 // 11) VızVız
-t('VızVız dokunuş başına 1 bal verir, 10 dk bekleme koyar', () => {
+t('VızVız dokunuş başına 2 bal verir, 2 dk bekleme koyar', () => {
   const s = newState(now0);
   const r = vzvzPlay(s, 20, 9500, now0);
   assert.strictEqual(r.ok, true);
-  assert.strictEqual(r.reward, 100); // 20 x 1 x 5 FRENZI
+  assert.strictEqual(r.reward, 200); // 20 x 2 x 5 FRENZI
   const r2 = vzvzPlay(s, 5, 1000, now0 + 1000);
   assert.strictEqual(r2.ok, false); // bekleme süresi
   const r3 = vzvzPlay(s, 5, 1000, now0 + VIZVIZ_COOLDOWN_MS + 1);
@@ -428,7 +429,7 @@ t('VızVız combo: 5+ x2, 10+ x3, 20+ x5 (FRENZİ)', () => {
   assert.strictEqual(r.ok, true);
   assert.strictEqual(r.mult, 5);
   assert.strictEqual(r.frenzy, true);
-  assert.strictEqual(r.reward, 20 * 1 * 5); // 20 dokunuş x 1 bal x 5
+  assert.strictEqual(r.reward, 20 * 2 * 5); // 20 dokunuş x 2 bal x 5
 });
 
 // ── 🔥 DOP-2: Toplama Streak ──
@@ -490,3 +491,46 @@ t('throwEmoji yetersiz balda reddedilir', () => {
 
 console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
 process.exit(failed > 0 ? 1 : 0);
+
+// ── 📋 Günlük Görevler ──
+t('Günlük görevler: progress + claim + bonus', () => {
+  const s = newState(now0);
+  // buy görevi: 3 arı
+  questProgress(s, 'buy', 1, now0);
+  questProgress(s, 'buy', 1, now0);
+  questProgress(s, 'buy', 1, now0);
+  const info = questInfo(s, now0);
+  const buy = info.find((q) => q.id === 'buy');
+  assert.strictEqual(buy.prog, 3);
+  assert.strictEqual(buy.done, true);
+  // claim
+  const c1 = questClaim(s, 'buy', now0);
+  assert.strictEqual(c1.ok, true);
+  assert.strictEqual(c1.reward, 40);
+  // tekrar claim yok
+  const c2 = questClaim(s, 'buy', now0);
+  assert.strictEqual(c2.ok, false);
+  // tamamlanmamış görev claim edilemez
+  const c3 = questClaim(s, 'raid', now0);
+  assert.strictEqual(c3.ok, false);
+  assert.strictEqual(c3.why, 'tamamlanmadi');
+});
+
+t('Günlük görevler: yeni günde sıfırlanır + tümü bitince bonus', () => {
+  const s = newState(now0);
+  // tüm görevleri tamamla
+  for (const q of DAILY_QUESTS) {
+    questProgress(s, q.id, q.target, now0);
+  }
+  let totalBonus = 0;
+  for (const q of DAILY_QUESTS) {
+    const c = questClaim(s, q.id, now0);
+    assert.strictEqual(c.ok, true);
+    if (c.bonus) totalBonus = c.bonus;
+  }
+  assert.strictEqual(totalBonus, 100); // tümü bitince bonus
+  // yeni günde progress sıfır
+  const info2 = questInfo(s, now0 + 86400000);
+  assert.strictEqual(info2[0].prog, 0);
+  assert.strictEqual(info2[0].claimed, false);
+});

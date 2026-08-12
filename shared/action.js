@@ -2,7 +2,7 @@
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
 import { escTg } from './raidcore.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST } from './lib/game.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -48,11 +48,13 @@ async function handle(req, res) {
 
   switch (action) {
     case 'collect':
+      if (gained > 0) questProgress(st, 'collect', 1, now);
       result = { collected: gained };
       break;
     case 'buy_bee': {
       const r = buyBee(st, 1);
       if (!r.ok) return res.status(400).json({ error: r.why });
+      questProgress(st, 'buy', 1, now);
       result = { cost: r.cost, merges: r.merges };
       break;
     }
@@ -95,6 +97,7 @@ async function handle(req, res) {
     case 'vzvz_end': {
       const r = vzvzPlay(st, Number(payload.taps) || 0, Number(payload.durMs) || 0, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
+      questProgress(st, 'vzvz', 1, now);
       result = r;
       break;
     }
@@ -102,12 +105,19 @@ async function handle(req, res) {
       const r = spinWheel(st, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       await bumpCounter('spin');
+      questProgress(st, 'spin', 1, now);
       result = r;
       break;
     }
     case 'chest': {
       const card = Math.max(0, Math.min(2, Number(payload.card) || 0));
       const r = openChest(st, card, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = r;
+      break;
+    }
+    case 'quest_claim': {
+      const r = questClaim(st, String(payload.questId || ''), now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
       break;
@@ -142,6 +152,8 @@ async function handle(req, res) {
     freshAch,
     daily: dailyInfo(st, now),
     level: playerLevel(st),
+    war: warLevel(st.xp || 0),
     myRank: await myRank(id),
+    quests: questInfo(st, now),
   });
 }

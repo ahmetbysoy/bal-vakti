@@ -1,6 +1,6 @@
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
-import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier } from './lib/game.js';
+import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -114,6 +114,7 @@ async function handle(req, res) {
     boostActive: (st.boostUntil || 0) > now,
     boostUntil: st.boostUntil || 0,
     canSpin: (st.lastSpin || 0) < Math.floor(now / 86400000) * 86400000,
+    quests: questInfo(st, now),
     incomingEmojis: await popIncomingEmojis(id),
     demo: !!info.demo,
     cfg: {

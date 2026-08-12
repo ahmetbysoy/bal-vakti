@@ -4,7 +4,7 @@
 // (lib/db.js → getConfig) bu değerleri canlı olarak değiştirebilir;
 // sunucu her istekte setActiveCfg(await getConfig()) çağırır.
 
-export const MAX_LEVEL = 12;
+export const MAX_LEVEL = 10; // 2^9=512 arı ile seviye 10 — çocuklar için ulaşılabilir
 
 // ── Ekonomi parametreleri (varsayılan; admin paneli canlı değiştirebilir) ──
 // ⚠️ CİMRİ EKONOMİ (v4): ilerleme yavaş ve istikrarlı olmalı
@@ -12,7 +12,7 @@ export const DEFAULT_CONFIG = {
   beeBaseCost: 15,       // 1. seviye arı taban fiyatı
   beeCostGrowth: 1.15,   // her arıda fiyat %18 artar (cimri!)
   p1: 0.12,              // 1. seviye arı: bal/sn (saatte ~430 bal — 30sn'de 1 ödül)
-  pMult: 2.5,            // her seviye 2.5x üretim (birleştirme %25 bonus)
+  pMult: 3,               // her seviye 3x üretim (birleştirme değerli!)
   capBase: 400,          // başlangıç depo kapasitesi
   capUpgMult: 3,         // depo seviyesi başına 3x kapasite
   capUpgBase: 600,       // depo yükseltme taban fiyatı
@@ -21,10 +21,10 @@ export const DEFAULT_CONFIG = {
   kovanCostMult: 6,
   startBal: 20,          // yeni oyuncu başlangıç balı
   startFreeBees: 1,      // yeni oyuncuya ücretsiz arı
-  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal (combo ile x2/x3/x5!)
+  vzvzTapReward: 2,      // VızVız: dokunuş başına 2 bal (combo x2/x3/x5 — frenzy 300 bal!)
   vzvzMaxTaps: 30,       // VızVız max dokunuş
   vzvzMaxMs: 12000,      // VızVız hile koruması: max süre
-  vzvzCooldownMs: 180000, // VızVız bekleme (3 dk)
+  vzvzCooldownMs: 120000, // VızVız bekleme (2 dk)
   dailyEnabled: true,    // günlük ödül açık/kapalı
   vzvzEnabled: true,     // VızVız açık/kapalı
   maintenance: false,    // bakım modu (oyun kapanır)
@@ -39,7 +39,7 @@ export const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500]; // 7 günlük s
 export const REF_INVITER = 40;        // davet edenin ödülü
 export const REF_FRIEND = 20;         // davet edilenin ödülü
 export const VIZVIZ_MAX_MS = 12000;   // hile koruması: max süre (yedek sabit)
-export const VIZVIZ_COOLDOWN_MS = 10 * 60 * 1000; // yedek sabit (config ile uyumlu)
+export const VIZVIZ_COOLDOWN_MS = 2 * 60 * 1000; // yedek sabit (config ile uyumlu)
 
 // ── Oyuncu durumu ──
 export function newState(now = Date.now()) {
@@ -299,7 +299,7 @@ export function chestInfo(s, now = Date.now()) {
 /* ═══════════════════ 🐝 ARILAR ═══════════════════ */
 
 // Seviyeye göre arı görünümü (kozmetik)
-export const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥', '💎', '🌌'];
+export const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥'];
 export function beeEmoji(level) {
   return BEE_EMOJIS[Math.min(level - 1, BEE_EMOJIS.length - 1)];
 }
@@ -501,4 +501,57 @@ export function coalitionBonus(attacker, count) {
     return 5;
   }
   return 0;
+}
+
+/* ═══════════════════ 📋 GÜNLÜK GÖREVLER ═══════════════════ */
+export const DAILY_QUESTS = [
+  { id: 'buy',   emoji: '🐝', name: 'Arı Avcısı',   desc: '3 arı satın al',      target: 3, reward: 40 },
+  { id: 'collect', emoji: '🍯', name: 'Bal Toplayıcı', desc: '5 kez bal topla',   target: 5, reward: 40 },
+  { id: 'vzvz',  emoji: '⚡', name: 'VızVız Ustası', desc: '1 kez VızVız oyna',   target: 1, reward: 50 },
+  { id: 'raid',  emoji: '⚔️', name: 'Savaşçı',      desc: '1 savaşa katıl',      target: 1, reward: 60 },
+  { id: 'spin',  emoji: '🎡', name: 'Çarkçı',        desc: '1 çark çevir',        target: 1, reward: 30 },
+];
+export const QUEST_ALL_BONUS = 100; // hepsini bitir → bonus
+
+export function questState(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  // Eski state'lerde alanlar yok olabilir — her zaman güvencele
+  if (!s.questProg || typeof s.questProg !== 'object') s.questProg = { buy: 0, collect: 0, vzvz: 0, raid: 0, spin: 0 };
+  if (!Array.isArray(s.questClaimed)) s.questClaimed = [];
+  if (!s.questDay || s.questDay !== day) {
+    s.questDay = day;
+    s.questProg = { buy: 0, collect: 0, vzvz: 0, raid: 0, spin: 0 };
+    s.questClaimed = [];
+  }
+  return s;
+}
+export function questProgress(s, id, amount = 1, now = Date.now()) {
+  questState(s, now);
+  if (!(id in s.questProg)) return { ok: false };
+  s.questProg[id] = Math.min(s.questProg[id] + amount, 99);
+  return { ok: true, prog: s.questProg, claimed: s.questClaimed || [] };
+}
+export function questClaim(s, id, now = Date.now()) {
+  questState(s, now);
+  const q = DAILY_QUESTS.find((x) => x.id === id);
+  if (!q) return { ok: false, why: 'gorev_yok' };
+  if ((s.questClaimed || []).includes(id)) return { ok: false, why: 'zaten_aldi' };
+  if ((s.questProg[id] || 0) < q.target) return { ok: false, why: 'tamamlanmadi' };
+  s.questClaimed.push(id);
+  s.bal += q.reward;
+  s.totalEarned += q.reward;
+  // Hepsini bitirince bonus
+  const allDone = DAILY_QUESTS.every((x) => s.questClaimed.includes(x.id));
+  let bonus = 0;
+  if (allDone) { s.bal += QUEST_ALL_BONUS; s.totalEarned += QUEST_ALL_BONUS; bonus = QUEST_ALL_BONUS; }
+  return { ok: true, reward: q.reward, bonus, id };
+}
+export function questInfo(s, now = Date.now()) {
+  questState(s, now);
+  return DAILY_QUESTS.map((q) => ({
+    ...q,
+    prog: s.questProg[q.id] || 0,
+    done: (s.questProg[q.id] || 0) >= q.target,
+    claimed: (s.questClaimed || []).includes(q.id),
+  }));
 }

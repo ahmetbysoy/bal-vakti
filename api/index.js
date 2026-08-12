@@ -1,7 +1,6 @@
 // 🐝 Bal Vakti — TEK DOSYALIK API (otomatik üretildi: node scripts/bundle.js)
 // Kaynak: shared/* ve shared/lib/* — lütfen bu dosyayı elle değiştirme!
 
-import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
 import { Telegraf, Markup } from 'telegraf';
 
@@ -13,7 +12,7 @@ __lib['game'] = (() => {
 // (lib/db.js → getConfig) bu değerleri canlı olarak değiştirebilir;
 // sunucu her istekte setActiveCfg(await getConfig()) çağırır.
 
-const MAX_LEVEL = 12;
+const MAX_LEVEL = 10; // 2^9=512 arı ile seviye 10 — çocuklar için ulaşılabilir
 
 // ── Ekonomi parametreleri (varsayılan; admin paneli canlı değiştirebilir) ──
 // ⚠️ CİMRİ EKONOMİ (v4): ilerleme yavaş ve istikrarlı olmalı
@@ -21,7 +20,7 @@ const DEFAULT_CONFIG = {
   beeBaseCost: 15,       // 1. seviye arı taban fiyatı
   beeCostGrowth: 1.15,   // her arıda fiyat %18 artar (cimri!)
   p1: 0.12,              // 1. seviye arı: bal/sn (saatte ~430 bal — 30sn'de 1 ödül)
-  pMult: 2.5,            // her seviye 2.5x üretim (birleştirme %25 bonus)
+  pMult: 3,               // her seviye 3x üretim (birleştirme değerli!)
   capBase: 400,          // başlangıç depo kapasitesi
   capUpgMult: 3,         // depo seviyesi başına 3x kapasite
   capUpgBase: 600,       // depo yükseltme taban fiyatı
@@ -30,10 +29,10 @@ const DEFAULT_CONFIG = {
   kovanCostMult: 6,
   startBal: 20,          // yeni oyuncu başlangıç balı
   startFreeBees: 1,      // yeni oyuncuya ücretsiz arı
-  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal (combo ile x2/x3/x5!)
+  vzvzTapReward: 2,      // VızVız: dokunuş başına 2 bal (combo x2/x3/x5 — frenzy 300 bal!)
   vzvzMaxTaps: 30,       // VızVız max dokunuş
   vzvzMaxMs: 12000,      // VızVız hile koruması: max süre
-  vzvzCooldownMs: 180000, // VızVız bekleme (3 dk)
+  vzvzCooldownMs: 120000, // VızVız bekleme (2 dk)
   dailyEnabled: true,    // günlük ödül açık/kapalı
   vzvzEnabled: true,     // VızVız açık/kapalı
   maintenance: false,    // bakım modu (oyun kapanır)
@@ -48,7 +47,7 @@ const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500]; // 7 günlük seri
 const REF_INVITER = 40;        // davet edenin ödülü
 const REF_FRIEND = 20;         // davet edilenin ödülü
 const VIZVIZ_MAX_MS = 12000;   // hile koruması: max süre (yedek sabit)
-const VIZVIZ_COOLDOWN_MS = 10 * 60 * 1000; // yedek sabit (config ile uyumlu)
+const VIZVIZ_COOLDOWN_MS = 2 * 60 * 1000; // yedek sabit (config ile uyumlu)
 
 // ── Oyuncu durumu ──
 function newState(now = Date.now()) {
@@ -308,7 +307,7 @@ function chestInfo(s, now = Date.now()) {
 /* ═══════════════════ 🐝 ARILAR ═══════════════════ */
 
 // Seviyeye göre arı görünümü (kozmetik)
-const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥', '💎', '🌌'];
+const BEE_EMOJIS = ['🐝', '🦋', '🦅', '🐉', '🦁', '🐯', '🦂', '🦄', '👑', '🔥'];
 function beeEmoji(level) {
   return BEE_EMOJIS[Math.min(level - 1, BEE_EMOJIS.length - 1)];
 }
@@ -512,7 +511,60 @@ function coalitionBonus(attacker, count) {
   return 0;
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
+/* ═══════════════════ 📋 GÜNLÜK GÖREVLER ═══════════════════ */
+const DAILY_QUESTS = [
+  { id: 'buy',   emoji: '🐝', name: 'Arı Avcısı',   desc: '3 arı satın al',      target: 3, reward: 40 },
+  { id: 'collect', emoji: '🍯', name: 'Bal Toplayıcı', desc: '5 kez bal topla',   target: 5, reward: 40 },
+  { id: 'vzvz',  emoji: '⚡', name: 'VızVız Ustası', desc: '1 kez VızVız oyna',   target: 1, reward: 50 },
+  { id: 'raid',  emoji: '⚔️', name: 'Savaşçı',      desc: '1 savaşa katıl',      target: 1, reward: 60 },
+  { id: 'spin',  emoji: '🎡', name: 'Çarkçı',        desc: '1 çark çevir',        target: 1, reward: 30 },
+];
+const QUEST_ALL_BONUS = 100; // hepsini bitir → bonus
+
+function questState(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  // Eski state'lerde alanlar yok olabilir — her zaman güvencele
+  if (!s.questProg || typeof s.questProg !== 'object') s.questProg = { buy: 0, collect: 0, vzvz: 0, raid: 0, spin: 0 };
+  if (!Array.isArray(s.questClaimed)) s.questClaimed = [];
+  if (!s.questDay || s.questDay !== day) {
+    s.questDay = day;
+    s.questProg = { buy: 0, collect: 0, vzvz: 0, raid: 0, spin: 0 };
+    s.questClaimed = [];
+  }
+  return s;
+}
+function questProgress(s, id, amount = 1, now = Date.now()) {
+  questState(s, now);
+  if (!(id in s.questProg)) return { ok: false };
+  s.questProg[id] = Math.min(s.questProg[id] + amount, 99);
+  return { ok: true, prog: s.questProg, claimed: s.questClaimed || [] };
+}
+function questClaim(s, id, now = Date.now()) {
+  questState(s, now);
+  const q = DAILY_QUESTS.find((x) => x.id === id);
+  if (!q) return { ok: false, why: 'gorev_yok' };
+  if ((s.questClaimed || []).includes(id)) return { ok: false, why: 'zaten_aldi' };
+  if ((s.questProg[id] || 0) < q.target) return { ok: false, why: 'tamamlanmadi' };
+  s.questClaimed.push(id);
+  s.bal += q.reward;
+  s.totalEarned += q.reward;
+  // Hepsini bitirince bonus
+  const allDone = DAILY_QUESTS.every((x) => s.questClaimed.includes(x.id));
+  let bonus = 0;
+  if (allDone) { s.bal += QUEST_ALL_BONUS; s.totalEarned += QUEST_ALL_BONUS; bonus = QUEST_ALL_BONUS; }
+  return { ok: true, reward: q.reward, bonus, id };
+}
+function questInfo(s, now = Date.now()) {
+  questState(s, now);
+  return DAILY_QUESTS.map((q) => ({
+    ...q,
+    prog: s.questProg[q.id] || 0,
+    done: (s.questProg[q.id] || 0) >= q.target,
+    claimed: (s.questClaimed || []).includes(q.id),
+  }));
+}
+
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -522,14 +574,10 @@ __lib['db'] = (() => {
 // Firebase tek istekte tüm dalı çekebildiği için en hızlısıdır.
 const { DEFAULT_CONFIG } = __lib['game']; // (yalnızca tip referansı — döngü yok)
 
+// 🗄️ Veritabanı: FIREBASE_DB_URL (tek seçenek — Upstash desteği kaldırıldı)
 const HAS_FIREBASE = !!process.env.FIREBASE_DB_URL;
-const HAS_UPSTASH = !HAS_FIREBASE && !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 const DB = (process.env.FIREBASE_DB_URL || '').replace(/\/+$/, '');
 const P = 'balvakti';
-
-const redis = HAS_UPSTASH && Redis
-  ? new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
-  : null;
 const mem = new Map();
 
 function safeParse(v) {
@@ -547,10 +595,6 @@ async function kvGet(key) {
     if (!r.ok) throw new Error(`fb get ${key}: ${r.status}`);
     return r.json();
   }
-  if (HAS_UPSTASH) {
-    const v = await redis.get(`${P}:${key}`);
-    return safeParse(v);
-  }
   return safeParse(mem.get(`${P}/${key}`));
 }
 async function kvSet(key, val) {
@@ -562,7 +606,6 @@ async function kvSet(key, val) {
     if (!r.ok) throw new Error(`fb put ${key}: ${r.status}`);
     return;
   }
-  if (HAS_UPSTASH) { await redis.set(`${P}:${key}`, s); return; }
   mem.set(`${P}/${key}`, s);
 }
 async function kvDel(key) {
@@ -571,7 +614,6 @@ async function kvDel(key) {
     if (!r.ok) throw new Error(`fb del ${key}: ${r.status}`);
     return;
   }
-  if (HAS_UPSTASH) { await redis.del(`${P}:${key}`); return; }
   mem.delete(`${P}/${key}`);
 }
 // Bir prefix altındaki her şeyi { altAnahtar: değer } olarak döner
@@ -581,26 +623,6 @@ async function kvGetAll(prefix) {
     if (!r.ok) throw new Error(`fb get ${prefix}: ${r.status}`);
     const data = await r.json();
     return data || {};
-  }
-  if (HAS_UPSTASH) {
-    const pat = `${P}:${prefix}:*`;
-    const keys = [];
-    let cur = '0';
-    do {
-      const [nc, ks] = await redis.scan(cur, { match: pat, count: 100 });
-      keys.push(...(Array.isArray(ks) ? ks : []));
-      cur = nc;
-    } while (cur !== '0' && keys.length < 500);
-    if (!keys.length) return {};
-    const pipe = redis.pipeline();
-    for (const k of keys) pipe.get(k);
-    const vals = await pipe.exec();
-    const out = {};
-    for (let i = 0; i < keys.length; i++) {
-      const sub = keys[i].slice((`${P}:${prefix}:`).length);
-      out[sub] = safeParse(vals[i]);
-    }
-    return out;
   }
   const out = {};
   for (const [k, v] of mem.entries()) {
@@ -612,9 +634,7 @@ async function kvGetAll(prefix) {
 }
 
 function dbMode() {
-  if (HAS_FIREBASE) return 'firebase';
-  if (HAS_UPSTASH) return 'upstash';
-  return 'memory';
+  return HAS_FIREBASE ? 'firebase' : 'memory';
 }
 
 /* ── Oyuncular ── */
@@ -1287,7 +1307,7 @@ const __handlers = {};
 __handlers['me'] = (() => {
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
-const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier } = __lib['game'];
+const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -1401,6 +1421,7 @@ async function handle(req, res) {
     boostActive: (st.boostUntil || 0) > now,
     boostUntil: st.boostUntil || 0,
     canSpin: (st.lastSpin || 0) < Math.floor(now / 86400000) * 86400000,
+    quests: questInfo(st, now),
     incomingEmojis: await popIncomingEmojis(id),
     demo: !!info.demo,
     cfg: {
@@ -1428,7 +1449,7 @@ __handlers['action'] = (() => {
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
 const { escTg } = __lib['raidcore'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST } = __lib['game'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1474,11 +1495,13 @@ async function handle(req, res) {
 
   switch (action) {
     case 'collect':
+      if (gained > 0) questProgress(st, 'collect', 1, now);
       result = { collected: gained };
       break;
     case 'buy_bee': {
       const r = buyBee(st, 1);
       if (!r.ok) return res.status(400).json({ error: r.why });
+      questProgress(st, 'buy', 1, now);
       result = { cost: r.cost, merges: r.merges };
       break;
     }
@@ -1521,6 +1544,7 @@ async function handle(req, res) {
     case 'vzvz_end': {
       const r = vzvzPlay(st, Number(payload.taps) || 0, Number(payload.durMs) || 0, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
+      questProgress(st, 'vzvz', 1, now);
       result = r;
       break;
     }
@@ -1528,12 +1552,19 @@ async function handle(req, res) {
       const r = spinWheel(st, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       await bumpCounter('spin');
+      questProgress(st, 'spin', 1, now);
       result = r;
       break;
     }
     case 'chest': {
       const card = Math.max(0, Math.min(2, Number(payload.card) || 0));
       const r = openChest(st, card, now);
+      if (!r.ok) return res.status(400).json({ error: r.why });
+      result = r;
+      break;
+    }
+    case 'quest_claim': {
+      const r = questClaim(st, String(payload.questId || ''), now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
       break;
@@ -1568,7 +1599,9 @@ async function handle(req, res) {
     freshAch,
     daily: dailyInfo(st, now),
     level: playerLevel(st),
+    war: warLevel(st.xp || 0),
     myRank: await myRank(id),
+    quests: questInfo(st, now),
   });
 }
 
