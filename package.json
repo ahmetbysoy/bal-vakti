@@ -10,7 +10,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node tests/test.js",
-    "set-webhook": "node scripts/set-webhook.js"
+    "set-webhook": "node scripts/set-webhook.js",
+    "test:ui": "node tests/ui-test.mjs"
   },
   "dependencies": {
     "playwright": "^1.62.1",
