@@ -334,6 +334,42 @@
   .lossbar-txt b{color:var(--red)}
   .lossbar{height:10px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
   .lossbar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#e0523f,#ff9a8b);transition:width .4s}
+  /* 🎁 Sandık kartları */
+  .chest-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
+  .chest-card{
+    aspect-ratio:3/4;border-radius:16px;border:2px solid var(--gold);cursor:pointer;
+    background:linear-gradient(180deg,#3a2509,#1d1306);font-size:34px;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;
+    box-shadow:0 4px 0 #a16207;transition:transform .1s;
+  }
+  .chest-card:active{transform:scale(.95)}
+  .chest-card:disabled{opacity:.8}
+  .chest-card .cc-open{font-size:40px;animation:pop .4s ease}
+  .chest-card .cc-open.dim{opacity:.4}
+  /* ⚡ Combo bar (VızVız) */
+  .combobar{height:12px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:10px 4px}
+  .combobar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#ff6b52,#ffd166);transition:width .15s}
+  .frenzy{font-size:22px;font-weight:900;color:#ffd166;text-align:center;animation:frenzypulse .4s infinite alternate;text-shadow:0 0 18px #ffd16688}
+  @keyframes frenzypulse{from{transform:scale(1)}to{transform:scale(1.15)}}
+  /* 🔥 Streak rozeti (Topla) */
+  .streakbadge{display:inline-flex;align-items:center;gap:4px;background:#5a2d10;border-radius:99px;padding:3px 10px;font-size:11px;color:var(--gold);font-weight:900;margin-top:6px}
+  .streakbadge.hot{background:#5a1f12;color:#ffb4a0;animation:raidpulse 1s infinite}
+  /* 🎉 Level-up infilak */
+  .levelup-screen{position:fixed;inset:0;z-index:97;background:#ffd16622;display:none;align-items:center;justify-content:center;pointer-events:none;backdrop-filter:brightness(1.3)}
+  .levelup-screen.show{display:flex;animation:lvlflash 3s ease forwards}
+  @keyframes lvlflash{0%{opacity:1}100%{opacity:0}}
+  .levelup-txt{font-size:44px;font-weight:900;color:var(--gold);text-shadow:0 0 30px #ffd166;animation:lvlpop 3s ease forwards}
+  @keyframes lvlpop{0%{transform:scale(.3);opacity:0}20%{transform:scale(1.3)}40%{transform:scale(1)}70%{opacity:1}100%{opacity:0;transform:scale(1.4)}}
+  /* 🌈 Hologram (seviye 8+ arı) */
+  .bee.holo .e{animation:holo 8s linear infinite;filter:hue-rotate(0)}
+  @keyframes holo{0%{filter:hue-rotate(0)}100%{filter:hue-rotate(360deg)}}
+  /* ⚡ Neon boost glow */
+  .hero.neon{box-shadow:0 0 24px #ffd16666,0 0 60px #f59e0b33;border-color:var(--gold)}
+  .hero.neon::before{content:"";position:absolute;inset:-3px;border-radius:24px;border:2px solid #ffd16655;animation:neonring 3s linear infinite;pointer-events:none}
+  @keyframes neonring{0%{transform:rotate(0) scale(1);opacity:.6}100%{transform:rotate(360deg) scale(1);opacity:.6}}
+  /* 🐝 Petek pulse */
+  .bee{animation:petekpulse 1.2s ease-in-out infinite}
+  @keyframes petekpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   .resp{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;min-height:18px}
   .resp.win{color:var(--gold);font-weight:900}
   .resp.lose{color:var(--red);font-weight:900}
@@ -393,13 +429,14 @@
   <!-- KOVA -->
   <section id="tab-kovan">
     <div id="drops"></div>
-    <div class="hero">
+    <div class="hero" id="hero-card">
       <div class="hero-left">
         <div class="jar">🍯</div>
         <div class="balcount glowtxt" id="bal">0</div>
         <div class="subline">üretim <b id="prod" style="color:var(--amber)">0</b>/sn <span id="boost-badge" style="display:none;background:#5a2d10;border-radius:99px;padding:2px 8px;font-size:11px;color:var(--gold);font-weight:900"></span></div>
       </div>
       <button class="btn big-round" id="btn-collect" onclick="doCollect()">🍯<br>Topla</button>
+      <span class="streakbadge" id="streak-badge" style="display:none"></span>
       <div class="hero-capbar">
         <div class="capbar"><i id="capfill"></i></div>
         <div class="captxt"><span id="capnow">0</span><span id="capmax">0</span></div>
@@ -554,27 +591,23 @@
         <button class="gbtn gold" id="btn-spin" onclick="openWheel()">
           <div class="gbig">🎡</div><b>Çarkıfelek</b><span id="spin-txt" class="gsub">Günde 1 bedava</span>
         </button>
-        <button class="gbtn purple" onclick="openCoin()">
-          <div class="gbig">🪙</div><b>Yazı-Tura</b><span class="gsub">2x kazanç</span>
+        <button class="gbtn purple" onclick="openChestModal()">
+          <div class="gbig">🎁</div><b>Günlük Sandık</b><span class="gsub">3 kart, 1 seç</span>
         </button>
-        <button class="gbtn green" onclick="openSlot()">
-          <div class="gbig">🎰</div><b>Slot</b><span class="gsub">3x büyük ödül</span>
+        <button class="gbtn green" onclick="openEgg()">
+          <div class="gbig">🥚</div><b>Mystery Egg</b><span class="gsub">Yakında!</span>
         </button>
       </div>
     </div>
     <div class="card">
       <h3>📊 Kumar İstatistiklerim</h3>
       <div class="stats">
-        <div class="stat"><div class="v" id="gam-count">0</div><div class="l">🎲 Oynanan</div></div>
+        <div class="stat"><div class="v" id="gam-count">0</div><div class="l">🎁 Açılan Sandık</div></div>
         <div class="stat"><div class="v" id="gam-bal">0</div><div class="l">🍯 Mevcut Bal</div></div>
-        <div class="stat"><div class="v" id="gam-lost">0</div><div class="l">💸 Bugün Kayıp</div></div>
+        <div class="stat"><div class="v" id="gam-jackpot">0</div><div class="l">💛 Jackpot</div></div>
         <div class="stat"><div class="v" id="gam-week">0</div><div class="l">🏆 Haftalık</div></div>
       </div>
-      <div class="lossbar-wrap">
-        <div class="lossbar-txt"><span>💸 Bugünkü kayıp</span><b id="gam-lostbar">0 / 2000</b></div>
-        <div class="lossbar"><i id="gam-lostfill"></i></div>
-      </div>
-      <p class="hint" style="text-align:center;margin-top:8px">🎲 Bahis = balının %20'si (max)<br>⚠️ Kaybettiğin bal geri gelmez — sorumlu oyna!</p>
+      <p class="hint" style="text-align:center;margin-top:8px">🎁 Günlük 1 bedava sandık · 2. kart 100 bal<br>💛 Jackpot: 1000 bal (%5 şans!)</p>
     </div>
   </section>
 
@@ -643,7 +676,7 @@
   </div>
 </main>
 
-<<nav>
+<nav>
   <button class="active" data-tab="kovan" onclick="switchTab('kovan')"><span class="e">🏠</span>Kovan</button>
   <button data-tab="bees" onclick="switchTab('bees')"><span class="e">🐝</span>Arılar</button>
   <button data-tab="savas" onclick="switchTab('savas')"><span class="e">⚔️</span>Savaş</button>
@@ -667,6 +700,7 @@
   <div class="warres" id="ws-res" style="display:none"></div>
 </div>
 
+<div class="levelup-screen" id="levelup-screen"><div class="levelup-txt" id="levelup-txt">SEVİYE!</div></div>
 <div id="loader"><div class="e">🐝</div>Bal hazırlanıyor...</div>
 
 <script>
@@ -676,7 +710,7 @@ const tg = window.Telegram?.WebApp;
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 
 const DAY = 86400000;
-const DAILY_REWARDS = [15, 30, 60, 120, 240, 500, 1000];
+const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500];
 const MAX_LEVEL = 12;
 
 let S = null;          // oyun durumu
@@ -685,10 +719,10 @@ let uid = 1;           // kullanıcı id (davet kodu için)
 let cfg = {
   bot: '', appUrl: '', vzvzCooldownSec: 300, vzvzDurationSec: 10,
   // ekonomi (sunucudan gelir; gelmezse varsayılanlar kullanılır)
-  beeBaseCost: 25, beeCostGrowth: 1.18, p1: 0.08, pMult: 2.5,
-  capBase: 300, capUpgMult: 3, capUpgBase: 800, capUpgCostMult: 4,
-  kovanBase: 2500, kovanCostMult: 6,
-  vzvzTapReward: 1, vzvzMaxTaps: 20, vzvzMaxMs: 12000,
+  beeBaseCost: 15, beeCostGrowth: 1.15, p1: 0.12, pMult: 2.5,
+  capBase: 400, capUpgMult: 3, capUpgBase: 600, capUpgCostMult: 4,
+  kovanBase: 1500, kovanCostMult: 6,
+  vzvzTapReward: 1, vzvzMaxTaps: 30, vzvzMaxMs: 12000,
 };
 let myRankCache = null;
 let tab = 'kovan';
@@ -746,6 +780,12 @@ const Sfx = (() => {
     vzvz() { tone(170 + Math.random() * 90, 0.04, 'square', 0.04); },
     tick() { tone(880, 0.03, 'square', 0.03); },
     siren() { [0, 0.25, 0.5].forEach((d) => { tone(520, 0.2, 'sawtooth', 0.08, d); tone(390, 0.2, 'sawtooth', 0.08, d + 0.12); }); },
+    viz() { tone(700, 0.05, 'square', 0.05); },
+    combo(level) {
+      if (level === 1) tone(880, 0.1, 'triangle', 0.1);
+      else if (level === 2) { tone(880, 0.1, 'triangle', 0.1); tone(1175, 0.12, 'triangle', 0.1, 0.08); }
+      else { [880, 1175, 1568, 2093].forEach((f, i) => tone(f, 0.14, 'triangle', 0.12, i * 0.08)); }
+    },
     war() { [200, 240, 300].forEach((f, i) => tone(f, 0.1, 'sawtooth', 0.09, i * 0.1)); },
     win() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.14, 'triangle', 0.12, i * 0.09)); },
     lose() { [400, 330, 262, 196].forEach((f, i) => tone(f, 0.16, 'sawtooth', 0.08, i * 0.11)); },
@@ -890,6 +930,8 @@ async function load() {
     demoSave();
   }
   $('#loader').style.display = 'none';
+  const initLvl = mode === 'demo' ? dLevel(S).level : playerLevel(S).level;
+  lastLevelShown = initLvl; // ilk yüklemede patlama yok
   renderAll();
   loadFomoOnce();
   renderTicker();
@@ -900,16 +942,38 @@ function renderAll() {
   const cap = mode === 'demo' ? dCap(S) : capacity(S);
   const lvl = mode === 'demo' ? dLevel(S) : playerLevel(S);
 
-  // 🌙 gece/boost göstergesi
+  // 🌙 gece/boost/streak göstergesi
   const boostEl = $('#boost-badge');
   if (boostEl) {
     const isNight2 = new Date().getHours() >= 22 || new Date().getHours() < 6;
     const boost = (S.boostUntil || 0) > Date.now();
-    if (isNight2 || boost) {
+    const streakBoost = (S.streakBoostUntil || 0) > Date.now();
+    if (isNight2 || boost || streakBoost) {
       boostEl.style.display = 'inline-block';
-      boostEl.textContent = (boost ? '⚡ x2' : '') + (isNight2 ? '🌙 x2' : '');
+      boostEl.textContent = (boost ? '⚡ ' : '') + (streakBoost ? '🔥 ' : '') + (isNight2 ? '🌙 ' : '');
     } else boostEl.style.display = 'none';
   }
+  // 🔥 Streak rozeti
+  const streakBadge = $('#streak-badge');
+  if (streakBadge) {
+    const stk = S.collectStreak || 0;
+    if (stk >= 2) {
+      streakBadge.style.display = 'inline-flex';
+      streakBadge.textContent = '🔥 ' + stk + 'x' + (collectStreakMult(stk) > 1 ? ' (' + collectStreakMult(stk) + 'x!)' : '');
+      streakBadge.className = 'streakbadge' + (stk >= 5 ? ' hot' : '');
+    } else streakBadge.style.display = 'none';
+  }
+  // ⚡ Neon boost glow
+  const heroCard = document.getElementById('hero-card');
+  if (heroCard) {
+    const anyBoost = (S.boostUntil || 0) > Date.now() || (S.streakBoostUntil || 0) > Date.now() || (S.warBoostUntil || 0) > Date.now();
+    heroCard.classList.toggle('neon', anyBoost);
+  }
+  // 🌈 Hologram: seviye 8+ arılar
+  document.querySelectorAll('#bee-grid .bee').forEach((el) => {
+    const lv = parseInt((el.querySelector('.lv') || {}).textContent || '1', 10);
+    el.classList.toggle('holo', lv >= 8);
+  });
   $('#bal').textContent = fmt(S.bal);
   $('#prod').textContent = fmtP(prod);
   $('#capnow').textContent = fmt(Math.min(S.bal, cap)) + ' 🍯';
@@ -967,6 +1031,24 @@ function renderAll() {
   renderAchs();
   if (tab === 'lb') renderLb();
   renderInvite();
+  checkLevelUp();
+}
+// 🎉 DOP-4: Level-Up İnfilak — seviye değişince altın patlama
+let lastLevelShown = 0;
+function checkLevelUp() {
+  const lvl = mode === 'demo' ? dLevel(S).level : playerLevel(S).level;
+  if (lvl > lastLevelShown && lastLevelShown > 0) {
+    const sc = $('#levelup-screen');
+    const txt = $('#levelup-txt');
+    if (sc && txt) {
+      txt.textContent = 'SEVİYE ' + lvl + '!';
+      sc.classList.add('show');
+      Sfx.ach();
+      for (let i = 0; i < 3; i++) setTimeout(confetti, i * 300);
+      setTimeout(() => sc.classList.remove('show'), 3000);
+    }
+  }
+  lastLevelShown = lvl;
 }
 function renderAchs() {
   const grid = $('#ach-grid'); grid.innerHTML = '';
@@ -1194,7 +1276,15 @@ async function doCollect() {
   if (mode === 'demo') { const g = dCollect(S); demoSave(); toast('🍯 +' + fmt(g) + ' bal toplandı'); Sfx.collect(); renderAll(); return; }
   const res = await api('/api/action', { initData: initData(), action: 'collect' });
   if (handleActionErr(res)) return doCollect();
-  if (handleRes(res)) { toast('🍯 +' + fmt(res.collected) + ' bal toplandı'); Sfx.collect(); }
+  if (handleRes(res)) {
+    toast('🍯 +' + fmt(res.collected) + ' bal toplandı');
+    Sfx.collect();
+    // 🔥 Streak geri bildirimi
+    const stk = S.collectStreak || 0;
+    if (stk === 3) { toast('🔥 Seri x3 — Üretim x1.2!'); Sfx.combo(1); }
+    else if (stk === 5) { toast('🔥🔥 Seri x5 — Üretim x1.5!'); Sfx.combo(2); }
+    else if (stk === 10) { toast('👑 ALTIN KOVAN! Üretim x3!'); Sfx.combo(3); confetti(); }
+  }
 }
 // Kovan kartı alt-sekmeleri (Genel / Yükseltmeler)
 function secTab(name) {
@@ -1270,9 +1360,11 @@ function openVzvz() {
   let left = cfg.vzvzDurationSec;
   const body = $('#modal-body');
   body.innerHTML =
-    '<h2>⚡ VızVız Yarışı!</h2><p>10 saniye boyunca arıya dokun! Her dokunuş +2 bal 🍯</p>' +
+    '<h2>⚡ VızVız Yarışı!</h2><p>10 saniye boyunca arıya dokun! Kombo yap: 5+ x2 · 10+ x3 · 20+ FRENZİ x5!</p>' +
     '<div class="vztimer" id="vz-timer">' + left + '</div>' +
     '<div class="vztaps" id="vz-taps">0 dokunuş</div>' +
+    '<div class="combobar"><i id="vz-combofill"></i></div>' +
+    '<div class="frenzy" id="vz-frenzy" style="display:none">🔥 BAL FRENZİ! 🔥</div>' +
     '<button class="vz" id="vz-bee">🐝</button>';
   showModal();
   const bee = $('#vz-bee');
@@ -1282,6 +1374,17 @@ function openVzvz() {
     Sfx.vzvz();
     vzvzTaps++;
     $('#vz-taps').textContent = vzvzTaps + ' dokunuş';
+    // 🎯 Combo bar + frenzy
+    const fill = $('#vz-combofill');
+    if (fill) {
+      const pct = Math.min(100, (vzvzTaps / 20) * 100);
+      fill.style.width = pct + '%';
+      if (vzvzTaps >= 5 && vzvzTaps < 10) { Sfx.combo(1); toast('⚡ Kombo x2!'); }
+      else if (vzvzTaps >= 10 && vzvzTaps < 20) { Sfx.combo(2); toast('🔥 Kombo x3!'); }
+      else if (vzvzTaps >= 20) { Sfx.combo(3); }
+    }
+    const fr = $('#vz-frenzy');
+    if (fr && vzvzTaps >= 20) { fr.style.display = 'block'; }
     const f = document.createElement('div');
     f.className = 'float'; f.textContent = '+2';
     f.style.left = (e.clientX - 18) + 'px'; f.style.top = (e.clientY - 40) + 'px';
@@ -1399,6 +1502,7 @@ function switchTab(name) {
 }
 
 /* ═══════════════ SERVER LOGIC (demo'da gerek yok, sadece render için) ═══════════════ */
+function collectStreakMult(stk) { return stk >= 10 ? 3 : stk >= 5 ? 1.5 : stk >= 3 ? 1.2 : 1; }
 function beeProd(l) { return cfg.p1 * Math.pow(cfg.pMult, l - 1); }
 function totalProd(s) { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * beeProd(l); return t * Math.pow(2, s.kovan); }
 function capacity(s) { return cfg.capBase * Math.pow(cfg.capUpgMult, s.depo); }
@@ -1484,96 +1588,52 @@ async function spinIt() {
   }
 }
 
-async function openCoin() {
+// 🎁 DOP-12: Günlük Sandık — 3 kart, birini seç
+async function openChestModal() {
   haptic('impact');
   const body = $('#modal-body');
   body.innerHTML =
-    '<h2>🪙 Yazı-Tura</h2>' +
-    '<p>Kraliçe Arı parayı atar — yazı mı tura mı? Kazanırsan <b>2x</b>!</p>' +
-    '<div class="betrow" style="margin-top:14px"><input type="number" id="coin-bet" placeholder="Bahis miktarı" min="1" value="50"></div>' +
-    '<div class="resp" id="coin-resp">Bahis: balının %20\'sini geçemez (max)</div>' +
-    '<button class="btn purple" style="width:100%;margin-top:10px" onclick="playCoin()">🪙 YAZI-TURA AT</button>' +
-    '<p class="hint" style="text-align:center;margin-top:8px">Günlük kayıp limiti: 2000 bal — sorumlu oyna!</p>';
+    '<h2>🎁 Günlük Sandık</h2>' +
+    '<p>3 karttan birini seç — ödül senin! (Günde 1 bedava · 2. kart 100 🍯)</p>' +
+    '<div class="chest-grid">' +
+    [0, 1, 2].map((i) => '<button class="chest-card" onclick="doChest(' + i + ')"><div class="cc-front">❓</div></button>').join('') +
+    '</div>' +
+    '<div class="resp" id="chest-resp">İyi şanslar arıcı! 🍀</div>';
   showModal();
 }
-async function playCoin() {
+async function doChest(card) {
   haptic('impact');
-  const bet = Math.floor(Number($('#coin-bet').value) || 0);
-  if (bet < 1) return toast('⛔ Bahis gir!');
-  const res = await api('/api/action', { initData: initData(), action: 'gamble', payload: { game: 'coin', bet } });
+  const res = await api('/api/action', { initData: initData(), action: 'chest', payload: { card } });
   if (handleActionErr(res)) return;
-  if (!res?.ok) { $('#coin-resp').className = 'resp lose'; $('#coin-resp').textContent = '⛔ ' + errText(res.error); Sfx.error(); return; }
-  const r = res;
-  setTimeout(() => {
-    if (r.win) {
-      $('#coin-resp').className = 'resp win';
-      $('#coin-resp').textContent = '🪙 ' + r.result.toUpperCase() + ' — KAZANDIN! +' + r.reward + ' bal 🎉';
-      confetti(); Sfx.ach();
-    } else {
-      $('#coin-resp').className = 'resp lose';
-      $('#coin-resp').textContent = '🪙 ' + r.result.toUpperCase() + ' — Kaybettin... -' + r.lost + ' bal 💸';
-      Sfx.lose();
-    }
-    handleRes(res);
-  }, 700);
+  if (!res?.ok) { $('#chest-resp').className = 'resp lose'; $('#chest-resp').textContent = '⛔ ' + errText(res.error); Sfx.error(); return; }
+  // kartları çevir
+  const cards = document.querySelectorAll('.chest-card');
+  cards.forEach((c, i) => {
+    c.innerHTML = i === card ? '<div class="cc-open">' + (res.jackpot ? '💛' : '🍯') + '</div>' : '<div class="cc-open dim">🎁</div>';
+    c.disabled = true;
+  });
+  $('#chest-resp').className = 'resp win';
+  $('#chest-resp').textContent = res.jackpot
+    ? '💛 JACKPOT! +' + res.reward + ' bal!!! 🎉🎉🎉'
+    : '🎉 +' + res.reward + ' bal kazandın!';
+  if (res.jackpot) { confetti(); confetti(); Sfx.ach(); }
+  else { confetti(); Sfx.daily(); }
+  handleRes(res);
+  renderEglence();
+}
+// 🥚 Mystery Egg — yakında
+function openEgg() {
+  toast('🥚 Mystery Egg yakında geliyor! (1 saatte bir yumurta, 3 saat kuluçka)');
+  Sfx.tap();
 }
 
-async function openSlot() {
-  haptic('impact');
-  const body = $('#modal-body');
-  body.innerHTML =
-    '<h2>🎰 Slot Makinesi</h2>' +
-    '<p>3 aynı emoji = <b>3x</b> · 2 aynı = <b>1.5x</b> · yoksa kayıp!</p>' +
-    '<div class="slotbox"><div class="slotcell" id="s1">🍯</div><div class="slotcell" id="s2">🐝</div><div class="slotcell" id="s3">✨</div></div>' +
-    '<div class="betrow"><input type="number" id="slot-bet" placeholder="Bahis" min="1" value="100"></div>' +
-    '<div class="resp" id="slot-resp">İyi şanslar arıcı! 🍀</div>' +
-    '<button class="btn green" style="width:100%;margin-top:10px" onclick="playSlot()">🎰 DÖNDÜR</button>';
-  showModal();
-}
-async function playSlot() {
-  haptic('impact');
-  const bet = Math.floor(Number($('#slot-bet').value) || 0);
-  if (bet < 1) return toast('⛔ Bahis gir!');
-  // Görsel: dönme animasyonu
-  for (const id of ['s1', 's2', 's3']) {
-    const el = document.getElementById(id);
-    if (el) { el.classList.add('spin'); setTimeout(() => el.classList.remove('spin'), 350); }
-  }
-  Sfx.war();
-  const res = await api('/api/action', { initData: initData(), action: 'gamble', payload: { game: 'slot', bet } });
-  if (handleActionErr(res)) return;
-  if (!res?.ok) { $('#slot-resp').className = 'resp lose'; $('#slot-resp').textContent = '⛔ ' + errText(res.error); Sfx.error(); return; }
-  setTimeout(() => {
-    if (res.symbols) {
-      $('#s1').textContent = res.symbols[0];
-      $('#s2').textContent = res.symbols[1];
-      $('#s3').textContent = res.symbols[2];
-    }
-    if (res.win) {
-      $('#slot-resp').className = 'resp win';
-      $('#slot-resp').textContent = '🎉 ' + res.symbols.join(' ') + ' — KAZANDIN! +' + res.reward + ' bal (' + res.mult + 'x)';
-      confetti(); Sfx.ach();
-    } else {
-      $('#slot-resp').className = 'resp lose';
-      $('#slot-resp').textContent = '💸 ' + res.symbols.join(' ') + ' — Kaybettin... -' + res.lost + ' bal';
-      Sfx.lose();
-    }
-    handleRes(res);
-  }, 800);
-}
+
 
 function renderEglence() {
   if (!S) return;
-  $('#gam-count').textContent = S.gambleCount || 0;
+  $('#gam-count').textContent = S.chestCount || 0;
   $('#gam-bal').textContent = fmt(S.bal);
-  $('#gam-lost').textContent = fmt(S.gambleLost || 0);
-  const lostFill = document.getElementById('gam-lostfill');
-  if (lostFill) {
-    const lostPct = Math.min(100, ((S.gambleLost || 0) / 2000) * 100);
-    lostFill.style.width = lostPct + '%';
-    const lbTxt = document.getElementById('gam-lostbar');
-    if (lbTxt) lbTxt.textContent = fmt(S.gambleLost || 0) + ' / 2000';
-  }
+  $('#gam-jackpot').textContent = S.jackpotCount || 0;
   $('#gam-week').textContent = fmt(S.weeklyEarned || 0);
   const can = (S.lastSpin || 0) < Math.floor(Date.now() / DAY) * DAY;
   $('#spin-txt').textContent = can ? 'Çevrilmedi — bedava!' : 'Bugün çevrildi ✅';

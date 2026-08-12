@@ -2,7 +2,7 @@
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
 import { escTg } from './raidcore.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot, throwEmoji, THROW_EMOJI_COST } from './lib/game.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -24,7 +24,7 @@ async function handle(req, res) {
   if (cfg.maintenance) return res.status(503).json({ error: 'bakimda' });
 
   let info = null;
-  if (body.demo === true && process.env.ALLOW_DEMO === '1') {
+  if (body.demo === true && process.env.ALLOW_DEMO === '1' && process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
   } else {
     info = parseInitData(body.initData);
@@ -39,7 +39,7 @@ async function handle(req, res) {
 
   const now = Date.now();
   const balBefore = st.bal;
-  collect(st, now); // her işlemde bekleyen üretim işlenir
+  const collected = collect(st, now); // her işlemde bekleyen üretim işlenir
   const gained = st.bal - balBefore;
 
   const action = body.action;
@@ -105,12 +105,11 @@ async function handle(req, res) {
       result = r;
       break;
     }
-    case 'gamble': {
-      const bet = Math.floor(Number(payload.bet) || 0);
-      const game = payload.game === 'slot' ? 'slot' : 'coin';
-      const r = game === 'slot' ? gambleSlot(st, bet, now) : gambleCoin(st, bet, now);
+    case 'chest': {
+      const card = Math.max(0, Math.min(2, Number(payload.card) || 0));
+      const r = openChest(st, card, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
-      result = { ...r, game };
+      result = r;
       break;
     }
     case 'throw_emoji': {

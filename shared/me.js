@@ -31,7 +31,7 @@ async function handle(req, res) {
   try { await thinkBots(); } catch (e) { console.error('🧠 thinkBots hatası:', e?.message || e); }
 
   let info = null;
-  if (body.demo === true && process.env.ALLOW_DEMO === '1') {
+  if (body.demo === true && process.env.ALLOW_DEMO === '1' && process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
   } else {
     info = parseInitData(body.initData);
@@ -74,7 +74,8 @@ async function handle(req, res) {
   }
 
   const now = Date.now();
-  const gained = collect(st, now);
+  const collected = collect(st, now);
+  const gained = collected.gain || 0;
 
   // ⚔️ Evrensel çözüm: beni ilgilendiren süresi dolmuş saldırıları çöz
   let raidResult = null;

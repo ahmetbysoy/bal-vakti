@@ -9,22 +9,22 @@ export const MAX_LEVEL = 12;
 // ── Ekonomi parametreleri (varsayılan; admin paneli canlı değiştirebilir) ──
 // ⚠️ CİMRİ EKONOMİ (v4): ilerleme yavaş ve istikrarlı olmalı
 export const DEFAULT_CONFIG = {
-  beeBaseCost: 25,       // 1. seviye arı taban fiyatı
-  beeCostGrowth: 1.18,   // her arıda fiyat %18 artar (cimri!)
-  p1: 0.08,              // 1. seviye arı: bal/sn (saatte ~288 bal)
+  beeBaseCost: 15,       // 1. seviye arı taban fiyatı
+  beeCostGrowth: 1.15,   // her arıda fiyat %18 artar (cimri!)
+  p1: 0.12,              // 1. seviye arı: bal/sn (saatte ~430 bal — 30sn'de 1 ödül)
   pMult: 2.5,            // her seviye 2.5x üretim (birleştirme %25 bonus)
-  capBase: 300,          // başlangıç depo kapasitesi
+  capBase: 400,          // başlangıç depo kapasitesi
   capUpgMult: 3,         // depo seviyesi başına 3x kapasite
-  capUpgBase: 800,       // depo yükseltme taban fiyatı
+  capUpgBase: 600,       // depo yükseltme taban fiyatı
   capUpgCostMult: 4,
-  kovanBase: 2500,       // kovan (üretim x2) taban fiyatı — pahalı!
+  kovanBase: 1500,       // kovan (üretim x2) taban fiyatı
   kovanCostMult: 6,
-  startBal: 15,          // yeni oyuncu başlangıç balı
+  startBal: 20,          // yeni oyuncu başlangıç balı
   startFreeBees: 1,      // yeni oyuncuya ücretsiz arı
-  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal
-  vzvzMaxTaps: 20,       // VızVız max dokunuş
+  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal (combo ile x2/x3/x5!)
+  vzvzMaxTaps: 30,       // VızVız max dokunuş
   vzvzMaxMs: 12000,      // VızVız hile koruması: max süre
-  vzvzCooldownMs: 600000, // VızVız bekleme (10 dk!)
+  vzvzCooldownMs: 180000, // VızVız bekleme (3 dk)
   dailyEnabled: true,    // günlük ödül açık/kapalı
   vzvzEnabled: true,     // VızVız açık/kapalı
   maintenance: false,    // bakım modu (oyun kapanır)
@@ -35,7 +35,7 @@ let ACTIVE_CFG = DEFAULT_CONFIG;
 export function setActiveCfg(c) { ACTIVE_CFG = c || DEFAULT_CONFIG; }
 export function getActiveCfg() { return ACTIVE_CFG; }
 
-export const DAILY_REWARDS = [15, 30, 60, 120, 240, 500, 1000]; // 7 günlük seri (cimri)
+export const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500]; // 7 günlük seri
 export const REF_INVITER = 40;        // davet edenin ödülü
 export const REF_FRIEND = 20;         // davet edilenin ödülü
 export const VIZVIZ_MAX_MS = 12000;   // hile koruması: max süre (yedek sabit)
@@ -96,7 +96,9 @@ export function totalProd(s, now = Date.now()) {
 // ⚡ Üretim çarpanı: gece x2 + çark boostu +1 (çakışırsa x3)
 export function effectiveMult(s, now = Date.now()) {
   let m = prodMultiplier(now); // gece 1.5
-  if ((s.boostUntil || 0) > now) m += 0.5; // çark boostu +0.5 (toplam max 2)
+  if ((s.boostUntil || 0) > now) m += 0.5; // çark boostu +0.5
+  if ((s.streakBoostUntil || 0) > now) m += 1; // toplama streak +1 (altın kovan x3)
+  if ((s.warBoostUntil || 0) > now) m += 1; // savaşçı modu +1
   return m;
 }
 export function capacity(s) {
@@ -110,6 +112,14 @@ export function kovanCost(s) {
 }
 
 // ── Üretimi işle (kapasite doluysa taşan bal kaybolur → düzenli topla!) ──
+// 🎯 DOP-2: Toplama Streak — 60 sn içinde art arda Topla
+// 3 → üretim x1.2 (30sn) · 5 → x1.5 (60sn) · 10 → ALTIN KOVAN x3 (30sn)
+export function collectStreakMult(streak) {
+  if (streak >= 10) return 3;
+  if (streak >= 5) return 1.5;
+  if (streak >= 3) return 1.2;
+  return 1;
+}
 export function collect(s, now = Date.now()) {
   const elapsed = Math.max(0, now - s.lastCollect);
   const cap = capacity(s);
@@ -121,9 +131,20 @@ export function collect(s, now = Date.now()) {
     s.bal += gain;
     s.totalEarned += gain;
   }
+  // Streak: son 60 sn içinde tekrar toplandıysa devam
+  if (now - (s.lastCollectAt || 0) < 60000) {
+    s.collectStreak = (s.collectStreak || 0) + 1;
+  } else {
+    s.collectStreak = 1;
+  }
+  s.lastCollectAt = now;
+  const cm = collectStreakMult(s.collectStreak || 0);
+  if (s.collectStreak === 10) s.streakBoostUntil = now + 30000; // ALTIN KOVAN 30sn
+  else if (s.collectStreak === 5) s.streakBoostUntil = now + 60000;
+  else if (s.collectStreak === 3) s.streakBoostUntil = now + 30000;
   s.lastCollect = now;
   s.lastSeen = now;
-  return gain;
+  return { gain, streak: s.collectStreak || 0, mult: cm };
 }
 
 // ── Arı satın al + otomatik birleştirme (2 aynı seviye → 1 üst) ──
@@ -179,6 +200,13 @@ export function dailyInfo(s, now = Date.now()) {
 }
 
 // ── VızVız mini oyunu (10 sn dokunma yarışı) ──
+// 🎯 DOP-1: VızVız COMBO — 5+ dokunuş x2, 10+ x3, 20+ BAL FRENZİ x5
+export function vzvzComboMult(taps) {
+  if (taps >= 20) return 5;
+  if (taps >= 10) return 3;
+  if (taps >= 5) return 2;
+  return 1;
+}
 export function vzvzPlay(s, taps, durMs, now = Date.now()) {
   if (!ACTIVE_CFG.vzvzEnabled) return { ok: false, why: 'vzvz_kapali' };
   if (now - s.vzvzAt < ACTIVE_CFG.vzvzCooldownMs) return { ok: false, why: 'bekleme' };
@@ -186,12 +214,14 @@ export function vzvzPlay(s, taps, durMs, now = Date.now()) {
   if (durMs > ACTIVE_CFG.vzvzMaxMs) return { ok: false, why: 'hile' };
   s.vzvzAt = now;
   s.vzvzCount++;
-  const reward = taps * ACTIVE_CFG.vzvzTapReward;
+  const mult = vzvzComboMult(taps);
+  const reward = Math.round(taps * ACTIVE_CFG.vzvzTapReward * mult);
   s.bal += reward;
   s.totalEarned += reward;
   s.weeklyEarned = (s.weeklyEarned || 0) + reward;
   s.todayEarned = (s.todayEarned || 0) + reward;
-  return { ok: true, reward, taps };
+  if (taps >= 20) s.frenzyCount = (s.frenzyCount || 0) + 1; // rozet için
+  return { ok: true, reward, taps, mult, frenzy: mult >= 5 };
 }
 
 /* ═══════════════════ 🎰 EĞLENCE ODASI ═══════════════════ */
@@ -228,64 +258,42 @@ export function spinWheel(s, now = Date.now()) {
 }
 
 
-// 🎲 Yazı-Tura (2x) — sunucu tarafı adil rastgele
-export const GAMBLE_DAILY_LOSS_LIMIT = 500; // günlük max kayıp (cimri)
-export const GAMBLE_MAX_BET_RATIO = 0.2;     // max bahis = balın %20'si
-export function gambleCoin(s, bet, now = Date.now()) {
-  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
-  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
-  const dayKey = Math.floor(now / 86400000);
-  if ((s.gambleLostDay === dayKey && (s.gambleLost || 0) + bet > GAMBLE_DAILY_LOSS_LIMIT) || (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT)) {
-    return { ok: false, why: 'gunluk_kayip_siniri' };
-  }
-  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
-  const win = Math.random() < 0.5;
-  s.bal -= bet;
-  let reward = 0;
-  if (win) {
-    reward = bet * 2;
-    s.bal += reward;
-    s.totalEarned += reward;
-    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
-    s.todayEarned = (s.todayEarned || 0) + reward;
-  } else {
-    // günlük kayıp takibi
-    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
-    s.gambleLost = (s.gambleLost || 0) + bet;
-  }
-  s.gambleCount = (s.gambleCount || 0) + 1;
-  return { ok: true, win, reward, lost: win ? 0 : bet, result: win ? 'yazi' : 'tura' };
-}
+/* ═══════════════════ 🎁 GÜNLÜK SANDIK (kumar yerine — çocuk dostu) ═══════════════════ */
+export const CHEST_REWARDS = [10, 25, 50, 100, 250, 500];
+export const CHEST_JACKPOT = 1000;
+export const CHEST_JACKPOT_CHANCE = 0.05;
+export const CHEST_EXTRA_COST = 100; // 2. kart
 
-// 🎰 Slot (3 emoji; 3 aynı 3x, 2 aynı 1.5x, yoksa 0)
-const SLOT_SYMBOLS = ['🍯', '🐝', '✨', '👑', '🍀'];
-export function gambleSlot(s, bet, now = Date.now()) {
-  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
-  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
-  const dayKey = Math.floor(now / 86400000);
-  if (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT) {
-    return { ok: false, why: 'gunluk_kayip_siniri' };
+// Günde 1 bedava + 100 bal ile 2. kart (3 karttan 1'ini seç)
+export function openChest(s, cardIndex, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  const todayUsed = s.chestDay === day ? (s.chestUses || 0) : 0;
+  const allowed = todayUsed < 2; // günde max 2 kart (1 bedava + 1 ücretli)
+  if (!allowed) return { ok: false, why: 'hak_yok' };
+  if (todayUsed >= 1) {
+    // 2. kart ücretli
+    if ((s.bal || 0) < CHEST_EXTRA_COST) return { ok: false, why: 'yetersiz_bal' };
+    s.bal -= CHEST_EXTRA_COST;
   }
-  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
-  const r = () => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
-  const a = r(), b = r(), c = r();
-  let mult = 0;
-  if (a === b && b === c) mult = 3;
-  else if (a === b || b === c || a === c) mult = 1.5;
-  s.bal -= bet;
-  let reward = 0;
-  if (mult > 0) {
-    reward = Math.floor(bet * mult);
-    s.bal += reward;
-    s.totalEarned += reward;
-    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
-    s.todayEarned = (s.todayEarned || 0) + reward;
-  } else {
-    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
-    s.gambleLost = (s.gambleLost || 0) + bet;
-  }
-  s.gambleCount = (s.gambleCount || 0) + 1;
-  return { ok: true, win: mult > 0, reward, lost: mult > 0 ? 0 : bet, symbols: [a, b, c], mult };
+  // Ödül: %5 jackpot, değilse rastgele dilim
+  let reward;
+  if (Math.random() < CHEST_JACKPOT_CHANCE) reward = CHEST_JACKPOT;
+  else reward = CHEST_REWARDS[Math.floor(Math.random() * CHEST_REWARDS.length)];
+  // kart seçimi görsel: ödül kartIndex'e verilir (sunucu doğru kartı söyler)
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  s.chestDay = day;
+  s.chestUses = todayUsed + 1;
+  s.chestCount = (s.chestCount || 0) + 1;
+  if (reward >= CHEST_JACKPOT) s.jackpotCount = (s.jackpotCount || 0) + 1;
+  return { ok: true, reward, card: cardIndex, jackpot: reward >= CHEST_JACKPOT, uses: s.chestUses };
+}
+export function chestInfo(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  const used = s.chestDay === day ? (s.chestUses || 0) : 0;
+  return { freeLeft: used < 1 ? 1 : 0, paidLeft: used < 2 ? 1 : 0, used };
 }
 
 /* ═══════════════════ 🐝 ARILAR ═══════════════════ */
@@ -326,6 +334,7 @@ export const ACHIEVEMENTS = [
 
 // Yeni kazanılan başarıları verir + ödüllerini verir
 export function checkAchievements(s, now = Date.now()) {
+  if (!Array.isArray(s.ach)) s.ach = []; // eski state'lerde ach yok olabilir
   const fresh = [];
   for (const a of ACHIEVEMENTS) {
     if (!s.ach.includes(a.id) && a.cond(s, now)) {

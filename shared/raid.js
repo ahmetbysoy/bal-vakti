@@ -15,7 +15,7 @@ export async function route(req, res) {
   try { await thinkBots(); } catch (e) { console.error('🧠 thinkBots hatası:', e?.message || e); }
 
   let info = null;
-  if (body.demo === true && process.env.ALLOW_DEMO === '1') {
+  if (body.demo === true && process.env.ALLOW_DEMO === '1' && process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
   } else {
     info = parseInitData(body.initData);

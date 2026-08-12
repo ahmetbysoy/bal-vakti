@@ -18,22 +18,22 @@ const MAX_LEVEL = 12;
 // ── Ekonomi parametreleri (varsayılan; admin paneli canlı değiştirebilir) ──
 // ⚠️ CİMRİ EKONOMİ (v4): ilerleme yavaş ve istikrarlı olmalı
 const DEFAULT_CONFIG = {
-  beeBaseCost: 25,       // 1. seviye arı taban fiyatı
-  beeCostGrowth: 1.18,   // her arıda fiyat %18 artar (cimri!)
-  p1: 0.08,              // 1. seviye arı: bal/sn (saatte ~288 bal)
+  beeBaseCost: 15,       // 1. seviye arı taban fiyatı
+  beeCostGrowth: 1.15,   // her arıda fiyat %18 artar (cimri!)
+  p1: 0.12,              // 1. seviye arı: bal/sn (saatte ~430 bal — 30sn'de 1 ödül)
   pMult: 2.5,            // her seviye 2.5x üretim (birleştirme %25 bonus)
-  capBase: 300,          // başlangıç depo kapasitesi
+  capBase: 400,          // başlangıç depo kapasitesi
   capUpgMult: 3,         // depo seviyesi başına 3x kapasite
-  capUpgBase: 800,       // depo yükseltme taban fiyatı
+  capUpgBase: 600,       // depo yükseltme taban fiyatı
   capUpgCostMult: 4,
-  kovanBase: 2500,       // kovan (üretim x2) taban fiyatı — pahalı!
+  kovanBase: 1500,       // kovan (üretim x2) taban fiyatı
   kovanCostMult: 6,
-  startBal: 15,          // yeni oyuncu başlangıç balı
+  startBal: 20,          // yeni oyuncu başlangıç balı
   startFreeBees: 1,      // yeni oyuncuya ücretsiz arı
-  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal
-  vzvzMaxTaps: 20,       // VızVız max dokunuş
+  vzvzTapReward: 1,      // VızVız: dokunuş başına 1 bal (combo ile x2/x3/x5!)
+  vzvzMaxTaps: 30,       // VızVız max dokunuş
   vzvzMaxMs: 12000,      // VızVız hile koruması: max süre
-  vzvzCooldownMs: 600000, // VızVız bekleme (10 dk!)
+  vzvzCooldownMs: 180000, // VızVız bekleme (3 dk)
   dailyEnabled: true,    // günlük ödül açık/kapalı
   vzvzEnabled: true,     // VızVız açık/kapalı
   maintenance: false,    // bakım modu (oyun kapanır)
@@ -44,7 +44,7 @@ let ACTIVE_CFG = DEFAULT_CONFIG;
 function setActiveCfg(c) { ACTIVE_CFG = c || DEFAULT_CONFIG; }
 function getActiveCfg() { return ACTIVE_CFG; }
 
-const DAILY_REWARDS = [15, 30, 60, 120, 240, 500, 1000]; // 7 günlük seri (cimri)
+const DAILY_REWARDS = [25, 50, 100, 200, 400, 800, 1500]; // 7 günlük seri
 const REF_INVITER = 40;        // davet edenin ödülü
 const REF_FRIEND = 20;         // davet edilenin ödülü
 const VIZVIZ_MAX_MS = 12000;   // hile koruması: max süre (yedek sabit)
@@ -105,7 +105,9 @@ function totalProd(s, now = Date.now()) {
 // ⚡ Üretim çarpanı: gece x2 + çark boostu +1 (çakışırsa x3)
 function effectiveMult(s, now = Date.now()) {
   let m = prodMultiplier(now); // gece 1.5
-  if ((s.boostUntil || 0) > now) m += 0.5; // çark boostu +0.5 (toplam max 2)
+  if ((s.boostUntil || 0) > now) m += 0.5; // çark boostu +0.5
+  if ((s.streakBoostUntil || 0) > now) m += 1; // toplama streak +1 (altın kovan x3)
+  if ((s.warBoostUntil || 0) > now) m += 1; // savaşçı modu +1
   return m;
 }
 function capacity(s) {
@@ -119,6 +121,14 @@ function kovanCost(s) {
 }
 
 // ── Üretimi işle (kapasite doluysa taşan bal kaybolur → düzenli topla!) ──
+// 🎯 DOP-2: Toplama Streak — 60 sn içinde art arda Topla
+// 3 → üretim x1.2 (30sn) · 5 → x1.5 (60sn) · 10 → ALTIN KOVAN x3 (30sn)
+function collectStreakMult(streak) {
+  if (streak >= 10) return 3;
+  if (streak >= 5) return 1.5;
+  if (streak >= 3) return 1.2;
+  return 1;
+}
 function collect(s, now = Date.now()) {
   const elapsed = Math.max(0, now - s.lastCollect);
   const cap = capacity(s);
@@ -130,9 +140,20 @@ function collect(s, now = Date.now()) {
     s.bal += gain;
     s.totalEarned += gain;
   }
+  // Streak: son 60 sn içinde tekrar toplandıysa devam
+  if (now - (s.lastCollectAt || 0) < 60000) {
+    s.collectStreak = (s.collectStreak || 0) + 1;
+  } else {
+    s.collectStreak = 1;
+  }
+  s.lastCollectAt = now;
+  const cm = collectStreakMult(s.collectStreak || 0);
+  if (s.collectStreak === 10) s.streakBoostUntil = now + 30000; // ALTIN KOVAN 30sn
+  else if (s.collectStreak === 5) s.streakBoostUntil = now + 60000;
+  else if (s.collectStreak === 3) s.streakBoostUntil = now + 30000;
   s.lastCollect = now;
   s.lastSeen = now;
-  return gain;
+  return { gain, streak: s.collectStreak || 0, mult: cm };
 }
 
 // ── Arı satın al + otomatik birleştirme (2 aynı seviye → 1 üst) ──
@@ -188,6 +209,13 @@ function dailyInfo(s, now = Date.now()) {
 }
 
 // ── VızVız mini oyunu (10 sn dokunma yarışı) ──
+// 🎯 DOP-1: VızVız COMBO — 5+ dokunuş x2, 10+ x3, 20+ BAL FRENZİ x5
+function vzvzComboMult(taps) {
+  if (taps >= 20) return 5;
+  if (taps >= 10) return 3;
+  if (taps >= 5) return 2;
+  return 1;
+}
 function vzvzPlay(s, taps, durMs, now = Date.now()) {
   if (!ACTIVE_CFG.vzvzEnabled) return { ok: false, why: 'vzvz_kapali' };
   if (now - s.vzvzAt < ACTIVE_CFG.vzvzCooldownMs) return { ok: false, why: 'bekleme' };
@@ -195,12 +223,14 @@ function vzvzPlay(s, taps, durMs, now = Date.now()) {
   if (durMs > ACTIVE_CFG.vzvzMaxMs) return { ok: false, why: 'hile' };
   s.vzvzAt = now;
   s.vzvzCount++;
-  const reward = taps * ACTIVE_CFG.vzvzTapReward;
+  const mult = vzvzComboMult(taps);
+  const reward = Math.round(taps * ACTIVE_CFG.vzvzTapReward * mult);
   s.bal += reward;
   s.totalEarned += reward;
   s.weeklyEarned = (s.weeklyEarned || 0) + reward;
   s.todayEarned = (s.todayEarned || 0) + reward;
-  return { ok: true, reward, taps };
+  if (taps >= 20) s.frenzyCount = (s.frenzyCount || 0) + 1; // rozet için
+  return { ok: true, reward, taps, mult, frenzy: mult >= 5 };
 }
 
 /* ═══════════════════ 🎰 EĞLENCE ODASI ═══════════════════ */
@@ -237,64 +267,42 @@ function spinWheel(s, now = Date.now()) {
 }
 
 
-// 🎲 Yazı-Tura (2x) — sunucu tarafı adil rastgele
-const GAMBLE_DAILY_LOSS_LIMIT = 500; // günlük max kayıp (cimri)
-const GAMBLE_MAX_BET_RATIO = 0.2;     // max bahis = balın %20'si
-function gambleCoin(s, bet, now = Date.now()) {
-  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
-  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
-  const dayKey = Math.floor(now / 86400000);
-  if ((s.gambleLostDay === dayKey && (s.gambleLost || 0) + bet > GAMBLE_DAILY_LOSS_LIMIT) || (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT)) {
-    return { ok: false, why: 'gunluk_kayip_siniri' };
-  }
-  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
-  const win = Math.random() < 0.5;
-  s.bal -= bet;
-  let reward = 0;
-  if (win) {
-    reward = bet * 2;
-    s.bal += reward;
-    s.totalEarned += reward;
-    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
-    s.todayEarned = (s.todayEarned || 0) + reward;
-  } else {
-    // günlük kayıp takibi
-    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
-    s.gambleLost = (s.gambleLost || 0) + bet;
-  }
-  s.gambleCount = (s.gambleCount || 0) + 1;
-  return { ok: true, win, reward, lost: win ? 0 : bet, result: win ? 'yazi' : 'tura' };
-}
+/* ═══════════════════ 🎁 GÜNLÜK SANDIK (kumar yerine — çocuk dostu) ═══════════════════ */
+const CHEST_REWARDS = [10, 25, 50, 100, 250, 500];
+const CHEST_JACKPOT = 1000;
+const CHEST_JACKPOT_CHANCE = 0.05;
+const CHEST_EXTRA_COST = 100; // 2. kart
 
-// 🎰 Slot (3 emoji; 3 aynı 3x, 2 aynı 1.5x, yoksa 0)
-const SLOT_SYMBOLS = ['🍯', '🐝', '✨', '👑', '🍀'];
-function gambleSlot(s, bet, now = Date.now()) {
-  if (!Number.isFinite(bet) || bet < 1) return { ok: false, why: 'bahis_gecersiz' };
-  if (bet > s.bal * GAMBLE_MAX_BET_RATIO) return { ok: false, why: 'bahis_siniri' };
-  const dayKey = Math.floor(now / 86400000);
-  if (s.gambleLostDay === dayKey && (s.gambleLost || 0) >= GAMBLE_DAILY_LOSS_LIMIT) {
-    return { ok: false, why: 'gunluk_kayip_siniri' };
+// Günde 1 bedava + 100 bal ile 2. kart (3 karttan 1'ini seç)
+function openChest(s, cardIndex, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  const todayUsed = s.chestDay === day ? (s.chestUses || 0) : 0;
+  const allowed = todayUsed < 2; // günde max 2 kart (1 bedava + 1 ücretli)
+  if (!allowed) return { ok: false, why: 'hak_yok' };
+  if (todayUsed >= 1) {
+    // 2. kart ücretli
+    if ((s.bal || 0) < CHEST_EXTRA_COST) return { ok: false, why: 'yetersiz_bal' };
+    s.bal -= CHEST_EXTRA_COST;
   }
-  if (bet > s.bal) return { ok: false, why: 'yetersiz_bal' };
-  const r = () => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
-  const a = r(), b = r(), c = r();
-  let mult = 0;
-  if (a === b && b === c) mult = 3;
-  else if (a === b || b === c || a === c) mult = 1.5;
-  s.bal -= bet;
-  let reward = 0;
-  if (mult > 0) {
-    reward = Math.floor(bet * mult);
-    s.bal += reward;
-    s.totalEarned += reward;
-    s.weeklyEarned = (s.weeklyEarned || 0) + reward;
-    s.todayEarned = (s.todayEarned || 0) + reward;
-  } else {
-    if (s.gambleLostDay !== dayKey) { s.gambleLostDay = dayKey; s.gambleLost = 0; }
-    s.gambleLost = (s.gambleLost || 0) + bet;
-  }
-  s.gambleCount = (s.gambleCount || 0) + 1;
-  return { ok: true, win: mult > 0, reward, lost: mult > 0 ? 0 : bet, symbols: [a, b, c], mult };
+  // Ödül: %5 jackpot, değilse rastgele dilim
+  let reward;
+  if (Math.random() < CHEST_JACKPOT_CHANCE) reward = CHEST_JACKPOT;
+  else reward = CHEST_REWARDS[Math.floor(Math.random() * CHEST_REWARDS.length)];
+  // kart seçimi görsel: ödül kartIndex'e verilir (sunucu doğru kartı söyler)
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  s.chestDay = day;
+  s.chestUses = todayUsed + 1;
+  s.chestCount = (s.chestCount || 0) + 1;
+  if (reward >= CHEST_JACKPOT) s.jackpotCount = (s.jackpotCount || 0) + 1;
+  return { ok: true, reward, card: cardIndex, jackpot: reward >= CHEST_JACKPOT, uses: s.chestUses };
+}
+function chestInfo(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  const used = s.chestDay === day ? (s.chestUses || 0) : 0;
+  return { freeLeft: used < 1 ? 1 : 0, paidLeft: used < 2 ? 1 : 0, used };
 }
 
 /* ═══════════════════ 🐝 ARILAR ═══════════════════ */
@@ -335,6 +343,7 @@ const ACHIEVEMENTS = [
 
 // Yeni kazanılan başarıları verir + ödüllerini verir
 function checkAchievements(s, now = Date.now()) {
+  if (!Array.isArray(s.ach)) s.ach = []; // eski state'lerde ach yok olabilir
   const fresh = [];
   for (const a of ACHIEVEMENTS) {
     if (!s.ach.includes(a.id) && a.cond(s, now)) {
@@ -503,7 +512,7 @@ function coalitionBonus(attacker, count) {
   return 0;
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzPlay, WHEEL_SLICES, spinWheel, GAMBLE_DAILY_LOSS_LIMIT, GAMBLE_MAX_BET_RATIO, gambleCoin, gambleSlot, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -518,7 +527,7 @@ const HAS_UPSTASH = !HAS_FIREBASE && !!(process.env.UPSTASH_REDIS_REST_URL && pr
 const DB = (process.env.FIREBASE_DB_URL || '').replace(/\/+$/, '');
 const P = 'balvakti';
 
-const redis = HAS_UPSTASH
+const redis = HAS_UPSTASH && Redis
   ? new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
   : null;
 const mem = new Map();
@@ -1309,7 +1318,7 @@ async function handle(req, res) {
   try { await thinkBots(); } catch (e) { console.error('🧠 thinkBots hatası:', e?.message || e); }
 
   let info = null;
-  if (body.demo === true && process.env.ALLOW_DEMO === '1') {
+  if (body.demo === true && process.env.ALLOW_DEMO === '1' && process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
   } else {
     info = parseInitData(body.initData);
@@ -1352,7 +1361,8 @@ async function handle(req, res) {
   }
 
   const now = Date.now();
-  const gained = collect(st, now);
+  const collected = collect(st, now);
+  const gained = collected.gain || 0;
 
   // ⚔️ Evrensel çözüm: beni ilgilendiren süresi dolmuş saldırıları çöz
   let raidResult = null;
@@ -1418,7 +1428,7 @@ __handlers['action'] = (() => {
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
 const { escTg } = __lib['raidcore'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, gambleCoin, gambleSlot, throwEmoji, THROW_EMOJI_COST } = __lib['game'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1440,7 +1450,7 @@ async function handle(req, res) {
   if (cfg.maintenance) return res.status(503).json({ error: 'bakimda' });
 
   let info = null;
-  if (body.demo === true && process.env.ALLOW_DEMO === '1') {
+  if (body.demo === true && process.env.ALLOW_DEMO === '1' && process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
   } else {
     info = parseInitData(body.initData);
@@ -1455,7 +1465,7 @@ async function handle(req, res) {
 
   const now = Date.now();
   const balBefore = st.bal;
-  collect(st, now); // her işlemde bekleyen üretim işlenir
+  const collected = collect(st, now); // her işlemde bekleyen üretim işlenir
   const gained = st.bal - balBefore;
 
   const action = body.action;
@@ -1521,12 +1531,11 @@ async function handle(req, res) {
       result = r;
       break;
     }
-    case 'gamble': {
-      const bet = Math.floor(Number(payload.bet) || 0);
-      const game = payload.game === 'slot' ? 'slot' : 'coin';
-      const r = game === 'slot' ? gambleSlot(st, bet, now) : gambleCoin(st, bet, now);
+    case 'chest': {
+      const card = Math.max(0, Math.min(2, Number(payload.card) || 0));
+      const r = openChest(st, card, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
-      result = { ...r, game };
+      result = r;
       break;
     }
     case 'throw_emoji': {
@@ -1583,7 +1592,7 @@ async function route(req, res) {
   try { await thinkBots(); } catch (e) { console.error('🧠 thinkBots hatası:', e?.message || e); }
 
   let info = null;
-  if (body.demo === true && process.env.ALLOW_DEMO === '1') {
+  if (body.demo === true && process.env.ALLOW_DEMO === '1' && process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
     info = { user: { id: 1, first_name: 'Kanka', last_name: '' }, startParam: null };
   } else {
     info = parseInitData(body.initData);

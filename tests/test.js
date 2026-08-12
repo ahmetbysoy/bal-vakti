@@ -6,8 +6,8 @@ import {
   checkAchievements, playerLevel, capacity, totalProd, beeCost, beeProd,
   ACHIEVEMENTS, VIZVIZ_COOLDOWN_MS, MAX_LEVEL, setActiveCfg, DEFAULT_CONFIG, giveAchievement,
   warLevel, raidPower, resolveRaid, mutualRaidPenalty, coalitionBonus, killBees,
-  isNight, prodMultiplier, spinWheel, gambleCoin, gambleSlot, WHEEL_SLICES,
-  GAMBLE_DAILY_LOSS_LIMIT, beeEmoji, addEarned,
+  isNight, prodMultiplier, spinWheel, openChest, CHEST_REWARDS, CHEST_JACKPOT, WHEEL_SLICES,
+  vzvzComboMult, collectStreakMult, beeEmoji, addEarned,
   throwEmoji, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
@@ -28,19 +28,19 @@ const now0 = (() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d.ge
 const NIGHT_TS = (() => { const d = new Date(); d.setHours(23, 30, 0, 0); return d.getTime(); })();
 
 // 1) Yeni oyuncu
-t('Yeni oyuncu 15 bal + 1 arı ile başlar (cimri)', () => {
+t('Yeni oyuncu 20 bal + 1 arı ile başlar', () => {
   const s = newState(now0);
-  assert.strictEqual(s.bal, 15);
+  assert.strictEqual(s.bal, 20);
   assert.strictEqual(s.bees[1], 1);
   assert.strictEqual(s.beesOwned, 1);
 });
 
 // 2) Üretim işleme
-t('1 seviye arı 10 sn de 0.8 bal üretir (cimri)', () => {
+t('1 seviye arı 10 sn de 1.2 bal üretir', () => {
   const s = newState(now0);
-  const g = collect(s, now0 + 10000);
-  near(g, 0.8);
-  near(s.bal, 15.8); // startBal 15
+  const r = collect(s, now0 + 10000);
+  near(r.gain, 1.2);
+  near(s.bal, 21.2); // startBal 20
 });
 
 // 3) Kapasite sınırı (taşan bal kaybolur)
@@ -49,8 +49,8 @@ t('Üretim kapasiteyi aşamaz', () => {
   s.bal = 0; s.lastCollect = now0;
   s.bees = Array.from({ length: MAX_LEVEL + 1 }, () => 0);
   s.bees[MAX_LEVEL] = 1; // 177147 bal/sn
-  const g = collect(s, now0 + 60000);
-  assert.ok(g <= capacity(s));
+  const r = collect(s, now0 + 60000);
+  assert.ok(r.gain <= capacity(s));
   assert.ok(s.bal <= capacity(s));
 });
 
@@ -107,10 +107,10 @@ t('Günlük seri 1,2,3... şeklinde ilerler', () => {
   const day = 86400000;
   const r1 = claimDaily(s, now0 + day);
   assert.strictEqual(r1.streak, 1);
-  assert.strictEqual(r1.reward, 15);
+  assert.strictEqual(r1.reward, 25);
   const r2 = claimDaily(s, now0 + day * 2);
   assert.strictEqual(r2.streak, 2);
-  assert.strictEqual(r2.reward, 30);
+  assert.strictEqual(r2.reward, 50);
   // aynı gün tekrar alamaz
   const again = claimDaily(s, now0 + day * 2 + 1000);
   assert.strictEqual(again, null);
@@ -133,7 +133,7 @@ t('VızVız dokunuş başına 1 bal verir, 10 dk bekleme koyar', () => {
   const s = newState(now0);
   const r = vzvzPlay(s, 20, 9500, now0);
   assert.strictEqual(r.ok, true);
-  assert.strictEqual(r.reward, 20); // 20 x 1 bal
+  assert.strictEqual(r.reward, 100); // 20 x 1 x 5 FRENZI
   const r2 = vzvzPlay(s, 5, 1000, now0 + 1000);
   assert.strictEqual(r2.ok, false); // bekleme süresi
   const r3 = vzvzPlay(s, 5, 1000, now0 + VIZVIZ_COOLDOWN_MS + 1);
@@ -183,9 +183,9 @@ t('Konfigürasyon override ekonomiyi değiştirir', () => {
   setActiveCfg({ ...DEFAULT_CONFIG, p1: 1, beeBaseCost: 99 });
   const s = newState(now0); // 1 ücretsiz arı ile başlar
   near(beeProd(1), 1);
-  assert.strictEqual(beeCost(s), Math.floor(99 * Math.pow(1.18, 1)));
+  assert.strictEqual(beeCost(s), Math.floor(99 * Math.pow(1.15, 1))); // 113
   setActiveCfg(DEFAULT_CONFIG); // geri al
-  near(beeProd(1), 0.08);
+  near(beeProd(1), 0.12);
 });
 
 t('Günlük ödül kapatılınca claimDaily null döner', () => {
@@ -194,7 +194,7 @@ t('Günlük ödül kapatılınca claimDaily null döner', () => {
   assert.strictEqual(claimDaily(s, now0 + 86400000), null);
   assert.strictEqual(dailyInfo(s, now0).available, false);
   setActiveCfg(DEFAULT_CONFIG);
-  assert.strictEqual(claimDaily(s, now0 + 86400000).reward, 15);
+  assert.strictEqual(claimDaily(s, now0 + 86400000).reward, 25);
 });
 
 t('VızVız kapatılınca oynanamaz', () => {
@@ -384,40 +384,58 @@ t('Çark boost 5 dk üretim x2 verir', () => {
   assert.ok(t1 > t2);
 });
 
-t('Yazı-tura: kazanınca 2x, kaybedince günlük limit işler', () => {
+// ── 🎁 Günlük Sandık (kumar yerine) ──
+t('Günlük Sandık: günde 1 bedava + 2. kart 100 bal', () => {
   const s = newState(now0);
-  s.bal = 1000;
-  // limit: %20 = 200
-  const big = gambleCoin(s, 300, now0);
-  assert.strictEqual(big.ok, false);
-  assert.strictEqual(big.why, 'bahis_siniri');
-  // oyna (rastgele — en azından state değişmeli)
-  const r = gambleCoin(s, 100, now0);
-  assert.strictEqual(r.ok, true);
-  assert.ok(s.bal !== 1000); // ya arttı ya azaldı
-  assert.ok(s.gambleCount >= 1);
+  s.bal = 500;
+  const r1 = openChest(s, 0, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.ok(CHEST_REWARDS.includes(r1.reward) || r1.reward === CHEST_JACKPOT);
+  assert.strictEqual(s.chestUses, 1);
+  // 2. kart ücretli
+  const r2 = openChest(s, 1, now0);
+  assert.strictEqual(r2.ok, true);
+  assert.strictEqual(s.chestUses, 2);
+  // 3. hak yok
+  const r3 = openChest(s, 2, now0);
+  assert.strictEqual(r3.ok, false);
+  assert.strictEqual(r3.why, 'hak_yok');
+  // ertesi gün tekrar
+  const r4 = openChest(s, 0, now0 + 86400000);
+  assert.strictEqual(r4.ok, true);
 });
 
-t('Yazı-tura günlük kayıp limiti 2000', () => {
+t('Günlük Sandık: 100 baldan azsa 2. kart alınamaz', () => {
   const s = newState(now0);
-  s.bal = 100000;
-  s.gambleLostDay = Math.floor(now0 / 86400000);
-  s.gambleLost = GAMBLE_DAILY_LOSS_LIMIT;
-  const r = gambleCoin(s, 100, now0);
-  assert.strictEqual(r.ok, false);
-  assert.strictEqual(r.why, 'gunluk_kayip_siniri');
+  s.bal = 50;
+  const r1 = openChest(s, 0, now0);
+  assert.strictEqual(r1.ok, true);
+  const r2 = openChest(s, 1, now0);
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.why, 'yetersiz_bal');
 });
 
-t('Slot: 3 aynı 3x, 2 aynı 1.5x', () => {
+// ── ⚡ DOP-1: VızVız Combo ──
+t('VızVız combo: 5+ x2, 10+ x3, 20+ x5 (FRENZİ)', () => {
+  assert.strictEqual(vzvzComboMult(3), 1);
+  assert.strictEqual(vzvzComboMult(5), 2);
+  assert.strictEqual(vzvzComboMult(12), 3);
+  assert.strictEqual(vzvzComboMult(20), 5);
   const s = newState(now0);
-  s.bal = 1000;
-  // Şans oyunu — en azından geçerli çalışır
-  const r = gambleSlot(s, 50, now0);
+  s.bal = 100;
+  const r = vzvzPlay(s, 20, 9500, now0);
   assert.strictEqual(r.ok, true);
-  assert.ok(Array.isArray(r.symbols) && r.symbols.length === 3);
-  if (r.win) {
-    assert.ok(r.mult === 3 || r.mult === 1.5);
-  }
+  assert.strictEqual(r.mult, 5);
+  assert.strictEqual(r.frenzy, true);
+  assert.strictEqual(r.reward, 20 * 1 * 5); // 20 dokunuş x 1 bal x 5
+});
+
+// ── 🔥 DOP-2: Toplama Streak ──
+t('Toplama streak: 3+ x1.2, 5+ x1.5, 10+ x3', () => {
+  assert.strictEqual(collectStreakMult(2), 1);
+  assert.strictEqual(collectStreakMult(3), 1.2);
+  assert.strictEqual(collectStreakMult(5), 1.5);
+  assert.strictEqual(collectStreakMult(10), 3);
 });
 
 t('beeEmoji seviyeye göre değişir', () => {

@@ -11,7 +11,7 @@ const HAS_UPSTASH = !HAS_FIREBASE && !!(process.env.UPSTASH_REDIS_REST_URL && pr
 const DB = (process.env.FIREBASE_DB_URL || '').replace(/\/+$/, '');
 const P = 'balvakti';
 
-const redis = HAS_UPSTASH
+const redis = HAS_UPSTASH && Redis
   ? new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
   : null;
 const mem = new Map();
