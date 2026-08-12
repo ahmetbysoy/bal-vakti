@@ -10,7 +10,7 @@ export const MAX_LEVEL = 10; // 2^9=512 arı ile seviye 10 — çocuklar için u
 // ⚠️ CİMRİ EKONOMİ (v4): ilerleme yavaş ve istikrarlı olmalı
 export const DEFAULT_CONFIG = {
   beeBaseCost: 15,       // 1. seviye arı taban fiyatı
-  beeCostGrowth: 1.15,   // her arıda fiyat %18 artar (cimri!)
+  beeCostGrowth: 1.15,   // her arıda fiyat %15 artar
   p1: 0.12,              // 1. seviye arı: bal/sn (saatte ~430 bal — 30sn'de 1 ödül)
   pMult: 3,               // her seviye 3x üretim (birleştirme değerli!)
   capBase: 400,          // başlangıç depo kapasitesi
@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG = {
   startFreeBees: 1,      // yeni oyuncuya ücretsiz arı
   vzvzTapReward: 2,      // VızVız: dokunuş başına 2 bal (combo x2/x3/x5 — frenzy 300 bal!)
   vzvzMaxTaps: 30,       // VızVız max dokunuş
-  vzvzMaxMs: 12000,      // VızVız hile koruması: max süre
+  vzvzMaxMs: 10000,      // VızVız süresi: 10 sn (UI ile tutarlı)
   vzvzCooldownMs: 120000, // VızVız bekleme (2 dk)
   dailyEnabled: true,    // günlük ödül açık/kapalı
   vzvzEnabled: true,     // VızVız açık/kapalı
@@ -82,7 +82,8 @@ export function beeCost(s) {
 }
 // 🌙 Gece etkinliği: 22:00-06:00 arası üretim x2 (Türkiye saati)
 export function isNight(now = Date.now()) {
-  const h = new Date(now).getHours();
+  // 🇹🇷 Türkiye saati: UTC+3 (2016'dan beri sabit, yaz/kış farkı yok)
+  const h = (new Date(now).getUTCHours() + 3) % 24;
   return h >= 22 || h < 6;
 }
 export function prodMultiplier(now = Date.now()) {
@@ -139,9 +140,9 @@ export function collect(s, now = Date.now()) {
   }
   s.lastCollectAt = now;
   const cm = collectStreakMult(s.collectStreak || 0);
-  if (s.collectStreak === 10) s.streakBoostUntil = now + 30000; // ALTIN KOVAN 30sn
+  if (s.collectStreak === 10) s.streakBoostUntil = now + 90000; // ALTIN KOVAN 90sn (en güçlü = en uzun)
   else if (s.collectStreak === 5) s.streakBoostUntil = now + 60000;
-  else if (s.collectStreak === 3) s.streakBoostUntil = now + 30000;
+  else if (s.collectStreak === 3) s.streakBoostUntil = now + 45000;
   s.lastCollect = now;
   s.lastSeen = now;
   return { gain, streak: s.collectStreak || 0, mult: cm };
@@ -306,13 +307,13 @@ export function beeEmoji(level) {
 
 /* ── Haftalık/bugünlük sayaçlar (her kazançta işlenir) ── */
 export function addEarned(s, amount, now = Date.now()) {
+  // 🐛 FIX: önce hafta/gün anahtarı kontrolü (çift sayım yok)
+  const wk = Math.floor(now / (7 * 86400000));
+  if (s.weekKey !== wk) { s.weekKey = wk; s.weeklyEarned = 0; }
+  const day = Math.floor(now / 86400000);
+  if (s.dayKey !== day) { s.dayKey = day; s.todayEarned = 0; }
   s.weeklyEarned = (s.weeklyEarned || 0) + amount;
   s.todayEarned = (s.todayEarned || 0) + amount;
-  // hafta/bugün anahtarları (pazartesi sıfırlama)
-  const wk = Math.floor(now / (7 * 86400000));
-  if (s.weekKey !== wk) { s.weekKey = wk; s.weeklyEarned = amount; }
-  const day = Math.floor(now / 86400000);
-  if (s.dayKey !== day) { s.dayKey = day; s.todayEarned = amount; }
 }
 
 // ── Başarılar (rozetler) ──
@@ -322,7 +323,7 @@ export const ACHIEVEMENTS = [
   { id: 'bees50',   emoji: '🏰', name: 'Arı Kralı',      desc: '50 arı sahibi ol',                cond: (s) => s.beesOwned >= 50,                 reward: 500 },
   { id: 'bees100',  emoji: '🤴', name: 'Arı İmparatoru', desc: '100 arı sahibi ol',               cond: (s) => s.beesOwned >= 100,                reward: 1500 },
   { id: 'level8',   emoji: '🌌', name: 'Bal Kaşifi',     desc: 'Seviye 8 arı üret',               cond: (s) => s.bees[8] > 0,                     reward: 800 },
-  { id: 'level12',  emoji: '🐉', name: 'Efsane Kovan',   desc: 'Seviye 12 arı üret',              cond: (s) => s.bees[12] > 0,                    reward: 5000 },
+  { id: 'level10',  emoji: '🐉', name: 'Efsane Kovan',   desc: 'Seviye 10 arı üret',              cond: (s) => s.bees[10] > 0,                    reward: 5000 },
   { id: 'cap10k',   emoji: '🏺', name: 'Depo Delisi',    desc: 'Depo 10.000 kapasiteye ulaş',     cond: (s) => capacity(s) >= 10000,               reward: 250 },
   { id: 'kovan5',   emoji: '🏭', name: 'Usta Kovan',     desc: 'Kovan seviye 5',                  cond: (s) => s.kovan >= 5,                      reward: 1000 },
   { id: 'mil',      emoji: '💎', name: 'Bal Milyoneri',  desc: 'Toplam 1.000.000 bal',            cond: (s) => s.totalEarned >= 1e6,               reward: 5000 },
@@ -361,7 +362,7 @@ export function giveAchievement(s, achId) {
 /* ═══════════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════════ */
 export const THROW_EMOJI_COST = 25;
 export const THROW_EMOJI_COOLDOWN_MS = 30 * 1000;
-export const THROW_EMOJIS = ['💩', '🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑'];
+export const THROW_EMOJIS = ['🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑', '🎈'];
 
 export function throwEmoji(s, targetId, emoji, now = Date.now()) {
   if (!THROW_EMOJIS.includes(emoji)) return { ok: false, why: 'emoji_gecersiz' };
@@ -401,18 +402,21 @@ export function raidPower(s) {
 // Arıları en düşük seviyeden sil (n adet); 0'ın altına inmez, hiç arı kalmazsa 1 ücretsiz verilir
 export function killBees(s, n) {
   if (!Number.isInteger(n) || n <= 0) return 0;
-  let left = n;
-  for (let l = 1; l <= MAX_LEVEL && left > 0; l++) {
-    const kill = Math.min(s.bees[l], left);
-    s.bees[l] -= kill;
-    s.beesOwned -= kill;
-    left -= kill;
+  // 🐛 FIX: oranlı silme — her seviyeden orantılı, kimse tamamen sıfırlanmaz
+  const total = s.beesOwned || 0;
+  if (total <= 0) return 0;
+  const ratio = n / total; // silinecek oran
+  let killed = 0;
+  for (let l = 1; l <= MAX_LEVEL; l++) {
+    if (s.bees[l] <= 0) continue;
+    const kill = Math.max(1, Math.floor(s.bees[l] * ratio));
+    const real = Math.min(s.bees[l], kill);
+    s.bees[l] -= real;
+    s.beesOwned -= real;
+    killed += real;
   }
-  if (s.beesOwned < 1) {
-    s.bees[1] = 1;
-    s.beesOwned = 1;
-  }
-  return n - left; // gerçekte ölen arı sayısı
+  if (s.beesOwned < 1) { s.bees[1] = 1; s.beesOwned = 1; }
+  return killed;
 }
 
 // Savunma geliri eşiği: aşılırsa bir sonraki başarılı saldırıda arı ölümü tetiklenir

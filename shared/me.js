@@ -121,7 +121,7 @@ async function handle(req, res) {
       bot: process.env.BOT_USERNAME || '',
       appUrl: process.env.APP_URL || '',
       vzvzCooldownSec: Math.round(cfg.vzvzCooldownMs / 1000),
-      vzvzDurationSec: 10,
+      vzvzDurationSec: Math.round(cfg.vzvzMaxMs / 1000),
       // ekonomi — istemci de aynı değerleri kullansın (admin değişince anında yansır)
       ...getActiveCfg(),
     },

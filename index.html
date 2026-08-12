@@ -1119,7 +1119,7 @@ const ACHS = [
   { id:'bees50', emoji:'🏰', name:'Arı Kralı', desc:'50 arı sahibi ol', reward:500 },
   { id:'bees100', emoji:'🤴', name:'Arı İmparatoru', desc:'100 arı sahibi ol', reward:1500 },
   { id:'level8', emoji:'🌌', name:'Bal Kaşifi', desc:'Seviye 8 arı üret', reward:800 },
-  { id:'level12', emoji:'🐉', name:'Efsane Kovan', desc:'Seviye 12 arı üret', reward:5000 },
+  { id:'level10', emoji:'🐉', name:'Efsane Kovan', desc:'Seviye 10 arı üret', reward:5000 },
   { id:'cap10k', emoji:'🏺', name:'Depo Delisi', desc:'Depo 10.000 kapasite', reward:250 },
   { id:'kovan5', emoji:'🏭', name:'Usta Kovan', desc:'Kovan seviye 5', reward:1000 },
   { id:'mil', emoji:'💎', name:'Bal Milyoneri', desc:'Toplam 1.000.000 bal', reward:5000 },
@@ -1334,7 +1334,7 @@ async function doCollect() {
     const stk = S.collectStreak || 0;
     if (stk === 3) { toast('🔥 Seri x3 — Üretim x1.2!'); Sfx.combo(1); }
     else if (stk === 5) { toast('🔥🔥 Seri x5 — Üretim x1.5!'); Sfx.combo(2); }
-    else if (stk === 10) { toast('👑 ALTIN KOVAN! Üretim x3!'); Sfx.combo(3); confetti(); }
+    else if (stk === 10) { toast('👑 ALTIN KOVAN! 90 sn Üretim x3!'); Sfx.combo(3); confetti(); }
   }
 }
 // Kovan kartı alt-sekmeleri (Genel / Yükseltmeler)
@@ -1725,7 +1725,7 @@ async function renderFomo() {
 }
 
 /* ═══════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════ */
-const THROW_EMOJIS = ['💩', '🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑'];
+const THROW_EMOJIS = ['🍅', '🔥', '💣', '🎉', '🐝', '🍯', '🥊', '💧', '👑', '🎈'];
 let throwTargetName = '';
 let lastThrowTarget = '';
 

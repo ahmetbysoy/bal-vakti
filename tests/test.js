@@ -270,12 +270,18 @@ t('Savunma geliri eşiği aşılınca arı ölür (🩸)', () => {
   assert.strictEqual(T2.defenseBal, 0); // eşik sıfırlandı
 });
 
-t('killBees en düşük seviyeden siler, 0 arı kalmaz', () => {
+t('killBees oranlı siler, 0 arı kalmaz', () => {
   const s = newState(now0);
   s.beesOwned = 1;
   const killed = killBees(s, 5);
   assert.ok(s.beesOwned >= 1); // asla 0 olmaz
   assert.strictEqual(s.bees[1], 1);
+  // Oranlı: 4 arıdan 2'si silinmeli (oran 0.5)
+  const s2 = newState(now0);
+  s2.beesOwned = 4; s2.bees[1] = 4;
+  const k2 = killBees(s2, 2);
+  assert.ok(k2 >= 2);
+  assert.strictEqual(s2.beesOwned, 2);
 });
 
 t('mutualRaidPenalty iki tarafa da ceza verir', () => {
@@ -352,13 +358,15 @@ t('thinkBots kilitle çalışır, bot sayısı döner', async () => {
 });
 
 // ── 🎰 Eğlence Odası testleri ──
-t('Gece etkinliği 22-06 arası x1.5 üretim', () => {
-  const day = new Date(2026, 0, 1, 12).getTime(); // öğlen
-  const night = new Date(2026, 0, 1, 23).getTime(); // gece
-  assert.strictEqual(isNight(day), false);
-  assert.strictEqual(isNight(night), true);
-  assert.strictEqual(prodMultiplier(day), 1);
-  assert.strictEqual(prodMultiplier(night), 1.5);
+t('Gece etkinliği 22-06 arası x1.5 üretim (Türkiye saati)', () => {
+  // UTC saat 20:00 = TR 23:00 → gece
+  const nightTR = new Date(Date.UTC(2026, 0, 1, 20)).getTime();
+  // UTC saat 12:00 = TR 15:00 → gündüz
+  const dayTR = new Date(Date.UTC(2026, 0, 1, 12)).getTime();
+  assert.strictEqual(isNight(nightTR), true);
+  assert.strictEqual(isNight(dayTR), false);
+  assert.strictEqual(prodMultiplier(dayTR), 1);
+  assert.strictEqual(prodMultiplier(nightTR), 1.5);
 });
 
 t('Çarkıfelek günde 1 kez çevrilebilir', () => {
@@ -454,13 +462,16 @@ t('addEarned haftalık ve günlük sayaçları işler', () => {
   addEarned(s, 50, now0 + 3600000);
   assert.strictEqual(s.todayEarned, 150);
   assert.strictEqual(s.weeklyEarned, 150);
+  // 🐛 FIX: yeni günde çift sayım yok
+  addEarned(s, 30, now0 + 86400000);
+  assert.strictEqual(s.todayEarned, 30);
 });
 
 // ── 💥 Bal Bombası (Emoji Fırlatma) testleri ──
-t('throwEmoji 10 bal maliyet + 30 sn soğuma', () => {
+t('throwEmoji 25 bal maliyet + 30 sn soğuma', () => {
   const s = newState(now0);
   s.bal = 100;
-  const r1 = throwEmoji(s, 'hedef1', '💩', now0);
+  const r1 = throwEmoji(s, 'hedef1', '🔥', now0);
   assert.strictEqual(r1.ok, true);
   assert.strictEqual(s.bal, 100 - THROW_EMOJI_COST);
   assert.strictEqual(s.thrownCount, 1);

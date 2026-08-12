@@ -1,8 +1,5 @@
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
-// 1) FIREBASE_DB_URL tanımlıysa → Firebase Realtime Database (REST)
-// 2) UPSTASH_REDIS_* tanımlıysa (yedek) → Upstash Redis
-// 3) Hiçbiri yoksa → bellek modu (yerel test)
-// Firebase tek istekte tüm dalı çekebildiği için en hızlısıdır.
+
 import { DEFAULT_CONFIG } from './game.js'; // (yalnızca tip referansı — döngü yok)
 
 // 🗄️ Veritabanı: FIREBASE_DB_URL (tek seçenek — Upstash desteği kaldırıldı)
