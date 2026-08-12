@@ -64,6 +64,7 @@ export function newState(now = Date.now()) {
     // 🌟 Kozmetik & yıldız tozu
     cosmetics: [],
     stardust: 0,
+    onboarded: false,            // mikro-onboarding tamamlandı mı
     // ⚔️ PvP
     xp: 0,                           // savaş XP'si
     raidWins: 0,                     // kazandığı saldırılar

@@ -137,6 +137,14 @@
   }
   .card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
   /* 📋 Görevler */
+  .questhub-items{display:flex;gap:6px;flex-wrap:wrap}
+  .hub-chip{
+    background:#241a0c;border:1px solid var(--line);border-radius:99px;padding:4px 10px;
+    font-size:11px;color:var(--muted);cursor:pointer;font-weight:700;
+  }
+  .hub-chip.done{border-color:var(--green);color:var(--green)}
+  .hub-chip .e{font-size:12px}
+  .hub-chip:active{transform:scale(.95)}
   .quest{display:flex;align-items:center;gap:8px;background:#171003;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:6px}
   .quest .qe{font-size:20px;width:26px;text-align:center}
   .quest .qi{flex:1;min-width:0}
@@ -474,6 +482,14 @@ function showEventPopup(title, html, color) {
   .fsq .v{font-size:13px;font-weight:900;color:var(--cream)}
   .fsq .l{font-size:9px;color:var(--muted)}
   .fsq.hot{border-color:var(--red);animation:raidpulse 1.2s infinite}
+  .onboard-overlay{position:fixed;inset:0;z-index:98;background:#120b04f5;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  .onboard-overlay.show{display:flex}
+  .onboard-overlay .ob-emoji{font-size:64px;animation:bob 2s ease-in-out infinite}
+  .onboard-overlay h2{color:var(--gold);font-size:22px;margin:12px 0 8px}
+  .onboard-overlay p{color:var(--cream);font-size:14px;line-height:1.7;margin-bottom:18px}
+  .onboard-dots{display:flex;gap:8px;margin-bottom:16px}
+  .onboard-dots i{width:8px;height:8px;border-radius:50%;background:#4a3312}
+  .onboard-dots i.on{background:var(--gold)}
   .warscreen{position:fixed;inset:0;z-index:80;background:#120a02f2;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
   .warscreen.show{display:flex}
   .warscreen .vs{font-size:14px;color:var(--muted);margin-bottom:8px}
@@ -546,6 +562,10 @@ function showEventPopup(title, html, color) {
     <div class="card" id="quests-card">
       <h3>📋 Bugünün Görevleri</h3>
       <div id="quests-list"></div>
+      <div class="questhub" id="quest-hub">
+        <p class="hint" style="font-weight:900;color:var(--gold);margin:8px 0 4px">🎯 Bugün Denenmedi</p>
+        <div id="quest-hub-items"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -805,6 +825,13 @@ function showEventPopup(title, html, color) {
 </div>
 
 <div class="levelup-screen" id="levelup-screen"><div class="levelup-txt" id="levelup-txt">SEVİYE!</div></div>
+<div class="onboard-overlay" id="onboard-overlay">
+  <div class="ob-emoji" id="ob-emoji">🍯</div>
+  <h2 id="ob-title">Hoş geldin Arıcı!</h2>
+  <p id="ob-text">Arıların seni bekliyor...</p>
+  <div class="onboard-dots" id="ob-dots"><i class="on"></i><i></i><i></i></div>
+  <button class="btn" id="ob-btn" onclick="obNext()">Devam Et →</button>
+</div>
 <div id="loader"><div class="e">🐝</div>Bal hazırlanıyor...</div>
 
 <script>
@@ -1063,6 +1090,8 @@ async function load() {
   loadFomoOnce();
   renderTicker();
   startDrops();
+  showOnboard();
+  renderQuestHub();
 }
 function renderAll() {
   const prod = mode === 'demo' ? dProd(S) : totalProd(S);
@@ -1171,6 +1200,41 @@ function renderAll() {
   checkLevelUp();
   renderQuests();
 }
+// 🎯 Günlük Quest Hub — bugün denenmeyen loop'ları göster
+function renderQuestHub() {
+  const hub = document.getElementById('quest-hub-items');
+  if (!hub || !S || mode === 'demo') return;
+  const day = Math.floor(Date.now() / 86400000);
+  const items = [];
+  // hangi loop'lar bugün kullanıldı?
+  const spinDone = (S.lastSpin || 0) >= day * 86400000;
+  const chestDone = (S.chestDay || 0) === day;
+  const vzvzDone = (S.vzvzAt || 0) >= day * 86400000;
+  const balloonDone = (S.balloonAt || 0) >= day * 86400000;
+  const mazeDone = (S.mazeDay || 0) === day;
+  const timerDone = (S.timerDay || 0) === day;
+  const ops = [
+    { id: 'spin', e: '🎡', name: 'Çark', done: spinDone, go: openWheel },
+    { id: 'chest', e: '🎁', name: 'Sandık', done: chestDone, go: openChestModal },
+    { id: 'vzvz', e: '⚡', name: 'VızVız', done: vzvzDone, go: openVzvz },
+    { id: 'balloon', e: '🎈', name: 'Balon', done: balloonDone, go: openBalloon },
+    { id: 'maze', e: '🐝', name: 'Labirent', done: mazeDone, go: openMaze },
+    { id: 'timer', e: '⏰', name: 'Zamanlayıcı', done: timerDone, go: openTimerGame },
+  ];
+  const notDone = ops.filter((o) => !o.done);
+  if (!notDone.length) {
+    hub.innerHTML = '<p class="hint" style="color:var(--green)">🎉 Bugün her şeyi denedin! Yarın yine gel!</p>';
+    return;
+  }
+  hub.innerHTML = notDone.map((o) =>
+    '<span class="hub-chip" onclick="' + (o.go ? 'openHubGame(\'' + o.id + '\')' : '') + '"><span class="e">' + o.e + '</span> ' + o.name + '</span>'
+  ).join('');
+}
+function openHubGame(id) {
+  const map = { spin: openWheel, chest: openChestModal, vzvz: openVzvz, balloon: openBalloon, maze: openMaze, timer: openTimerGame };
+  if (map[id]) map[id]();
+}
+
 // 📋 Günlük görevler render
 function renderQuests() {
   const list = document.getElementById('quests-list');
@@ -2144,6 +2208,41 @@ async function renderFomo() {
     $('#fomo-week').querySelector('.v').textContent = fmt((cntRes && cntRes.weekTotal) || 0);
     panel.style.display = 'block'; // toggle ile açılır
   } catch (e) { panel.style.display = 'none'; }
+}
+
+/* ═══════════════ 🎓 MİKRO-ONBOARDING (3 adım) ═══════════════ */
+const OB_STEPS = [
+  { emoji: '🍯', title: 'Hoş geldin Arıcı!', text: 'Arıların senin için bal üretiyor! <b>Topla</b> butonuna basarak balını toplayabilirsin. Depo dolmadan toplamayı unutma!' },
+  { emoji: '🐝', title: 'Arılarını Büyüt!', text: 'Balınla <b>yeni arılar</b> al ve aynı seviye 2 arıyı birleştir — daha güçlü arı, daha çok bal! 🦋' },
+  { emoji: '🎪', title: 'Eğlence Seni Bekliyor!', text: '<b>Eğlence Odasinda</b> cark, sandik ve mini oyunlar var. Asagidaki sekmelerden kesfet! 🎮' },
+];
+let obStep = 0;
+function obNext() {
+  haptic('impact');
+  obStep++;
+  if (obStep >= OB_STEPS.length) {
+    closeOnboard();
+    return;
+  }
+  $('#ob-emoji').textContent = OB_STEPS[obStep].emoji;
+  $('#ob-title').textContent = OB_STEPS[obStep].title;
+  $('#ob-text').innerHTML = OB_STEPS[obStep].text;
+  $('#ob-btn').textContent = obStep === OB_STEPS.length - 1 ? 'Başlayalım! 🐝' : 'Devam Et →';
+  document.querySelectorAll('#ob-dots i').forEach((d, i) => d.classList.toggle('on', i <= obStep));
+}
+async function closeOnboard() {
+  $('#onboard-overlay').classList.remove('show');
+  if (mode === 'server' && S && !S.onboarded) {
+    S.onboarded = true;
+    try { await api('/api/action', { initData: initData(), action: 'onboard_done' }); } catch (e) {}
+  }
+  Sfx.ach();
+}
+function showOnboard() {
+  if (mode === 'server' && S && !S.onboarded) {
+    $('#onboard-overlay').classList.add('show');
+    Sfx.daily();
+  }
 }
 
 /* ═══════════════ 💥 BAL BOMBASI (Emoji Fırlatma) ═══════════════ */

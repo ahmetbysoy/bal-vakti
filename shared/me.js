@@ -1,6 +1,6 @@
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 import { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
-import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive, rollCircus, circusActive, rollAlien } from './lib/game.js';
+import { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive, rollCircus, circusActive, rollAlien, capacity } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -75,6 +75,15 @@ async function handle(req, res) {
 
   const now = Date.now();
   const collected = collect(st, now);
+
+  // 📩 DEPO DOLDU bildirimi (12 saatte max 1 — spam yok)
+  if (!isNew && capacity(st) > 0) {
+    const capNow = capacity(st);
+    if (st.bal >= capNow * 0.95 && (st.depoBildirimiAt || 0) < now - 43200000) {
+      st.depoBildirimiAt = now;
+      tgNotify(id, '🍯 <b>Depon doldu!</b>\n\nArıların durdu, balın bekliyor!\nKovanına dön ve topla → 🐝');
+    }
+  }
   // 🌈 Gökkuşağı: girişte %5 şans
   const rainbow = rollRainbow(st, now);
   // 🎪 Sirk: %3 şans

@@ -141,6 +141,11 @@ async function handle(req, res) {
       result = r;
       break;
     }
+    case 'onboard_done': {
+      st.onboarded = true;
+      result = { onboarded: true };
+      break;
+    }
     case 'quest_claim': {
       const r = questClaim(st, String(payload.questId || ''), now);
       if (!r.ok) return res.status(400).json({ error: r.why });
