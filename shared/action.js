@@ -2,7 +2,7 @@
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 import { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } from './lib/db.js';
 import { escTg } from './raidcore.js';
-import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel } from './lib/game.js';
+import { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer } from './lib/game.js';
 import { parseInitData } from './lib/auth.js';
 
 export async function route(req, res) {
@@ -114,6 +114,19 @@ async function handle(req, res) {
       const r = openChest(st, card, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
+      break;
+    }
+    case 'minigame': {
+      const game = payload.game;
+      if (game === 'balloon') {
+        const r = playBalloon(st, Math.floor(Number(payload.score) || 0), now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else if (game === 'timer') {
+        const r = playTimer(st, Number(payload.stoppedAt) || 0, Number(payload.target) || 0, now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else return res.status(400).json({ error: 'bilinmeyen_oyun' });
       break;
     }
     case 'quest_claim': {

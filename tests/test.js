@@ -9,6 +9,8 @@ import {
   isNight, prodMultiplier, spinWheel, openChest, CHEST_REWARDS, CHEST_JACKPOT, WHEEL_SLICES,
   vzvzComboMult, collectStreakMult, beeEmoji, addEarned,
   questProgress, questClaim, questInfo, DAILY_QUESTS,
+  playBalloon, balloonReward, balloonComboMult, playTimer, timerReward,
+  rollRainbow, rainbowActive, RAINBOW_CHANCE,
   throwEmoji, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS,
 } from '../shared/lib/game.js';
 import { PERSONALITIES, makeBotState, randName, NAME_POOL, createBot, thinkBots } from '../shared/lib/brain.js';
@@ -500,8 +502,6 @@ t('throwEmoji yetersiz balda reddedilir', () => {
   assert.strictEqual(r.why, 'yetersiz_bal');
 });
 
-console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
-process.exit(failed > 0 ? 1 : 0);
 
 // ── 📋 Günlük Görevler ──
 t('Günlük görevler: progress + claim + bonus', () => {
@@ -545,3 +545,61 @@ t('Günlük görevler: yeni günde sıfırlanır + tümü bitince bonus', () => 
   assert.strictEqual(info2[0].prog, 0);
   assert.strictEqual(info2[0].claimed, false);
 });
+
+// ── 🎪 Mini Oyunlar ──
+t('Balon: skor tablosu + 2dk cooldown', () => {
+  assert.strictEqual(balloonReward(10), 15);
+  assert.strictEqual(balloonReward(25), 35);
+  assert.strictEqual(balloonReward(45), 100);
+  assert.strictEqual(balloonReward(60), 200);
+  assert.strictEqual(balloonComboMult(5), 2);
+  assert.strictEqual(balloonComboMult(20), 5);
+  const s = newState(now0);
+  s.bal = 100;
+  const r1 = playBalloon(s, 30, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.strictEqual(r1.reward, 60);
+  // cooldown 2dk
+  const r2 = playBalloon(s, 40, now0 + 60000);
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.why, 'bekleme');
+  const r3 = playBalloon(s, 40, now0 + 121000);
+  assert.strictEqual(r3.ok, true);
+});
+
+t('Zamanlayıcı: hedefe yakınlık ödülü + günde 3 hak', () => {
+  assert.strictEqual(timerReward(0.03), 100);  // Mükemmel
+  assert.strictEqual(timerReward(0.08), 60);   // Harika
+  assert.strictEqual(timerReward(0.15), 30);   // İyi
+  assert.strictEqual(timerReward(0.5), 10);    // Bir daha dene
+  const s = newState(now0);
+  s.bal = 100;
+  const r1 = playTimer(s, 0.52, 0.5, now0);
+  assert.strictEqual(r1.ok, true);
+  assert.strictEqual(r1.reward, 100);
+  assert.strictEqual(r1.perfect, true);
+  playTimer(s, 0.5, 0.5, now0 + 1000);
+  playTimer(s, 0.5, 0.5, now0 + 2000);
+  // 4. hak yok
+  const r4 = playTimer(s, 0.5, 0.5, now0 + 3000);
+  assert.strictEqual(r4.ok, false);
+  assert.strictEqual(r4.why, 'hak_yok');
+});
+
+// ── 🌈 Rastgele Olaylar ──
+t('Gökkuşağı: %5 şans, günde 1 kez, 10dk x2', () => {
+  // rollRainbow rastgele — state'i elle ayarlayıp aktifliği test et
+  const s = newState(now0);
+  s.rainbowUntil = now0 + 10 * 60 * 1000;
+  assert.strictEqual(rainbowActive(s, now0), true);
+  assert.strictEqual(rainbowActive(s, now0 + 11 * 60 * 1000), false);
+  // günde 1 kez
+  const s2 = newState(now0);
+  const r1 = rollRainbow(s2, now0);
+  if (r1) {
+    const r2 = rollRainbow(s2, now0 + 1000);
+    assert.strictEqual(r2, null); // aynı gün tekrar yok
+  }
+});
+console.log(`\n📊 Sonuç: ${passed} geçti, ${failed} kaldı`);
+process.exit(failed > 0 ? 1 : 0);

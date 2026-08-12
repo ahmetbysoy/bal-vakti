@@ -108,6 +108,7 @@ function effectiveMult(s, now = Date.now()) {
   if ((s.boostUntil || 0) > now) m += 0.5; // çark boostu +0.5
   if ((s.streakBoostUntil || 0) > now) m += 1; // toplama streak +1 (altın kovan x3)
   if ((s.warBoostUntil || 0) > now) m += 1; // savaşçı modu +1
+  if (rainbowActive(s, now)) m += 1; // 🌈 gökkuşağı +1 (geceyle x3!)
   return m;
 }
 function capacity(s) {
@@ -568,7 +569,81 @@ function questInfo(s, now = Date.now()) {
   }));
 }
 
-return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo};
+/* ═══════════════════ 🎪 MİNİ OYUNLAR ═══════════════════ */
+
+// 🎈 BALON PATLATMA — skor tabanlı ödül
+function balloonReward(score) {
+  if (score >= 50) return 200;
+  if (score >= 40) return 100;
+  if (score >= 30) return 60;
+  if (score >= 20) return 35;
+  if (score >= 10) return 15;
+  return 5;
+}
+function balloonComboMult(combo) {
+  if (combo >= 20) return 5;  // BAL FRENZİ
+  if (combo >= 10) return 3;
+  if (combo >= 5) return 2;
+  return 1;
+}
+function playBalloon(s, score, now = Date.now()) {
+  if (!Number.isInteger(score) || score < 0 || score > 200) return { ok: false, why: 'hile' };
+  if (now - (s.balloonAt || 0) < 120000) return { ok: false, why: 'bekleme' }; // 2 dk
+  s.balloonAt = now;
+  s.balloonCount = (s.balloonCount || 0) + 1;
+  const reward = balloonReward(score);
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  if (score >= 50) s.balloonKingCount = (s.balloonKingCount || 0) + 1; // rozet
+  return { ok: true, reward, score, best: score };
+}
+
+// ⏰ ZAMANLAYICI — hedefe yakınlığa göre ödül
+function timerReward(diff) {
+  if (diff <= 0.05) return 100;  // MÜKEMMEL
+  if (diff <= 0.10) return 60;   // Harika
+  if (diff <= 0.20) return 30;   // İyi
+  return 10;                      // Bir daha dene
+}
+function playTimer(s, stoppedAt, target, now = Date.now()) {
+  if (!Number.isFinite(stoppedAt) || stoppedAt < 0 || stoppedAt > 1.5) return { ok: false, why: 'hile' };
+  if (!Number.isFinite(target) || target < 0.3 || target > 1.2) return { ok: false, why: 'hile' };
+  // günde 3 deneme
+  const day = Math.floor(now / 86400000);
+  if (s.timerDay === day && (s.timerPlays || 0) >= 3) return { ok: false, why: 'hak_yok' };
+  if (s.timerDay !== day) { s.timerDay = day; s.timerPlays = 0; }
+  s.timerPlays = (s.timerPlays || 0) + 1;
+  const diff = Math.abs(stoppedAt - target);
+  const reward = timerReward(diff);
+  s.bal += reward;
+  s.totalEarned += reward;
+  s.weeklyEarned = (s.weeklyEarned || 0) + reward;
+  s.todayEarned = (s.todayEarned || 0) + reward;
+  const perfect = diff <= 0.05;
+  if (perfect) s.timerPerfect = (s.timerPerfect || 0) + 1;
+  return { ok: true, reward, diff, perfect };
+}
+
+/* ═══════════════════ 🌈 RASTGELE OLAYLAR ═══════════════════ */
+const RAINBOW_CHANCE = 0.05; // %5/gün
+const RAINBOW_DURATION_MS = 10 * 60 * 1000; // 10 dk
+
+// Gökkuşağı: oyuna girişte %5 şans, üretim x2 10 dk
+function rollRainbow(s, now = Date.now()) {
+  const day = Math.floor(now / 86400000);
+  if (s.rainbowDay === day) return null; // günde 1 kez
+  if (Math.random() >= RAINBOW_CHANCE) return null;
+  s.rainbowDay = day;
+  s.rainbowUntil = now + RAINBOW_DURATION_MS;
+  return { until: s.rainbowUntil, durationMs: RAINBOW_DURATION_MS };
+}
+function rainbowActive(s, now = Date.now()) {
+  return (s.rainbowUntil || 0) > now;
+}
+
+return {MAX_LEVEL, DEFAULT_CONFIG, setActiveCfg, getActiveCfg, DAILY_REWARDS, REF_INVITER, REF_FRIEND, VIZVIZ_MAX_MS, VIZVIZ_COOLDOWN_MS, newState, beeProd, beeCost, isNight, prodMultiplier, totalProd, effectiveMult, capacity, depoCost, kovanCost, collectStreakMult, collect, buyBee, upgrade, claimDaily, dailyInfo, vzvzComboMult, vzvzPlay, WHEEL_SLICES, spinWheel, CHEST_REWARDS, CHEST_JACKPOT, CHEST_JACKPOT_CHANCE, CHEST_EXTRA_COST, openChest, chestInfo, BEE_EMOJIS, beeEmoji, addEarned, ACHIEVEMENTS, checkAchievements, giveAchievement, THROW_EMOJI_COST, THROW_EMOJI_COOLDOWN_MS, THROW_EMOJIS, throwEmoji, playerLevel, WAR_XP_PER_LEVEL, warLevel, raidPower, killBees, DEFENSE_BAL_THRESHOLD, resolveRaid, mutualRaidPenalty, coalitionBonus, DAILY_QUESTS, QUEST_ALL_BONUS, questState, questProgress, questClaim, questInfo, balloonReward, balloonComboMult, playBalloon, timerReward, playTimer, RAINBOW_CHANCE, RAINBOW_DURATION_MS, rollRainbow, rainbowActive};
 })();
 __lib['db'] = (() => {
 // 🗄️ Bal Vakti — veritabanı katmanı (3 mod)
@@ -1308,7 +1383,7 @@ const __handlers = {};
 __handlers['me'] = (() => {
 // 🐝 POST /api/me — oyuncu girişi/oluşturma, üretim işleme, davet ödülleri
 const { getUser, saveUser, getRef, setRef, syncLb, myRank, dbMode, getConfig, getActiveRaid, clearActiveRaid, addGrudge, getGrudges, addRaidHist, recentRaiders, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
-const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo } = __lib['game'];
+const { newState, collect, checkAchievements, dailyInfo, playerLevel, setActiveCfg, getActiveCfg, REF_INVITER, REF_FRIEND, resolveRaid, coalitionBonus, mutualRaidPenalty, warLevel, prodMultiplier, questInfo, rollRainbow, rainbowActive } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 // Saldırı çözümünü paylaşmak için raid.js'teki finalizeRaid'i kullanmak yerine
@@ -1383,6 +1458,8 @@ async function handle(req, res) {
 
   const now = Date.now();
   const collected = collect(st, now);
+  // 🌈 Gökkuşağı: girişte %5 şans
+  const rainbow = rollRainbow(st, now);
   const gained = collected.gain || 0;
 
   // ⚔️ Evrensel çözüm: beni ilgilendiren süresi dolmuş saldırıları çöz
@@ -1423,6 +1500,8 @@ async function handle(req, res) {
     boostUntil: st.boostUntil || 0,
     canSpin: (st.lastSpin || 0) < Math.floor(now / 86400000) * 86400000,
     quests: questInfo(st, now),
+    rainbow: rainbow ? { until: rainbow.until } : null,
+    rainbowActive: rainbowActive(st, now),
     incomingEmojis: await popIncomingEmojis(id),
     demo: !!info.demo,
     cfg: {
@@ -1450,7 +1529,7 @@ __handlers['action'] = (() => {
 // Aksiyonlar: collect | buy_bee | upgrade | daily | vzvz_end
 const { getUser, saveUser, syncLb, myRank, getConfig, bumpCounter, addIncomingEmoji, addEvent, tgNotify, getIncomingEmojis, clearIncomingEmojis } = __lib['db'];
 const { escTg } = __lib['raidcore'];
-const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel } = __lib['game'];
+const { collect, buyBee, upgrade, claimDaily, vzvzPlay, checkAchievements, dailyInfo, playerLevel, setActiveCfg, newState, spinWheel, openChest, throwEmoji, THROW_EMOJI_COST, questProgress, questClaim, questInfo, warLevel, playBalloon, playTimer } = __lib['game'];
 const { parseInitData } = __lib['auth'];
 
 async function route(req, res) {
@@ -1562,6 +1641,19 @@ async function handle(req, res) {
       const r = openChest(st, card, now);
       if (!r.ok) return res.status(400).json({ error: r.why });
       result = r;
+      break;
+    }
+    case 'minigame': {
+      const game = payload.game;
+      if (game === 'balloon') {
+        const r = playBalloon(st, Math.floor(Number(payload.score) || 0), now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else if (game === 'timer') {
+        const r = playTimer(st, Number(payload.stoppedAt) || 0, Number(payload.target) || 0, now);
+        if (!r.ok) return res.status(400).json({ error: r.why });
+        result = r;
+      } else return res.status(400).json({ error: 'bilinmeyen_oyun' });
       break;
     }
     case 'quest_claim': {

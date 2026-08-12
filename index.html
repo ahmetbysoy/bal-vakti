@@ -319,6 +319,8 @@
   .gbtn .gr{display:flex;justify-content:space-between;align-items:center}
   .gbtn .e{font-size:26px}
   .gbtn.gold{background:linear-gradient(180deg,#ffd166,#f59e0b);color:#241703;box-shadow:0 3px 0 #a16207}
+  .gbtn.red{background:linear-gradient(180deg,#ff9a8b,#e0523f);color:#2a0a04;box-shadow:0 3px 0 #8f2c1e}
+  .gbtn.blue{background:linear-gradient(180deg,#a8d8ff,#4f9ae0);color:#0b2238;box-shadow:0 3px 0 #1d5a92}
   .gbtn.purple{background:linear-gradient(180deg,#c9a4ff,#8b5cf6);color:#1c0f33;box-shadow:0 3px 0 #5b21b6}
   .gbtn.green{background:linear-gradient(180deg,#9be8ab,#3fae5e);color:#10240f;box-shadow:0 3px 0 #1f5c31}
   .gbtn:disabled{filter:grayscale(.8);opacity:.5}
@@ -344,6 +346,24 @@
   .lossbar-txt b{color:var(--red)}
   .lossbar{height:10px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden}
   .lossbar i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#e0523f,#ff9a8b);transition:width .4s}
+  /* 🎈 Balon oyunu */
+  .balloon-field{position:relative;height:300px;background:linear-gradient(180deg,#1d2a3a,#12202e);border-radius:16px;overflow:hidden;margin:12px 0;border:1px solid var(--line)}
+  .balloon{position:absolute;font-size:36px;cursor:pointer;animation:balloonfloat 3s ease-in-out infinite;user-select:none;transition:transform .05s}
+  .balloon:active{transform:scale(1.4)}
+  @keyframes balloonfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .balloon.pop{animation:balloonpop .3s ease forwards}
+  @keyframes balloonpop{0%{transform:scale(1)}100%{transform:scale(2.2);opacity:0}}
+  /* ⏰ Zamanlayıcı */
+  .timer-bar{height:34px;background:#171003;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:14px 0;position:relative}
+  .timer-fill{display:block;height:100%;background:linear-gradient(90deg,#ff6b52,#ffd166);transition:width .02s linear}
+  .timer-zone{position:absolute;top:0;bottom:0;background:#7bd88f33;border-left:2px solid var(--green);border-right:2px solid var(--green);width:15%}
+  .timer-val{font-size:32px;font-weight:900;color:var(--gold);text-align:center;font-variant-numeric:tabular-nums}
+  /* 🌈 Gökkuşağı popup */
+  .rainbow-overlay{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;background:#000000cc;pointer-events:none}
+  .rainbow-overlay.show{display:flex;animation:rainbowfade 6s ease forwards}
+  @keyframes rainbowfade{0%{opacity:1}80%{opacity:1}100%{opacity:0}}
+  .rainbow-card{background:linear-gradient(124deg,#ff2400,#e81d1d,#e8b71c,#e3e81d,#1de840,#1ddde8,#2b1de8,#dd00f3);background-size:1800% 1800%;animation:rainbowbg 3s ease infinite;border-radius:24px;padding:30px 40px;text-align:center;color:#fff;font-weight:900;font-size:20px;text-shadow:0 2px 8px #000}
+  @keyframes rainbowbg{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   /* 🎁 Sandık kartları */
   .chest-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
   .chest-card{
@@ -611,6 +631,18 @@
         </button>
         <button class="gbtn green" onclick="openEgg()">
           <div class="gbig">🥚</div><b>Mystery Egg</b><span class="gsub">Yakında!</span>
+        </button>
+      </div>
+      <p class="hint" style="font-weight:900;color:var(--gold);margin-top:12px">🎪 MİNİ OYUNLAR</p>
+      <div class="gamegrid">
+        <button class="gbtn red" onclick="openBalloon()">
+          <div class="gbig">🎈</div><b>Balon</b><span class="gsub">10sn patlat!</span>
+        </button>
+        <button class="gbtn blue" onclick="openTimerGame()">
+          <div class="gbig">⏰</div><b>Zamanlayıcı</b><span class="gsub">Günde 3 hak</span>
+        </button>
+        <button class="gbtn gray" onclick="toast('🍯 Bal Sıçratma yakında!')">
+          <div class="gbig">🍯</div><b>Sıçrat</b><span class="gsub">Yakında!</span>
         </button>
       </div>
     </div>
@@ -918,6 +950,10 @@ async function load() {
     // (res.gained toast'u kaldırıldı: toast yığılmasının ana kaynağıydı)
     res.freshAch.forEach((a) => { toast('🏅 Rozet: ' + a.emoji + ' ' + a.name + ' (+' + fmt(a.reward) + ')'); });
     if (res.isNew) toast('🐝 Hoş geldin! ' + fmt(cfg.startBal) + ' bal + ' + cfg.startFreeBees + ' arı seni bekliyor');
+    // 🌈 Gökkuşağı olayı geldiyse göster
+    if (res.rainbow) {
+      setTimeout(showRainbow, 800);
+    }
     // 💥 Gelen emoji bombalarını animasyonla göster (sırayla)
     if (res.incomingEmojis?.length) {
       setTimeout(() => {
@@ -982,7 +1018,7 @@ function renderAll() {
   // ⚡ Neon boost glow
   const heroCard = document.getElementById('hero-card');
   if (heroCard) {
-    const anyBoost = (S.boostUntil || 0) > Date.now() || (S.streakBoostUntil || 0) > Date.now() || (S.warBoostUntil || 0) > Date.now();
+    const anyBoost = (S.boostUntil || 0) > Date.now() || (S.streakBoostUntil || 0) > Date.now() || (S.warBoostUntil || 0) > Date.now() || (S.rainbowUntil || 0) > Date.now();
     heroCard.classList.toggle('neon', anyBoost);
   }
   // 🌈 Hologram: seviye 8+ arılar
@@ -1553,6 +1589,7 @@ function switchTab(name) {
 }
 
 /* ═══════════════ SERVER LOGIC (demo'da gerek yok, sadece render için) ═══════════════ */
+function balloonComboMult(c) { return c >= 20 ? 5 : c >= 10 ? 3 : c >= 5 ? 2 : 1; }
 function collectStreakMult(stk) { return stk >= 10 ? 3 : stk >= 5 ? 1.5 : stk >= 3 ? 1.2 : 1; }
 function beeProd(l) { return cfg.p1 * Math.pow(cfg.pMult, l - 1); }
 function totalProd(s) { let t = 0; for (let l = 1; l <= MAX_LEVEL; l++) t += s.bees[l] * beeProd(l); return t * Math.pow(2, s.kovan); }
@@ -1679,6 +1716,135 @@ function openEgg() {
 }
 
 
+
+/* ═══════════════ 🎈 BALON PATLATMA ═══════════════ */
+let balloonTimer = null, balloonScore = 0, balloonCombo = 0, balloonMax = 0;
+function openBalloon() {
+  haptic('impact');
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>🎈 Balon Patlatma</h2>' +
+    '<p>10 saniyede balonları patlat! Combo: 5+ x2 · 10+ x3 · 20+ FRENZİ x5!</p>' +
+    '<div class="balloon-field" id="balloon-field"></div>' +
+    '<div class="vztimer" id="balloon-timer">10</div>' +
+    '<div class="vztaps">Skor: <b id="balloon-score">0</b> · Combo: <b id="balloon-combo">x1</b> · Rekor: <b id="balloon-best">' + (S.balloonBest || 0) + '</b></div>';
+  showModal();
+  balloonScore = 0; balloonCombo = 0;
+  // Balon üret
+  const field = $('#balloon-field');
+  const spawn = () => {
+    const b = document.createElement('div');
+    b.className = 'balloon';
+    const em = ['🎈','🎈','🎈','🫧','🎈'][Math.floor(Math.random()*5)];
+    b.textContent = em;
+    b.style.left = (5 + Math.random() * 80) + '%';
+    b.style.top = (5 + Math.random() * 70) + '%';
+    b.style.animationDelay = (Math.random() * 1) + 's';
+    b.onclick = () => {
+      haptic('impact');
+      Sfx.collect();
+      balloonCombo++;
+      balloonScore++;
+      if (balloonScore > balloonMax) balloonMax = balloonScore;
+      b.classList.add('pop');
+      setTimeout(() => b.remove(), 300);
+      $('#balloon-score').textContent = balloonScore;
+      const mult = balloonComboMult(balloonCombo);
+      $('#balloon-combo').textContent = 'x' + mult + (mult >= 5 ? ' 🔥FRENZİ!' : '');
+      if (mult >= 5) $('#balloon-combo').style.color = '#ffd166';
+    };
+    field.appendChild(b);
+    setTimeout(() => { if (b.parentNode) { b.remove(); balloonCombo = 0; $('#balloon-combo').textContent = 'x1'; } }, 2500);
+  };
+  const spawnIv = setInterval(spawn, 400);
+  // Geri sayım
+  let left = 10;
+  balloonTimer = setInterval(() => {
+    left--;
+    $('#balloon-timer').textContent = left;
+    if (left <= 0) {
+      clearInterval(balloonTimer);
+      clearInterval(spawnIv);
+      finishBalloon();
+    }
+  }, 1000);
+}
+async function finishBalloon() {
+  const res = await api('/api/action', { initData: initData(), action: 'minigame', payload: { game: 'balloon', score: balloonScore } });
+  if (handleActionErr(res)) return;
+  const body = $('#modal-body');
+  if (!res?.ok) { body.innerHTML = '<h2>🎈 Bitti!</h2><p>Skorun: ' + balloonScore + '</p><button class="btn" onclick="closeModal()">Tamam</button>'; return; }
+  const em = balloonScore >= 40 ? '👑' : balloonScore >= 20 ? '🏆' : '🎈';
+  body.innerHTML =
+    '<h2>' + em + ' Balon Patlatma Bitti!</h2>' +
+    '<div class="warres"><div class="em">' + em + '</div>' +
+    '<div class="rows"><div>🎈 Skorun: <b>' + balloonScore + '</b></div>' +
+    '<div>🍯 Ödül: <b>+' + res.reward + ' bal</b></div>' +
+    (balloonScore >= 50 ? '<div style="color:var(--gold)">👑 YENİ REKOR!</div>' : '') +
+    '</div></div>' +
+    '<button class="btn" style="margin-top:14px;width:100%" onclick="closeModal()">Süper!</button>';
+  Sfx.ach();
+  if (balloonScore >= 20) confetti();
+  handleRes(res);
+  balloonScore = 0;
+}
+
+/* ═══════════════ ⏰ ZAMANLAYICI ═══════════════ */
+let timerIv = null, timerVal = 0, timerTarget = 0;
+function openTimerGame() {
+  haptic('impact');
+  const body = $('#modal-body');
+  body.innerHTML =
+    '<h2>⏰ Zamanlayıcı</h2>' +
+    '<p>Bar dolarken <b>yeşil bölgede</b> durdur! Mükemmel = +100 🍯 (Günde 3 hak)</p>' +
+    '<div class="timer-bar"><div class="timer-zone" id="timer-zone" style="left:20%;width:25%"></div><div class="timer-fill" id="timer-fill"></div></div>' +
+    '<div class="timer-val" id="timer-val">0.00</div>' +
+    '<button class="btn" id="timer-btn" onclick="stopTimer()">⏹️ DURDUR!</button>' +
+    '<div class="resp" id="timer-resp">Hazır ol...</div>';
+  showModal();
+  timerTarget = 0.3 + Math.random() * 0.6; // hedef 0.3-0.9 arası
+  const zone = $('#timer-zone');
+  if (zone) zone.style.left = (timerTarget * 100) + '%';
+  timerVal = 0;
+  const speed = 0.6 + Math.random() * 0.5; // dolum hızı
+  timerIv = setInterval(() => {
+    timerVal += 0.01 * speed;
+    const fill = $('#timer-fill');
+    if (fill) fill.style.width = Math.min(100, timerVal * 100) + '%';
+    const tv = $('#timer-val');
+    if (tv) tv.textContent = timerVal.toFixed(2);
+    if (timerVal >= 1) { clearInterval(timerIv); timerVal = 1; finishTimer(); }
+  }, 10);
+}
+async function stopTimer() {
+  if (!timerIv) return;
+  clearInterval(timerIv);
+  timerIv = null;
+  haptic('impact');
+  const res = await api('/api/action', { initData: initData(), action: 'minigame', payload: { game: 'timer', stoppedAt: timerVal, target: timerTarget } });
+  if (handleActionErr(res)) return;
+  if (!res?.ok) { $('#timer-resp').className = 'resp lose'; $('#timer-resp').textContent = '⛔ ' + errText(res.error); return; }
+  const msg = res.perfect ? '⭐ MÜKEMMEL! +' + res.reward + ' 🍯' : res.reward >= 60 ? '🎯 Harika! +' + res.reward + ' 🍯' : res.reward >= 30 ? '👍 İyi! +' + res.reward + ' 🍯' : '😊 +' + res.reward + ' 🍯';
+  $('#timer-resp').className = 'resp ' + (res.perfect ? 'win' : res.reward >= 60 ? 'win' : '');
+  $('#timer-resp').textContent = msg;
+  if (res.perfect) { confetti(); Sfx.combo(3); }
+  else Sfx.daily();
+  handleRes(res);
+  // kalan hak
+  const plays = S.timerPlays || 0;
+  $('#timer-btn').textContent = plays >= 3 ? 'Haklar bitti!' : '🔄 Tekrar (hak: ' + (3 - plays) + ')';
+  $('#timer-btn').disabled = plays >= 3;
+}
+
+/* 🌈 Gökkuşağı popup */
+function showRainbow() {
+  const ov = document.createElement('div');
+  ov.className = 'rainbow-overlay show';
+  ov.innerHTML = '<div class="rainbow-card">🌈 GÖKKUŞAĞI ZİYARETİ!<br><span style="font-size:14px;font-weight:700">Üretim x2 — 10 dakika!</span></div>';
+  document.body.appendChild(ov);
+  Sfx.ach();
+  setTimeout(() => ov.remove(), 6000);
+}
 
 function renderEglence() {
   if (!S) return;
